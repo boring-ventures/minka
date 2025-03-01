@@ -1,0 +1,6 @@
+rm src/components/views/landing-page/About.tsx
+rm src/components/views/landing-page/CTA.tsx
+rm src/components/views/landing-page/Features.tsx
+rm src/components/views/landing-page/Hero.tsx
+rm src/components/views/landing-page/SocialProof.tsx
+rm src/components/views/landing-page/Testimonials.tsx 
