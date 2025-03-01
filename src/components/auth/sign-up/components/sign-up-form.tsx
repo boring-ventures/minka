@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FacebookIcon, GithubIcon, UploadCloud } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -259,41 +259,14 @@ export function SignUpForm() {
             )}
           />
 
-          <Button className="w-full" disabled={isLoading}>
+          <Button 
+            className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white" 
+            disabled={isLoading}
+          >
             Create Account
           </Button>
         </form>
       </Form>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            Or continue with
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          className="w-full"
-          type="button"
-          disabled={isLoading}
-        >
-          <GithubIcon className="h-4 w-4" /> GitHub
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full"
-          type="button"
-          disabled={isLoading}
-        >
-          <FacebookIcon className="h-4 w-4" /> Facebook
-        </Button>
-      </div>
     </div>
   );
 }
