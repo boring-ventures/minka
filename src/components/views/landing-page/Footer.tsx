@@ -1,109 +1,88 @@
-import Link from "next/link";
-import { FacebookIcon, TwitterIcon, InstagramIcon, Brain } from "lucide-react";
+import Image from "next/image"
+import Link from "next/link"
+import { Facebook, Instagram, Linkedin, PhoneIcon as WhatsApp } from "lucide-react"
 
-export default function Footer() {
+export function Footer() {
   return (
-    <footer className="bg-secondary text-foreground py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <Brain className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">
-                POSITIVE-Next
-              </span>
+    <div className="container mx-auto px-4">
+      <footer className="bg-[#2c6e49] rounded-t-3xl text-white">
+        <div className="p-8 md:p-12">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-12">
+            <div className="mb-8 md:mb-0">
+              <Image
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-2S5vgSiFRwu8gClKBuwTXkOi5H46aN.svg"
+                alt="MINKA Logo"
+                width={160}
+                height={60}
+                className="h-12 w-auto brightness-0 invert"
+              />
             </div>
-            <p className="text-muted-foreground">
-              Empowering minds for a better tomorrow.
-            </p>
+
+            <nav className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
+              <Link href="/centro-de-ayuda" className="text-white hover:text-gray-200 transition-colors">
+                Centro de ayuda
+              </Link>
+              <Link href="/donar" className="text-white hover:text-gray-200 transition-colors">
+                Donar
+              </Link>
+              <Link href="/recursos" className="text-white hover:text-gray-200 transition-colors">
+                Más recursos
+              </Link>
+              <Link href="/nosotros" className="text-white hover:text-gray-200 transition-colors">
+                Nosotros
+              </Link>
+            </nav>
           </div>
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/#features"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/#about"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/#testimonials"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Testimonials
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/terms"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/privacy"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Connect</h4>
-            <div className="flex space-x-4">
-              <a
-                href="https://facebook.com/positivenext"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary transition-colors"
+
+          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+            <p className="text-white/90 text-lg mb-6 md:mb-0">Tu apoyo tiene poder. Conecta con Minka.</p>
+
+            <div className="flex gap-4">
+              <Link
+                href="#"
+                className="bg-white rounded-full p-2.5 text-[#2c6e49] hover:bg-gray-100 transition-colors"
+                aria-label="Síguenos en Facebook"
               >
-                <FacebookIcon size={24} />
-              </a>
-              <a
-                href="https://twitter.com/positivenext"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary transition-colors"
+                <Facebook className="h-5 w-5" />
+              </Link>
+              <Link
+                href="#"
+                className="bg-white rounded-full p-2.5 text-[#2c6e49] hover:bg-gray-100 transition-colors"
+                aria-label="Síguenos en Instagram"
               >
-                <TwitterIcon size={24} />
-              </a>
-              <a
-                href="https://instagram.com/positivenext"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary transition-colors"
+                <Instagram className="h-5 w-5" />
+              </Link>
+              <Link
+                href="#"
+                className="bg-white rounded-full p-2.5 text-[#2c6e49] hover:bg-gray-100 transition-colors"
+                aria-label="Contáctanos por WhatsApp"
               >
-                <InstagramIcon size={24} />
-              </a>
+                <WhatsApp className="h-5 w-5" />
+              </Link>
+              <Link
+                href="#"
+                className="bg-white rounded-full p-2.5 text-[#2c6e49] hover:bg-gray-100 transition-colors"
+                aria-label="Síguenos en LinkedIn"
+              >
+                <Linkedin className="h-5 w-5" />
+              </Link>
             </div>
           </div>
+
+          <div className="h-px bg-[#4a8c67] mb-8" />
+
+          <div className="flex flex-col md:flex-row justify-between items-center text-sm text-white/80">
+            <p>© 2024 Minka. Todos los derechos reservados.</p>
+            <Link
+              href="/politicas-de-privacidad"
+              className="hover:text-white transition-colors underline underline-offset-4"
+            >
+              Políticas de privacidad
+            </Link>
+          </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-border text-center">
-          <p className="text-muted-foreground">
-            &copy; {new Date().getFullYear()} POSITIVE-Next. All rights
-            reserved.
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
+      </footer>
+    </div>
+  )
 }
+

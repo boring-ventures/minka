@@ -5,10 +5,23 @@ import { QueryProvider } from "@/lib/providers/QueryProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/context/theme-context";
+import { Footer } from "@/components/views/landing-page/Footer";
+import { Header } from "@/components/views/landing-page/Header";
 
-const APP_NAME = "POSITIVE-NEXT";
-const APP_DESCRIPTION = "Your Mind's Best Friend";
+const APP_NAME = "MINKA - Impulsa sueños, transforma vidas";
+const APP_DESCRIPTION =
+  "Plataforma de donaciones para causas sociales en Bolivia";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
@@ -17,6 +30,7 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
+  generator: "v0.dev",
   openGraph: {
     title: APP_NAME,
     description: APP_DESCRIPTION,
@@ -24,6 +38,11 @@ export const metadata: Metadata = {
     siteName: APP_NAME,
     locale: "es_ES",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
   },
   robots: {
     index: true,
@@ -45,17 +64,15 @@ export const metadata: Metadata = {
       url: "/apple-icon.png",
     },
   },
+  manifest: "/manifest.json",
+  keywords: [
+    "donaciones",
+    "causas sociales",
+    "bolivia",
+    "crowdfunding",
+    "ayuda social",
+  ],
 };
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export default function RootLayout({
   children,
@@ -63,12 +80,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="es" suppressHydrationWarning className="scroll-smooth">
+      <body
+        className={`
+          ${geistSans.variable} 
+          ${geistMono.variable} 
+          antialiased
+          flex 
+          min-h-screen 
+          flex-col 
+          bg-[#f5f7e9]
+        `}
+      >
         <ThemeProvider defaultTheme="system" storageKey="app-theme">
           <AuthProvider>
             <QueryProvider>
-              {children}
+              <Header />
+              <div className="flex-grow">{children}</div>
+              <Footer />
               <Toaster />
             </QueryProvider>
           </AuthProvider>
