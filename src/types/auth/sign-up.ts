@@ -14,4 +14,8 @@ export const signUpFormSchema = z.object({
 
 export type SignUpFormData = z.infer<typeof signUpFormSchema>
 
-export interface SignUpFormProps extends React.HTMLAttributes<HTMLDivElement> {}
+export interface SignUpFormProps {
+  onSubmit?: (data: SignUpFormData) => void;
+  isLoading?: boolean;
+  className?: string;
+}

@@ -47,6 +47,7 @@ export async function POST(req: Request) {
         profilePicture: profilePicture || "",
         role: role as UserRole,
         status: status as Status,
+        passwordHash: "",
         address: "",
         bio: "",
         location: "",

@@ -16,14 +16,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/utils/password-input";
-import type { SignUpFormProps, SignUpFormData } from "@/types/auth/sign-up";
+import type { SignUpFormData } from "@/types/auth/sign-up";
 import { signUpFormSchema } from "@/types/auth/sign-up";
 import { toast } from "@/components/ui/use-toast";
 import Image from "next/image";
 import { uploadAvatar } from "@/lib/supabase/upload-avatar";
 import { useRouter } from "next/navigation";
 
-export function SignUpForm({ className, ...props }: SignUpFormProps) {
+export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -77,7 +77,8 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
             console.error("Avatar upload failed:", error);
             toast({
               title: "Warning",
-              description: "Failed to upload avatar, you can add it later from your profile.",
+              description:
+                "Failed to upload avatar, you can add it later from your profile.",
               variant: "default",
             });
           }
@@ -148,7 +149,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
   }
 
   return (
-    <div className={cn("grid gap-6", className)} {...props}>
+    <div className={cn("grid gap-6")}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="flex flex-col items-center gap-4">

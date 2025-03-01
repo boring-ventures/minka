@@ -18,13 +18,26 @@ export async function GET(request: NextRequest) {
 
       if (session?.user) {
         try {
-          // Create the profile
+          const userEmail = session.user.email || "";
+          const defaultName = userEmail ? userEmail.split("@")[0] : "user";
+          
           await prisma.profile.create({
             data: {
-              userId: session.user.id,
-              firstName: "",
-              lastName: "",
-              role: "USER",
+              email: userEmail,
+              name: defaultName,
+              phone: "",
+              identityNumber: "",
+              profilePicture: "",
+              role: "user",
+              status: "active",
+              passwordHash: "",
+              address: "",
+              bio: "",
+              location: "",
+              birthDate: new Date(),
+              joinDate: new Date(),
+              activeCampaignsCount: 0,
+              verificationStatus: false,
             },
           });
         } catch (error) {

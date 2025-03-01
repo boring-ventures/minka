@@ -90,7 +90,7 @@ export function ProfileDropdown() {
               Settings
             </Link>
           </DropdownMenuItem>
-          {profile.role === "SUPERADMIN" && (
+          {profile.role === "admin" && (
             <DropdownMenuItem asChild>
               <Link href="/admin">
                 <BadgeCheck className="mr-2 h-4 w-4" />
