@@ -1,0 +1,112 @@
+Table profiles {
+  id UUID [primary key]
+  name String
+  email String [unique]
+  password_hash String
+  profile_picture String
+  role Enum("user", "organizer", "admin")
+  identity_number String [unique]
+  phone String
+  birth_date Date
+  address String
+  bio Text
+  location String
+  join_date Date
+  active_campaigns_count Integer [default: 0]
+  verification_status Boolean [default: false]
+  status Enum("active", "inactive") [default: "active"]
+  created_at Timestamp
+  updated_at Timestamp
+}
+
+Table campaigns {
+  id UUID [primary key]
+  title String
+  description Text
+  beneficiaries_description Text
+  category Enum("cultura_arte", "educación", "emergencia", "igualdad", "medioambiente", "salud")
+  goal_amount Decimal
+  collected_amount Decimal [default: 0]
+  donor_count Integer [default: 0]
+  percentage_funded Float
+  days_remaining Integer
+  youtube_url String [null]
+  location String
+  end_date Date
+  verification_status Boolean [default: false]
+  verification_date Timestamp
+  campaign_status Enum("draft", "active", "completed", "cancelled") [default: "draft"]
+  status Enum("active", "inactive") [default: "active"]
+  organizer_id UUID
+  created_at Timestamp
+  updated_at Timestamp
+}
+
+Table campaign_media {
+  id UUID [primary key]
+  campaign_id UUID
+  media_url String
+  type Enum("image", "video")
+  is_primary Boolean [default: false]
+  order_index Integer
+  status Enum("active", "inactive") [default: "active"]
+  created_at Timestamp
+  updated_at Timestamp
+}
+
+Table campaign_updates {
+  id UUID [primary key]
+  campaign_id UUID
+  title String
+  content Text
+  status Enum("active", "inactive") [default: "active"]
+  created_at Timestamp
+  updated_at Timestamp
+}
+
+Table donations {
+  id UUID [primary key]
+  campaign_id UUID 
+  donor_id UUID
+  amount Decimal
+  predefined_amount Boolean [default: true]
+  payment_method Enum("credit_card", "qr", "bank_transfer")
+  payment_status Enum("pending", "completed", "failed", "refunded") [default: "pending"]
+  message Text [null]
+  is_anonymous Boolean [default: false]
+  notification_enabled Boolean [default: false]
+  status Enum("active", "inactive") [default: "active"]
+  created_at Timestamp
+  updated_at Timestamp
+}
+
+Table comments {
+  id UUID [primary key]
+  campaign_id UUID
+  profile_id UUID
+  message Text
+  status Enum("active", "inactive") [default: "active"]
+  created_at Timestamp
+  updated_at Timestamp
+}
+
+Table saved_campaigns {
+  id UUID [primary key]
+  profile_id UUID
+  campaign_id UUID
+  status Enum("active", "inactive") [default: "active"]
+  created_at Timestamp
+  updated_at Timestamp
+}
+
+Ref: profiles.id < campaigns.organizer_id
+Ref: profiles.id < donations.donor_id [delete: cascade]
+Ref: profiles.id < comments.profile_id [delete: cascade]
+Ref: profiles.id < saved_campaigns.profile_id [delete: cascade]
+Ref: campaigns.id < campaign_media.campaign_id [delete: cascade]
+Ref: campaigns.id < campaign_updates.campaign_id [delete: cascade]
+Ref: campaigns.id < donations.campaign_id [delete: cascade]
+Ref: campaigns.id < comments.campaign_id [delete: cascade]
+Ref: campaigns.id < saved_campaigns.campaign_id [delete: cascade]
+
+Ref: "campaigns"."updated_at" < "comments"."campaign_id"
