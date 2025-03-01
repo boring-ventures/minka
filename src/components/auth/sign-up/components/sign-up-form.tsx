@@ -34,8 +34,9 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
     resolver: zodResolver(signUpFormSchema),
     defaultValues: {
       email: "",
-      firstName: "",
-      lastName: "",
+      name: "",
+      phone: "",
+      identityNumber: "",
       password: "",
       confirmPassword: "",
     },
@@ -68,10 +69,10 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
       }
 
       if (user) {
-        let avatarUrl = null;
+        let profilePicture = null;
         if (avatarFile) {
           try {
-            avatarUrl = await uploadAvatar(avatarFile, user.id);
+            profilePicture = await uploadAvatar(avatarFile, user.id);
           } catch (error) {
             console.error("Avatar upload failed:", error);
             toast({
@@ -88,11 +89,13 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userId: user.id,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            birthDate: data.birthDate,
-            avatarUrl,
+            email: data.email,
+            name: data.name,
+            phone: data.phone,
+            identityNumber: data.identityNumber,
+            profilePicture,
+            role: "user",
+            status: "active",
           }),
         });
 
@@ -185,34 +188,47 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
             )}
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>First Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="John Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="+1234567890" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="identityNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Identity Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="ID Number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}

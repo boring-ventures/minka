@@ -2,12 +2,18 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await params;
+    const { id } = params;
     const profile = await prisma.profile.findUnique({
-      where: { userId },
+      where: { id },
+      include: {
+        campaigns: true,
+        donations: true,
+        comments: true,
+        savedCampaigns: true,
+      },
     });
 
     if (!profile) {
@@ -22,8 +28,7 @@ export async function GET(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
       {
@@ -36,19 +41,24 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await params;
+    const { id } = params;
     const json = await request.json();
 
     const profile = await prisma.profile.update({
-      where: { userId },
+      where: { id },
       data: {
-        firstName: json.firstName || undefined,
-        lastName: json.lastName || undefined,
-        avatarUrl: json.avatarUrl || undefined,
+        name: json.name,
+        phone: json.phone,
+        profilePicture: json.profilePicture,
+        address: json.address,
+        bio: json.bio,
+        location: json.location,
         birthDate: json.birthDate ? new Date(json.birthDate) : undefined,
+        verificationStatus: json.verificationStatus,
+        status: json.status,
       },
     });
 
@@ -57,8 +67,7 @@ export async function PATCH(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
       {

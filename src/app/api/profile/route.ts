@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { UserRole, Prisma } from "@prisma/client";
+import type { UserRole, Status, Prisma } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
     const json = await req.json();
-    const { userId, firstName, lastName, avatarUrl } = json;
+    const { 
+      email,
+      name,
+      phone,
+      identityNumber,
+      profilePicture,
+      role = "user",
+      status = "active"
+    } = json;
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "User ID is required" }), {
+    if (!email || !name) {
+      return new Response(JSON.stringify({ error: "Email and name are required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -16,12 +24,12 @@ export async function POST(req: Request) {
 
     // Check if profile already exists
     const existingProfile = await prisma.profile.findUnique({
-      where: { userId },
+      where: { email },
     });
 
     if (existingProfile) {
       return new Response(
-        JSON.stringify({ error: "Profile already exists for this user" }),
+        JSON.stringify({ error: "Profile already exists for this email" }),
         {
           status: 409,
           headers: { "Content-Type": "application/json" },
@@ -29,39 +37,32 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create minimal profile first
+    // Create profile with all required fields
     const profile = await prisma.profile.create({
       data: {
-        userId,
-        role: "USER",
-        active: true,
+        email,
+        name,
+        phone,
+        identityNumber,
+        profilePicture: profilePicture || "",
+        role: role as UserRole,
+        status: status as Status,
+        address: "",
+        bio: "",
+        location: "",
+        birthDate: new Date(),
+        joinDate: new Date(),
+        activeCampaignsCount: 0,
+        verificationStatus: false,
       },
     });
-
-    // If successful, update with additional fields
-    if (profile) {
-      const updatedProfile = await prisma.profile.update({
-        where: { id: profile.id },
-        data: {
-          firstName: firstName || null,
-          lastName: lastName || null,
-          avatarUrl: avatarUrl || null,
-        },
-      });
-
-      return new Response(JSON.stringify({ profile: updatedProfile }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
 
     return new Response(JSON.stringify({ profile }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
       {
@@ -76,12 +77,12 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const role = searchParams.get("role");
-    const active = searchParams.get("active");
+    const status = searchParams.get("status");
 
     const whereClause: Prisma.ProfileWhereInput = {};
 
     if (role) whereClause.role = role as UserRole;
-    if (active !== null) whereClause.active = active === "true";
+    if (status) whereClause.status = status as Status;
 
     const profiles = await prisma.profile.findMany({
       where: whereClause,
