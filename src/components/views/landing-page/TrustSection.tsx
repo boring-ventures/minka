@@ -4,7 +4,7 @@ export function TrustSection() {
   return (
     <section className="container mx-auto px-4 py-24">
       <div className="text-center mb-16">
-        <h2 className="text-4xl md:text-5xl font-bold text-[#333333] mb-6">¿Por qué confiar en Minka?</h2>
+        <h2 className="text-5xl md:text-6xl font-bold text-[#333333] mb-6">¿Por qué confiar en Minka?</h2>
         <p className="text-xl text-[#555555]">Transparencia y seguridad para donar y transformar vidas.</p>
       </div>
 

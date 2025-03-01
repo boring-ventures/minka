@@ -8,7 +8,7 @@ export function StartCampaignSection() {
       <div className="container mx-auto px-4 py-16 relative z-10">
         <div className="text-center max-w-3xl mx-auto">
           <span className="text-[#2c6e49] text-2xl font-medium mb-4 block">¿Tienes una causa que necesita apoyo?</span>
-          <h2 className="text-5xl font-bold text-[#333333] mb-6 leading-tight">¡Inicia tu campaña!</h2>
+          <h2 className="text-5xl md:text-6xl font-bold text-[#333333] mb-6 leading-tight text-center">¡Inicia tu campaña!</h2>
           <p className="text-xl text-[#555555] mb-10 max-w-2xl mx-auto">
             Sigue estos sencillos pasos y empieza a recibir la ayuda que tu proyecto merece.
           </p>
