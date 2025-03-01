@@ -1,6 +1,7 @@
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
+import Link from "next/link"
 
 export function HeroSection() {
   return (
@@ -14,15 +15,19 @@ export function HeroSection() {
           plataforma segura que facilita las donaciones.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-6">
-          <Button className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3 text-xl">
-            Crear una campaña
-          </Button>
-          <Button
-            variant="outline"
-            className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full px-8 py-3 text-xl"
-          >
-            Donar <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          <Link href="/sign-up">
+            <Button className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3 text-xl w-full sm:w-auto">
+              Crear una campaña
+            </Button>
+          </Link>
+          <Link href="/sign-in">
+            <Button
+              variant="outline"
+              className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full px-8 py-3 text-xl w-full sm:w-auto"
+            >
+              Donar <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="flex justify-center">

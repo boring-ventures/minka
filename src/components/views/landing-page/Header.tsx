@@ -15,26 +15,50 @@ export function Header() {
         />
       </Link>
       <nav className="hidden md:flex items-center space-x-8">
-        <Link href="/donar" className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg">
+        <Link
+          href="/donar"
+          className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg"
+        >
           Donar
         </Link>
-        <Link href="/crear-campana" className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg">
+        <Link
+          href="/crear-campana"
+          className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg"
+        >
           Crear campaña
         </Link>
-        <Link href="/nosotros" className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg">
+        <Link
+          href="/nosotros"
+          className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg"
+        >
           Nosotros
         </Link>
-        <Link href="/ayuda" className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg">
+        <Link
+          href="/ayuda"
+          className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg"
+        >
           Ayuda
         </Link>
       </nav>
-      <Button
-        variant="outline"
-        className="rounded-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg px-6 py-2"
-      >
-        Ingresar
-      </Button>
+      <div className="flex items-center gap-4">
+        <Link href="/sign-in">
+          <Button
+            variant="ghost"
+            className="text-[#2c6e49] hover:text-[#1e4d33] text-lg"
+          >
+            Ingresar
+          </Button>
+        </Link>
+        <Link href="/sign-up">
+          <Button
+            variant="outline"
+            className="rounded-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg px-6 py-2"
+          >
+            Registrarse
+          </Button>
+        </Link>
+      </div>
     </header>
-  )
+  );
 }
 
