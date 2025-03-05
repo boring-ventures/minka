@@ -11,8 +11,9 @@ export function HeroSection() {
           Impulsa sueños, transforma vidas
         </h1>
         <p className="text-xl md:text-2xl text-[#555555] mb-10">
-          Conectamos a quienes anhelan recibir ayuda, con aquellos que quieren hacer sueños realidad, a través de una
-          plataforma segura que facilita las donaciones.
+          Conectamos a quienes anhelan recibir ayuda, con aquellos que quieren
+          hacer sueños realidad, a través de una plataforma segura que facilita
+          las donaciones.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-6">
           <Link href="/sign-up">
@@ -20,7 +21,7 @@ export function HeroSection() {
               Crear una campaña
             </Button>
           </Link>
-          <Link href="/sign-in">
+          <Link href="/campaigns">
             <Button
               variant="outline"
               className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full px-8 py-3 text-xl w-full sm:w-auto"
@@ -40,6 +41,6 @@ export function HeroSection() {
         />
       </div>
     </section>
-  )
+  );
 }
 
