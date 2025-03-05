@@ -60,8 +60,6 @@ const campaignData = {
 export default function CampaignPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
-      <Header />
-
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
