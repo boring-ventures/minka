@@ -1,4 +1,3 @@
-import { Header } from "@/components/views/landing-page/Header";
 import { CategorySelector } from "@/components/views/campaigns/CategorySelector";
 import { FilterSidebar } from "@/components/views/campaigns/FilterSidebar";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
