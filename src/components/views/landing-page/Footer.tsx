@@ -1,6 +1,11 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Facebook, Instagram, Linkedin, PhoneIcon as WhatsApp } from "lucide-react"
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  PhoneIcon as WhatsApp,
+} from "lucide-react";
 
 export function Footer() {
   return (
@@ -19,23 +24,37 @@ export function Footer() {
             </div>
 
             <nav className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
-              <Link href="/centro-de-ayuda" className="text-white hover:text-gray-200 transition-colors">
+              <Link
+                href="/centro-de-ayuda"
+                className="text-white hover:text-gray-200 transition-colors"
+              >
                 Centro de ayuda
               </Link>
-              <Link href="/donar" className="text-white hover:text-gray-200 transition-colors">
+              <Link
+                href="/campaigns"
+                className="text-white hover:text-gray-200 transition-colors"
+              >
                 Donar
               </Link>
-              <Link href="/recursos" className="text-white hover:text-gray-200 transition-colors">
+              <Link
+                href="/recursos"
+                className="text-white hover:text-gray-200 transition-colors"
+              >
                 Más recursos
               </Link>
-              <Link href="/nosotros" className="text-white hover:text-gray-200 transition-colors">
+              <Link
+                href="/nosotros"
+                className="text-white hover:text-gray-200 transition-colors"
+              >
                 Nosotros
               </Link>
             </nav>
           </div>
 
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-            <p className="text-white/90 text-lg mb-6 md:mb-0">Tu apoyo tiene poder. Conecta con Minka.</p>
+            <p className="text-white/90 text-lg mb-6 md:mb-0">
+              Tu apoyo tiene poder. Conecta con Minka.
+            </p>
 
             <div className="flex gap-4">
               <Link
@@ -83,6 +102,5 @@ export function Footer() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
-

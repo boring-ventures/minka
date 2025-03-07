@@ -1,12 +1,13 @@
-import { Button } from "@/components/ui/button"
-import { Check, Clock, Share2, Bookmark } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Check, Clock, Share2, Bookmark } from "lucide-react";
+import Link from "next/link";
 
 interface CampaignProgressProps {
-  isVerified: boolean
-  createdAt: string
-  currentAmount: number
-  targetAmount: number
-  donorsCount: number
+  isVerified: boolean;
+  createdAt: string;
+  currentAmount: number;
+  targetAmount: number;
+  donorsCount: number;
 }
 
 export function CampaignProgress({
@@ -16,7 +17,7 @@ export function CampaignProgress({
   targetAmount,
   donorsCount,
 }: CampaignProgressProps) {
-  const progress = (currentAmount / targetAmount) * 100
+  const progress = (currentAmount / targetAmount) * 100;
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -59,7 +60,7 @@ export function CampaignProgress({
 
       <div className="space-y-3">
         <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-6">
-          Donar ahora
+          <Link href="/campaigns">Donar ahora</Link>
         </Button>
         <Button
           variant="outline"
@@ -79,4 +80,3 @@ export function CampaignProgress({
     </div>
   );
 }
-

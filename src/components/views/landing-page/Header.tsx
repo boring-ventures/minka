@@ -1,6 +1,6 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
   return (
@@ -16,7 +16,7 @@ export function Header() {
       </Link>
       <nav className="hidden md:flex items-center space-x-8">
         <Link
-          href="/donar"
+          href="/campaigns"
           className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg"
         >
           Donar
@@ -61,4 +61,3 @@ export function Header() {
     </header>
   );
 }
-
