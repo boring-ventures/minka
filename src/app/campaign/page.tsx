@@ -95,13 +95,7 @@ export default function CampaignPage() {
         </div>
 
         <section className="py-16">
-          <h2 className="text-4xl font-bold text-center mb-4">
-            Únete a otras causas
-          </h2>
-          <p className="text-center text-gray-600 text-lg mb-12">
-            Juntos hacemos la diferencia ¡Apoya una campaña hoy!
-          </p>
-          <CausesSection />
+                    <CausesSection />
         </section>
       </main>
     </div>

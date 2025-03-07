@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Check, Clock, Share2, Bookmark } from "lucide-react";
-import Link from "next/link";
 
 interface CampaignProgressProps {
   isVerified: boolean;
@@ -60,7 +59,7 @@ export function CampaignProgress({
 
       <div className="space-y-3">
         <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-6">
-          <Link href="/campaigns">Donar ahora</Link>
+          Donar ahora
         </Button>
         <Button
           variant="outline"

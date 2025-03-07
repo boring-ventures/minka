@@ -16,7 +16,7 @@ export function Header() {
       </Link>
       <nav className="hidden md:flex items-center space-x-8">
         <Link
-          href="/campaigns"
+          href="/donar"
           className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg"
         >
           Donar

@@ -31,7 +31,7 @@ export function Footer() {
                 Centro de ayuda
               </Link>
               <Link
-                href="/campaigns"
+                href="/donar"
                 className="text-white hover:text-gray-200 transition-colors"
               >
                 Donar

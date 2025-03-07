@@ -1,12 +1,13 @@
 import { CategorySelector } from "@/components/views/campaigns/CategorySelector";
 import { FilterSidebar } from "@/components/views/campaigns/FilterSidebar";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
+import { CampaignsHeader } from "@/components/views/campaigns/CampaignsHeader";
 
 const mockCampaigns = [
   {
     id: "camp-001",
     title: "Protejamos juntos el Parque Nacional Amboró",
-    image: "/amboro-campaign.jpg",
+    image: "/campaigns/amboro-campaign.jpg",
     category: "Medio ambiente",
     location: "Santa Cruz",
     progress: 80,
@@ -15,7 +16,7 @@ const mockCampaigns = [
   {
     id: "camp-002",
     title: "Educación para niños en zonas rurales",
-    image: "/education-campaign.jpg",
+    image: "/campaigns/education-campaign.jpg",
     category: "Educación",
     location: "La Paz",
     progress: 65,
@@ -24,7 +25,7 @@ const mockCampaigns = [
   {
     id: "camp-003",
     title: "Apoyo a artesanos locales",
-    image: "/artisans-campaign.jpg",
+    image: "/campaigns/artisans-campaign.jpg",
     category: "Cultura y arte",
     location: "Cochabamba",
     progress: 45,
@@ -33,7 +34,7 @@ const mockCampaigns = [
   {
     id: "camp-004",
     title: "Centro de salud para comunidad indígena",
-    image: "/health-campaign.jpg",
+    image: "/campaigns/health-campaign.jpg",
     category: "Salud",
     location: "Beni",
     progress: 90,
@@ -42,7 +43,7 @@ const mockCampaigns = [
   {
     id: "camp-005",
     title: "Reforestación en la Amazonía",
-    image: "/forest-campaign.jpg",
+    image: "/campaigns/forest-campaign.jpg",
     category: "Medio ambiente",
     location: "Pando",
     progress: 30,
@@ -51,7 +52,7 @@ const mockCampaigns = [
   {
     id: "camp-006",
     title: "Empoderamiento de mujeres emprendedoras",
-    image: "/women-campaign.jpg",
+    image: "/campaigns/women-campaign.jpg",
     category: "Igualdad",
     location: "Santa Cruz",
     progress: 75,
@@ -62,17 +63,8 @@ const mockCampaigns = [
 export default function CampaignsPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
-
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto mb-16">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-center mb-6">
-            Apoya una causa, cambia una vida
-          </h1>
-          <p className="text-center text-gray-600 text-xl">
-            Explora todas las campañas activas o encuentra las de tu interés con
-            nuestro buscador
-          </p>
-        </div>
+        <CampaignsHeader />
 
         <div className="mb-12">
           <CategorySelector />

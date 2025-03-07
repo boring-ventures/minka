@@ -8,11 +8,10 @@ export function CausesSection() {
     <section className="container mx-auto px-4 py-24">
       <div className="text-center mb-16">
         <h2 className="text-5xl md:text-6xl font-bold text-[#333333] mb-6 text-center">
-          Causas que inspiran
+          Unete a otras causas
         </h2>
         <p className="text-xl text-[#555555] max-w-3xl mx-auto">
-          Conoce las causas o campañas que están activas transformando vidas ¡y
-          haz la diferencia con tu aporte!
+        Juntos hacemos la diferencia ¡Apoya una campaña hoy!
         </p>
       </div>
 
