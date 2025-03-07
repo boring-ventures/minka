@@ -72,30 +72,39 @@ export default function CampaignPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <CampaignGallery images={campaignData.images} />
+            <div className="mb-16">
+              <CampaignGallery images={campaignData.images} />
+            </div>
+
+            <div className="mb-16">
+              <CampaignDetails
+                organizer={campaignData.organizer}
+                description={campaignData.description}
+                beneficiaries={campaignData.beneficiaries}
+              />
+            </div>
+
+            <div className="mb-16">
+              <DonorComments comments={campaignData.comments} />
+            </div>
           </div>
-          <div>
+
+          <div className="hidden lg:block">
+            <div className="sticky top-24">
+              <CampaignProgress {...campaignData.progress} />
+            </div>
+          </div>
+
+          {/* Mobile version of CampaignProgress (only visible on small screens) */}
+          <div className="lg:hidden mb-16">
             <CampaignProgress {...campaignData.progress} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          <div className="lg:col-span-2">
-            <CampaignDetails
-              organizer={campaignData.organizer}
-              description={campaignData.description}
-              beneficiaries={campaignData.beneficiaries}
-            />
-            <div className="mt-12">
-              <DonorComments comments={campaignData.comments} />
-            </div>
-          </div>
-        </div>
-
         <section className="py-16">
-                    <CausesSection />
+          <CausesSection />
         </section>
       </main>
     </div>
