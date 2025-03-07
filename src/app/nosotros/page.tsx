@@ -4,6 +4,8 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const founders = [
   {
@@ -47,6 +49,11 @@ export default function NosotrosPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const totalSlides = Math.ceil(founders.length / 4);
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
 
   const scrollToSlide = (slideIndex: number) => {
     if (!scrollContainerRef.current) return;
@@ -70,6 +77,21 @@ export default function NosotrosPage() {
   const handleNextSlide = () => {
     const newSlide = Math.min(activeSlide + 1, totalSlides - 1);
     scrollToSlide(newSlide);
+  };
+
+  const handleContactChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setContactForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle form submission logic here
+    console.log("Form submitted:", contactForm);
+    // Reset form
+    setContactForm({ name: "", email: "", message: "" });
   };
 
   return (
@@ -161,6 +183,125 @@ export default function NosotrosPage() {
               >
                 <ChevronRight className="h-6 w-6" />
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Section */}
+        <div className="mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-[#f5f7e9] rounded-2xl overflow-hidden">
+            {/* Left side - Illustration */}
+            <div className="relative h-[400px] md:h-auto">
+              <Image
+                src="/contact-illustration.svg"
+                alt="Personas colaborando"
+                fill
+                className="object-contain"
+              />
+            </div>
+
+            {/* Right side - Contact Form */}
+            <div className="p-8">
+              <h2 className="text-3xl font-bold mb-6">Contáctanos</h2>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Nombre completo
+                  </label>
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="Ingresa tu nombre"
+                    value={contactForm.name}
+                    onChange={handleContactChange}
+                    required
+                    className="w-full rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Correo electrónico
+                  </label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="nombre@correo.com"
+                    value={contactForm.email}
+                    onChange={handleContactChange}
+                    required
+                    className="w-full rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="message"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Mensaje
+                  </label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    placeholder="Ejemplo: Quiero apoyar esta campaña ¿Cómo lo hago?"
+                    value={contactForm.message}
+                    onChange={handleContactChange}
+                    required
+                    className="w-full rounded-md resize-none"
+                    rows={4}
+                  />
+                  <div className="flex justify-end mt-1 text-xs text-gray-500">
+                    {contactForm.message.length}/150
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-md py-2"
+                >
+                  Enviar
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        {/* Success Stories Section */}
+        <div className="mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Left side - Image */}
+            <div className="rounded-2xl overflow-hidden">
+              <Image
+                src="/success-story.jpg"
+                alt="Historia de éxito"
+                width={600}
+                height={500}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Right side - Success Story */}
+            <div className="bg-[#2c6e49] rounded-2xl p-8 text-white flex flex-col justify-center">
+              <h2 className="text-3xl font-bold mb-4">
+                Historia de éxito en website de Minka
+              </h2>
+              <p className="mb-10">
+                Crea, comparte y logra tus metas de recaudación.
+              </p>
+              <p className="text-white/90 text-sm leading-relaxed">
+                Crea, comparte y logra tus metas de recaudación. Crea, comparte
+                y logra tus metas de recaudación. Crea, comparte y logra tus
+                metas de recaudación. Crea, comparte y logra tus metas de
+                recaudación. Crea, comparte y logra tus metas de recaudación.
+              </p>
             </div>
           </div>
         </div>
