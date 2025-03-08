@@ -20,7 +20,7 @@ export function StartCampaignSection() {
             Sigue estos sencillos pasos y empieza a recibir la ayuda que tu
             proyecto merece.
           </p>
-          <Link href="/sign-up">
+          <Link href="/create-campaign">
             <Button
               className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-xl font-medium group"
               size="lg"

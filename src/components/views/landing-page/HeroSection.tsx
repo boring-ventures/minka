@@ -18,7 +18,7 @@ export function HeroSection() {
           las donaciones.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-6">
-          <Link href="/sign-up">
+          <Link href="/create-campaign">
             <Button
               className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-xl w-full sm:w-auto"
               size="lg"
