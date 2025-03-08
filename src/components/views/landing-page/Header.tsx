@@ -29,7 +29,7 @@ export function Header() {
     { href: "/campaigns", label: "Donar" },
     { href: "/create-campaign", label: "Crear campaña" },
     { href: "/about-us", label: "Nosotros" },
-    { href: "/ayuda", label: "Ayuda" },
+    { href: "/help", label: "Ayuda" },
   ];
 
   return (

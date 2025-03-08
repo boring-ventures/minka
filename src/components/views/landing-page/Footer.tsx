@@ -27,7 +27,7 @@ export function Footer() {
 
             <nav className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
               <Link
-                href="/centro-de-ayuda"
+                href="/help"
                 className="text-white hover:text-gray-200 transition-colors"
               >
                 Centro de ayuda
