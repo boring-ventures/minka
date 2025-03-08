@@ -20,7 +20,9 @@ export function CampaignDetails({ organizer, description, beneficiaries }: Campa
       {/* Organizer Header */}
       <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
         <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
-          <span className="text-sm font-medium text-[#2c6e49]">{organizer.name[0]}</span>
+          <span className="text-sm font-medium text-[#2c6e49]">
+            {organizer.name[0]}
+          </span>
         </div>
         <div>
           <h3 className="font-medium">{organizer.name}</h3>
@@ -43,26 +45,36 @@ export function CampaignDetails({ organizer, description, beneficiaries }: Campa
 
       {/* Campaign Description */}
       <div className="space-y-4 pb-8 border-b border-gray-200">
-        <h2 className="text-2xl font-semibold text-[#2c6e49]">Descripción de la campaña</h2>
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+          Descripción de la campaña
+        </h2>
         <p className="text-gray-700 leading-relaxed">{description}</p>
       </div>
 
       {/* Beneficiaries */}
       <div className="space-y-4 pb-8 border-b border-gray-200">
-        <h2 className="text-2xl font-semibold text-[#2c6e49]">Beneficiarios</h2>
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+          Beneficiarios
+        </h2>
         <p className="text-gray-700 leading-relaxed">{beneficiaries}</p>
       </div>
 
       {/* About Organizer */}
       <div className="space-y-6 pb-8 border-b border-gray-200">
-        <h2 className="text-2xl font-semibold text-[#2c6e49]">Sobre el organizador</h2>
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+          Sobre el organizador
+        </h2>
         <div className="flex items-center gap-4">
           <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
-            <span className="text-sm font-medium text-[#2c6e49]">{organizer.name[0]}</span>
+            <span className="text-sm font-medium text-[#2c6e49]">
+              {organizer.name[0]}
+            </span>
           </div>
           <div>
             <h3 className="font-medium">{organizer.name}</h3>
-            <p className="text-sm text-gray-600">Gestor de campaña | {organizer.location}</p>
+            <p className="text-sm text-gray-600">
+              Gestor de campaña | {organizer.location}
+            </p>
           </div>
         </div>
 
@@ -77,7 +89,9 @@ export function CampaignDetails({ organizer, description, beneficiaries }: Campa
             <Award className="h-4 w-4" />
             <span>Otras campañas</span>
           </div>
-          <p className="pl-6">{organizer.successfulCampaigns} campañas exitosas</p>
+          <p className="pl-6">
+            {organizer.successfulCampaigns} campañas exitosas
+          </p>
         </div>
 
         <div>
@@ -85,13 +99,7 @@ export function CampaignDetails({ organizer, description, beneficiaries }: Campa
           <p className="text-gray-700">{organizer.bio}</p>
         </div>
       </div>
-
-      {/* Donor Comments */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-semibold text-[#2c6e49]">Palabras de apoyo de donadores</h2>
-        <p className="text-gray-600">Realiza tu donación y comparte palabras de apoyo a esta causa.</p>
-      </div>
     </div>
-  )
+  );
 }
 

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Play } from "lucide-react";
 
 interface CampaignGalleryProps {
-  images: { url: string; type: "image" | "video" }[];
+  images: { url: string; type: "image" | "video"; id: string }[];
 }
 
 export function CampaignGallery({ images }: CampaignGalleryProps) {
@@ -25,7 +25,7 @@ export function CampaignGallery({ images }: CampaignGalleryProps) {
         {images.map((image, index) => (
           <button
             type="button"
-            key={image.url}
+            key={image.id}
             onClick={() => setSelectedImage(index)}
             className={`relative aspect-[16/9] overflow-hidden rounded-xl border-2 ${
               selectedImage === index

@@ -1,9 +1,39 @@
-import { Header } from "@/components/views/landing-page/Header";
 import { CampaignGallery } from "@/components/views/campaign/CampaignGallery";
 import { CampaignProgress } from "@/components/views/campaign/CampaignProgress";
 import { CampaignDetails } from "@/components/views/campaign/CampaignDetails";
 import { DonorComments } from "@/components/views/campaign/DonorComments";
-import { CausesSection } from "@/components/views/landing-page/CausesSection";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Check } from "lucide-react";
+import Link from "next/link";
+
+// Mock data for related campaigns
+const relatedCampaigns = [
+  {
+    id: 1,
+    title: "Educación para niños en zonas rurales",
+    image: "/education-campaign.jpg",
+    category: "Educación",
+    location: "La Paz",
+    progress: 65,
+  },
+  {
+    id: 2,
+    title: "Apoyo a artesanos locales",
+    image: "/artisans-campaign.jpg",
+    category: "Cultura y arte",
+    location: "Cochabamba",
+    progress: 45,
+  },
+  {
+    id: 3,
+    title: "Centro de salud para comunidad indígena",
+    image: "/health-campaign.jpg",
+    category: "Salud",
+    location: "Beni",
+    progress: 90,
+  },
+];
 
 // This would come from your API/database
 const campaignData = {
@@ -13,9 +43,13 @@ const campaignData = {
   beneficiaries:
     "Los fondos recaudados apoyarán iniciativas lideradas por organizaciones especializadas en conservación ambiental, además de beneficiar directamente a las comunidades que rodean el parque, promoviendo prácticas sostenibles y una convivencia armoniosa con la naturaleza.",
   images: [
-    { url: "/amboro-campaign.jpg", type: "image" as const },
-    { url: "/amboro-campaign.jpg", type: "image" as const },
-    { url: "/amboro-campaign.jpg", type: "video" as const },
+    { url: "/campaign/amboro-main.jpg", type: "image" as const, id: "img-1" },
+    {
+      url: "/campaign/amboro-secondary.jpg",
+      type: "image" as const,
+      id: "img-2",
+    },
+    { url: "/campaign/amboro-video.jpg", type: "video" as const, id: "vid-1" },
   ],
   progress: {
     isVerified: true,
@@ -61,11 +95,11 @@ export default function CampaignPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
+        <div className="max-w-4xl mx-auto mb-16">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-center mb-6">
             {campaignData.title}
           </h1>
-          <p className="text-center text-gray-600 text-lg">
+          <p className="text-center text-gray-600 text-xl">
             El Parque Nacional Amboró es uno de los lugares más biodiversos del
             mundo, hogar de especies únicas y ecosistemas vitales. Su
             conservación depende de todos nosotros.
@@ -95,13 +129,75 @@ export default function CampaignPage() {
         </div>
 
         <section className="py-16">
-          <h2 className="text-4xl font-bold text-center mb-4">
+          <h2 className="text-5xl md:text-6xl font-bold text-center mb-6">
             Únete a otras causas
           </h2>
-          <p className="text-center text-gray-600 text-lg mb-12">
+          <p className="text-center text-gray-600 text-xl mb-12">
             Juntos hacemos la diferencia ¡Apoya una campaña hoy!
           </p>
-          <CausesSection />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {relatedCampaigns.map((campaign) => (
+              <div
+                key={campaign.id}
+                className="bg-white rounded-lg overflow-hidden shadow-md"
+              >
+                <div className="relative h-56">
+                  <Image
+                    src={campaign.image}
+                    alt={campaign.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center mb-3">
+                    <Check className="h-6 w-6 text-[#2c6e49] mr-3" />
+                    <h3 className="font-medium text-2xl text-[#2c6e49]">
+                      {campaign.title}
+                    </h3>
+                  </div>
+                  <div className="flex items-center text-base text-gray-600 mb-4">
+                    <span className="mr-4">{campaign.category}</span>
+                    <span>Bolivia, {campaign.location}</span>
+                  </div>
+                  <div className="mb-4">
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-[#2c6e49] h-3 rounded-full"
+                        style={{ width: `${campaign.progress}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-end mt-2">
+                      <span className="text-base text-gray-600">
+                        {campaign.progress}%
+                      </span>
+                    </div>
+                  </div>
+                  <Link href="/campaigns" className="block">
+                    <Button
+                      variant="outline"
+                      className="w-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg"
+                    >
+                      Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-center">
+            <Link href="/campaigns">
+              <Button
+                variant="outline"
+                className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-xl"
+                size="lg"
+              >
+                Ver más campañas <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
         </section>
       </main>
     </div>

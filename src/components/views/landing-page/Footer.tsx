@@ -1,6 +1,13 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Facebook, Instagram, Linkedin, PhoneIcon as WhatsApp } from "lucide-react"
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  PhoneIcon as WhatsApp,
+} from "lucide-react";
 
 export function Footer() {
   return (
@@ -26,7 +33,7 @@ export function Footer() {
                 Centro de ayuda
               </Link>
               <Link
-                href="/donar"
+                href="/campaigns"
                 className="text-white hover:text-gray-200 transition-colors"
               >
                 Donar
@@ -99,4 +106,3 @@ export function Footer() {
     </div>
   );
 }
-

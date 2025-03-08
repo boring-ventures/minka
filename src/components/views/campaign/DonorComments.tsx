@@ -12,7 +12,7 @@ interface DonorCommentsProps {
 export function DonorComments({ comments }: DonorCommentsProps) {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-[#2c6e49]">
+      <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
         Palabras de apoyo de donadores
       </h2>
       <p className="text-gray-600">

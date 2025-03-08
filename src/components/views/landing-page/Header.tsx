@@ -26,7 +26,7 @@ export function Header() {
   };
 
   const menuItems = [
-    { href: "/donar", label: "Donar" },
+    { href: "/campaigns", label: "Donar" },
     { href: "/crear-campana", label: "Crear campaña" },
     { href: "/about-us", label: "Nosotros" },
     { href: "/ayuda", label: "Ayuda" },

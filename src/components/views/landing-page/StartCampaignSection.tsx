@@ -1,6 +1,9 @@
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+"use client";
+
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export function StartCampaignSection() {
   return (
@@ -17,13 +20,15 @@ export function StartCampaignSection() {
             Sigue estos sencillos pasos y empieza a recibir la ayuda que tu
             proyecto merece.
           </p>
-          <Button
-            className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-xl font-medium group"
-            size="lg"
-          >
-            Crear campaña
-            <ArrowRight className="ml-2 h-6 w-6 inline-block transition-transform group-hover:translate-x-1" />
-          </Button>
+          <Link href="/sign-up">
+            <Button
+              className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-xl font-medium group"
+              size="lg"
+            >
+              Crear campaña
+              <ArrowRight className="ml-2 h-6 w-6 inline-block transition-transform group-hover:translate-x-1" />
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -51,4 +56,3 @@ export function StartCampaignSection() {
     </section>
   );
 }
-

@@ -1,11 +1,17 @@
-import Image from "next/image"
+"use client";
+
+import Image from "next/image";
 
 export function TrustSection() {
   return (
     <section className="container mx-auto px-4 py-24">
       <div className="text-center mb-16">
-        <h2 className="text-6xl md:text-7xl font-bold text-[#333333] mb-6">¿Por qué confiar en Minka?</h2>
-        <p className="text-xl text-[#555555]">Transparencia y seguridad para donar y transformar vidas.</p>
+        <h2 className="text-6xl md:text-7xl font-bold text-[#333333] mb-6">
+          ¿Por qué confiar en Minka?
+        </h2>
+        <p className="text-xl text-[#555555]">
+          Transparencia y seguridad para donar y transformar vidas.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
@@ -19,9 +25,12 @@ export function TrustSection() {
               className="w-16 h-16 flex-shrink-0"
             />
             <div>
-              <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">Campañas verificadas</h3>
+              <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">
+                Campañas verificadas
+              </h3>
               <p className="text-lg text-gray-600">
-                Procuramos que la mayoría de las campañas estén verificadas para asegurar su autenticidad.
+                Procuramos que la mayoría de las campañas estén verificadas para
+                asegurar su autenticidad.
               </p>
             </div>
           </div>
@@ -35,9 +44,12 @@ export function TrustSection() {
               className="w-16 h-16 flex-shrink-0"
             />
             <div>
-              <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">Transacción segura</h3>
+              <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">
+                Transacción segura
+              </h3>
               <p className="text-lg text-gray-600">
-                Trabajamos con plataformas de pago seguras para garantizar la protección de tus donaciones.
+                Trabajamos con plataformas de pago seguras para garantizar la
+                protección de tus donaciones.
               </p>
             </div>
           </div>
@@ -51,9 +63,12 @@ export function TrustSection() {
               className="w-16 h-16 flex-shrink-0"
             />
             <div>
-              <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">Impacto social</h3>
+              <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">
+                Impacto social
+              </h3>
               <p className="text-lg text-gray-600">
-                Tus aportes contribuyen a generar un impacto positivo en comunidades y proyectos.
+                Tus aportes contribuyen a generar un impacto positivo en
+                comunidades y proyectos.
               </p>
             </div>
           </div>
@@ -70,6 +85,5 @@ export function TrustSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }
-

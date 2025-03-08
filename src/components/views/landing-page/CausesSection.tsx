@@ -1,6 +1,8 @@
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Check } from "lucide-react"
+"use client";
+
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 
 export function CausesSection() {
@@ -79,4 +81,3 @@ export function CausesSection() {
     </section>
   );
 }
-
