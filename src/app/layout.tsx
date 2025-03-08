@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Quicksand, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,9 +13,11 @@ const APP_DESCRIPTION =
   "Plataforma de donaciones para causas sociales en Bolivia";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const quicksand = Quicksand({
+  variable: "--font-quicksand",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -83,13 +85,14 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning className="scroll-smooth">
       <body
         className={`
-          ${geistSans.variable} 
+          ${quicksand.variable} 
           ${geistMono.variable} 
           antialiased
           flex 
           min-h-screen 
           flex-col 
           bg-[#f5f7e9]
+          font-quicksand
         `}
       >
         <ThemeProvider defaultTheme="system" storageKey="app-theme">
