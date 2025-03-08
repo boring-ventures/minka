@@ -7,7 +7,7 @@ export function CausesSection() {
   return (
     <section className="container mx-auto px-4 py-24">
       <div className="text-center mb-16">
-        <h2 className="text-5xl md:text-6xl font-bold text-[#333333] mb-6 text-center">
+        <h2 className="text-6xl md:text-7xl font-bold text-[#333333] mb-6 text-center">
           Causas que inspiran
         </h2>
         <p className="text-xl text-[#555555] max-w-3xl mx-auto">
@@ -33,7 +33,7 @@ export function CausesSection() {
             <div className="p-6">
               <div className="flex items-center mb-3">
                 <Check className="h-6 w-6 text-[#2c6e49] mr-3" />
-                <h3 className="font-medium text-xl text-[#2c6e49]">
+                <h3 className="font-medium text-2xl text-[#2c6e49]">
                   Protejamos juntos el Parque Nacional Amboró
                 </h3>
               </div>
@@ -55,7 +55,7 @@ export function CausesSection() {
               <Link href="/campaigns" className="block">
                 <Button
                   variant="outline"
-                  className="w-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full text-lg py-3"
+                  className="w-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg"
                 >
                   Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -69,7 +69,8 @@ export function CausesSection() {
         <Link href="/campaigns">
           <Button
             variant="outline"
-            className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full text-xl px-8 py-3"
+            className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-xl"
+            size="lg"
           >
             Ver campañas <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
