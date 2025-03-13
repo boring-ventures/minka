@@ -9,4 +9,6 @@ DATABASE_URL="postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[YO
 DIRECT_URL="postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[YOUR-REGION].pooler.supabase.com:5432/postgres"
 
 # Storage
-NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=avatars 
+NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=avatars
+
+# Email 
