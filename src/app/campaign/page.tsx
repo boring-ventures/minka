@@ -1,41 +1,60 @@
 import { CampaignGallery } from "@/components/views/campaign/CampaignGallery";
 import { CampaignProgress } from "@/components/views/campaign/CampaignProgress";
-import { CampaignDetails } from "@/components/views/campaign/CampaignDetails";
-import { DonorComments } from "@/components/views/campaign/DonorComments";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
-import Image from "next/image";
+import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Clock, Award } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 // Mock data for related campaigns
 const relatedCampaigns = [
   {
     id: 1,
     title: "Educación para niños en zonas rurales",
-    image: "/education-campaign.jpg",
+    image: "/landing-page/dummies/Card/Imagen.png",
     category: "Educación",
-    location: "La Paz",
+    location: "La Paz, Bolivia",
     progress: 65,
+    description:
+      "Ayúdanos a llevar educación de calidad a niños en zonas rurales de Bolivia que no tienen acceso a escuelas o materiales educativos adecuados.",
+    donorCount: 180,
+    amountRaised: "Bs. 950,00",
   },
   {
     id: 2,
     title: "Apoyo a artesanos locales",
-    image: "/artisans-campaign.jpg",
+    image: "/landing-page/dummies/Card/Imagen.png",
     category: "Cultura y arte",
-    location: "Cochabamba",
+    location: "Cochabamba, Bolivia",
     progress: 45,
+    description:
+      "Contribuye a preservar las tradiciones artesanales bolivianas y apoya a familias que dependen de este oficio para su sustento diario.",
+    donorCount: 120,
+    amountRaised: "Bs. 750,00",
   },
   {
     id: 3,
     title: "Centro de salud para comunidad indígena",
-    image: "/health-campaign.jpg",
+    image: "/landing-page/dummies/Card/Imagen.png",
     category: "Salud",
-    location: "Beni",
+    location: "Beni, Bolivia",
     progress: 90,
+    description:
+      "Ayuda a construir un centro de salud que brindará atención médica básica a comunidades indígenas que actualmente deben recorrer largas distancias para recibir atención.",
+    donorCount: 250,
+    amountRaised: "Bs. 1.800,00",
   },
 ];
+
+// Define comment type
+interface DonorComment {
+  donor: string;
+  amount: number;
+  date: string;
+  comment: string;
+}
 
 // This would come from your API/database
 const campaignData = {
@@ -93,26 +112,176 @@ const campaignData = {
   ],
 };
 
+// Custom CampaignDetails component for this page
+function CustomCampaignDetails({
+  organizer,
+  description,
+  beneficiaries,
+}: {
+  organizer: {
+    name: string;
+    role: string;
+    location: string;
+    memberSince: string;
+    successfulCampaigns: number;
+    bio: string;
+  };
+  description: string;
+  beneficiaries: string;
+}) {
+  return (
+    <div className="space-y-8">
+      {/* Organizer Header */}
+      <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
+        <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+          <span className="text-sm font-medium text-[#2c6e49]">
+            {organizer.name[0]}
+          </span>
+        </div>
+        <div>
+          <h3 className="font-medium text-[#2c6e49]">{organizer.name}</h3>
+          <p className="text-sm text-gray-600">
+            {organizer.role} | {organizer.location}
+          </p>
+        </div>
+      </div>
+
+      {/* Verification Badge */}
+      <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/landing-page/step-2.png"
+            alt="Verified"
+            width={32}
+            height={32}
+            className="text-[#2c6e49]"
+          />
+          <span className="text-[#2c6e49] text-xl font-medium">
+            Campaña verificada por Minka
+          </span>
+        </div>
+        <Link href="#" className="text-[#2c6e49] underline text-base">
+          Más información sobre la verificación
+        </Link>
+      </div>
+
+      {/* Campaign Description */}
+      <div className="space-y-4 pb-8 border-b border-gray-200">
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+          Descripción de la campaña
+        </h2>
+        <p className="text-gray-700 leading-relaxed">{description}</p>
+      </div>
+
+      {/* Beneficiaries */}
+      <div className="space-y-4 pb-8 border-b border-gray-200">
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+          Beneficiarios
+        </h2>
+        <p className="text-gray-700 leading-relaxed">{beneficiaries}</p>
+      </div>
+
+      {/* About Organizer */}
+      <div className="space-y-6 pb-8 border-b border-gray-200">
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+          Sobre el organizador
+        </h2>
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+            <span className="text-sm font-medium text-[#2c6e49]">
+              {organizer.name[0]}
+            </span>
+          </div>
+          <div>
+            <h3 className="font-medium text-[#2c6e49]">{organizer.name}</h3>
+            <p className="text-sm text-gray-600">
+              Gestor de campaña | {organizer.location}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-[#2c6e49]" />
+            <span className="text-lg font-medium text-[#2c6e49]">
+              Tiempo en la plataforma
+            </span>
+          </div>
+          <p className="pl-6 text-lg">Miembro desde {organizer.memberSince}</p>
+
+          <div className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-[#2c6e49]" />
+            <span className="text-lg font-medium text-[#2c6e49]">
+              Otras campañas
+            </span>
+          </div>
+          <p className="pl-6 text-lg">
+            {organizer.successfulCampaigns} campañas exitosas
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-medium mb-2 text-xl text-[#2c6e49]">Biografía</h4>
+          <p className="text-black">{organizer.bio}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Custom DonorComments component for this page
+function CustomDonorComments({ comments }: { comments: DonorComment[] }) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+        Palabras de apoyo de donadores
+      </h2>
+      <div className="space-y-6">
+        {comments.map((comment) => (
+          <div
+            key={`${comment.donor}-${comment.date}-${comment.amount}`}
+            className="bg-white rounded-lg p-6 shadow-sm border border-gray-100"
+          >
+            <div className="flex justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+                  <span className="text-sm font-medium text-[#2c6e49]">
+                    {comment.donor[0]}
+                  </span>
+                </div>
+                <div>
+                  <h4 className="font-medium">{comment.donor}</h4>
+                  <p className="text-sm text-gray-600">Hace {comment.date}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Donación</p>
+                <p className="font-medium">Bs. {comment.amount}</p>
+              </div>
+            </div>
+            <p className="text-black">{comment.comment}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function CampaignPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
       <Header />
       <main className="container mx-auto px-4 py-8">
         {/* Campaign Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-[#2c6e49] mb-4">
-            Protejamos juntos el Parque Nacional Amboró
+        <div className="mb-8 text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-[#333333] mb-6">
+            {campaignData.title}
           </h1>
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full">
-              Medio ambiente
-            </span>
-            <span>Santa Cruz, Bolivia</span>
-            <span className="flex items-center gap-1">
-              <Check size={16} className="text-green-600" />
-              Verificado
-            </span>
-          </div>
+          <p className="text-xl md:text-2xl text-[#555555] max-w-3xl mx-auto">
+            El Parque Nacional Amboró es uno de los lugares más biodiversos del
+            mundo, hogar de especies únicas y ecosistemas vitales. Su
+            conservación depende de todos nosotros.
+          </p>
         </div>
 
         {/* Main Content */}
@@ -131,71 +300,53 @@ export default function CampaignPage() {
         {/* Campaign Details */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
           <div className="lg:col-span-2">
-            <CampaignDetails
+            <CustomCampaignDetails
               organizer={campaignData.organizer}
               description={campaignData.description}
               beneficiaries={campaignData.beneficiaries}
             />
             <div className="mt-12">
-              <DonorComments comments={campaignData.comments} />
+              <CustomDonorComments comments={campaignData.comments} />
             </div>
           </div>
         </div>
 
         {/* Related Campaigns */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-bold text-[#2c6e49] mb-6">
-            Campañas relacionadas
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="mt-24">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-bold text-[#333333] mb-6">
+              Únete a otras causas
+            </h2>
+            <p className="text-xl md:text-2xl text-[#555555] max-w-3xl mx-auto">
+              Juntos hacemos la diferencia. ¡Apoya una campaña hoy!
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             {relatedCampaigns.map((campaign) => (
-              <div
+              <CampaignCard
                 key={campaign.id}
-                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-              >
-                <div className="relative h-48">
-                  <Image
-                    src={campaign.image}
-                    alt={campaign.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-green-700 bg-green-50 px-2 py-1 rounded">
-                      {campaign.category}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {campaign.location}
-                    </span>
-                  </div>
-                  <h3 className="font-bold mb-2 line-clamp-2">
-                    {campaign.title}
-                  </h3>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: `${campaign.progress}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">
-                      {campaign.progress}% completado
-                    </span>
-                    <Link href={`/campaign?id=${campaign.id}`}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-green-700 hover:text-green-800 p-0"
-                      >
-                        Ver más <ArrowRight size={16} className="ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+                id={campaign.id}
+                title={campaign.title}
+                image={campaign.image}
+                category={campaign.category}
+                location={campaign.location}
+                progress={campaign.progress}
+                verified={true}
+                description={campaign.description}
+                donorCount={campaign.donorCount}
+                amountRaised={campaign.amountRaised}
+              />
             ))}
+          </div>
+          <div className="flex justify-center">
+            <Link href="/campaigns">
+              <Button
+                className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white text-xl shadow-none border-0 rounded-full"
+                size="lg"
+              >
+                Ver más campañas <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </section>
       </main>
