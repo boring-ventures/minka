@@ -13,7 +13,7 @@ export function FilterSidebar() {
 
       {/* Search bar */}
       <div className="relative mb-8">
-        <div className="relative rounded-full border border-gray-300 bg-white flex items-center px-4 py-2">
+        <div className="relative rounded-full border border-gray-300  flex items-center px-4 py-2">
           <Search className="h-5 w-5 text-gray-400 mr-2" />
           <input
             type="text"

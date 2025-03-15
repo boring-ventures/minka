@@ -35,32 +35,34 @@ export function CategorySelector() {
             key={category.id}
             onClick={() => setSelectedCategory(category.id)}
             className={cn(
-              "flex flex-col items-center justify-center px-6 py-4 rounded-xl border transition-all flex-shrink-0",
-              "hover:border-[#2c6e49] hover:shadow-sm",
-              "w-[140px]",
+              "flex flex-row items-start justify-start px-6 py-4 rounded-xl border border-[#2c6e49] transition-all flex-shrink-0",
+              "hover:shadow-sm",
+              "w-[180px]",
               selectedCategory === category.id
-                ? "border-[#2c6e49] bg-[#f8f9fa]"
-                : "border-gray-200 bg-white"
+                ? "bg-[#f8f9fa] border-[#2c6e49] border-2"
+                : "bg-transparent"
             )}
           >
-            <Icon
-              className={cn(
-                "h-6 w-6 mb-2",
-                selectedCategory === category.id
-                  ? "text-[#2c6e49]"
-                  : "text-gray-600"
-              )}
-            />
-            <span
-              className={cn(
-                "text-base font-medium text-center",
-                selectedCategory === category.id
-                  ? "text-[#2c6e49]"
-                  : "text-gray-600"
-              )}
-            >
-              {category.label}
-            </span>
+            <div className="flex flex-col items-start">
+              <Icon
+                className={cn(
+                  "h-6 w-6 mb-2",
+                  selectedCategory === category.id
+                    ? "text-[#2c6e49]"
+                    : "text-gray-600"
+                )}
+              />
+              <span
+                className={cn(
+                  "text-base font-medium text-left",
+                  selectedCategory === category.id
+                    ? "text-[#2c6e49]"
+                    : "text-gray-600"
+                )}
+              >
+                {category.label}
+              </span>
+            </div>
           </button>
         );
       })}
