@@ -7,6 +7,7 @@ export function TestimonialsSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const [visibleItems, setVisibleItems] = useState(3);
 
   const testimonials = [
     {
@@ -30,48 +31,91 @@ export function TestimonialsSection() {
       author: "María Vargas",
       role: "Donante Frecuente",
     },
+    {
+      id: 4,
+      quote:
+        "Minka ha transformado la manera en que apoyamos causas sociales en Bolivia. Su plataforma facilita la conexión entre proyectos importantes y personas que quieren ayudar.",
+      author: "Roberto Flores",
+      role: "Empresario Social",
+    },
+    {
+      id: 5,
+      quote:
+        "La experiencia de usuario en Minka es excepcional. Pude crear mi campaña rápidamente y el soporte del equipo fue fundamental para alcanzar nuestras metas de recaudación.",
+      author: "Ana Gutiérrez",
+      role: "Directora de ONG",
+    },
+    {
+      id: 6,
+      quote:
+        "Lo que más valoro de Minka es la comunidad que se forma alrededor de cada causa. No solo recaudamos fondos, sino que encontramos aliados comprometidos con nuestro proyecto.",
+      author: "Daniel Rojas",
+      role: "Educador Ambiental",
+    },
   ];
 
-  // Check if we're on mobile
+  // Check if we're on mobile and set visible items
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+
+      if (width >= 1280) {
+        setVisibleItems(3);
+      } else if (width >= 768) {
+        setVisibleItems(2);
+      } else {
+        setVisibleItems(1);
+      }
     };
 
-    checkIfMobile();
-    window.addEventListener("resize", checkIfMobile);
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
 
     return () => {
-      window.removeEventListener("resize", checkIfMobile);
+      window.removeEventListener("resize", checkScreenSize);
     };
   }, []);
 
   const nextSlide = useCallback(() => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === testimonials.length - 1 ? 0 : prevIndex + 1
-    );
-  }, [testimonials.length]);
+    setCurrentIndex((prevIndex) => {
+      const nextIndex = prevIndex + 1;
+      return nextIndex >= testimonials.length ? 0 : nextIndex;
+    });
+  }, []);
 
   const prevSlide = useCallback(() => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === 0 ? testimonials.length - 1 : prevIndex - 1
-    );
-  }, [testimonials.length]);
+    setCurrentIndex((prevIndex) => {
+      const nextIndex = prevIndex - 1;
+      return nextIndex < 0 ? testimonials.length - 1 : nextIndex;
+    });
+  }, []);
 
   const goToSlide = useCallback((index: number) => {
     setCurrentIndex(index);
   }, []);
 
-  // Auto-advance carousel every 5 seconds on mobile
+  // Auto-advance carousel every 5 seconds
   useEffect(() => {
-    if (!isMobile) return;
-
     const interval = setInterval(() => {
       nextSlide();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isMobile, nextSlide]);
+  }, [nextSlide]);
+
+  // Calculate visible testimonials based on current index and visible items
+  const getVisibleTestimonials = () => {
+    const maxIndex = testimonials.length - 1;
+    const indices = [];
+
+    for (let i = 0; i < visibleItems; i++) {
+      const index = (currentIndex + i) % testimonials.length;
+      indices.push(index);
+    }
+
+    return indices.map((index) => testimonials[index]);
+  };
 
   return (
     <section className="bg-[#f5f7e9] py-24">
@@ -80,55 +124,25 @@ export function TestimonialsSection() {
           Nuestra comunidad
         </h2>
 
-        {/* Desktop view - grid */}
-        {!isMobile && (
-          <div className="hidden md:grid grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {testimonials.map((testimonial) => (
-              <div
-                key={testimonial.id}
-                className="testimonial-card bg-white rounded-xl shadow-lg p-8 text-center animate-float"
-              >
-                <div className="mb-8">
-                  <svg
-                    className="w-10 h-10 text-[#2c6e49] mx-auto mb-4 opacity-20"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-label="Quote Icon"
-                    role="img"
-                  >
-                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                  </svg>
-                  <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                    {testimonial.quote}
-                  </p>
-                </div>
-                <div className="animate-fade-in">
-                  <p className="font-medium text-xl text-[#2c6e49] mb-1">
-                    {testimonial.author}
-                  </p>
-                  <p className="text-lg text-gray-500">{testimonial.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Mobile view - carousel */}
-        {isMobile && (
-          <div className="md:hidden relative max-w-md mx-auto">
-            <div ref={carouselRef} className="overflow-hidden">
-              <div
-                className="flex transition-transform duration-300 ease-in-out"
-                style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-              >
-                {testimonials.map((testimonial) => (
-                  <div
-                    key={testimonial.id}
-                    className="testimonial-card bg-white rounded-xl shadow-lg p-6 text-center min-w-full"
-                  >
-                    <div className="mb-6">
+        {/* Carousel for both mobile and desktop */}
+        <div className="relative max-w-6xl mx-auto">
+          <div ref={carouselRef} className="overflow-hidden">
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{
+                transform: `translateX(-${currentIndex * (100 / visibleItems)}%)`,
+              }}
+            >
+              {testimonials.map((testimonial) => (
+                <div
+                  key={testimonial.id}
+                  className="px-3 md:px-4 py-2"
+                  style={{ flex: `0 0 ${100 / visibleItems}%` }}
+                >
+                  <div className="testimonial-card bg-white rounded-xl shadow-lg p-6 md:p-8 text-center h-full transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+                    <div className="mb-6 md:mb-8">
                       <svg
-                        className="w-8 h-8 text-[#2c6e49] mx-auto mb-3 opacity-20"
+                        className="w-8 h-8 md:w-10 md:h-10 text-[#2c6e49] mx-auto mb-3 md:mb-4 opacity-20"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                         aria-label="Quote Icon"
@@ -136,59 +150,59 @@ export function TestimonialsSection() {
                       >
                         <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                       </svg>
-                      <p className="text-base text-gray-600 mb-5 leading-relaxed">
+                      <p className="text-base md:text-lg text-gray-600 mb-5 md:mb-6 leading-relaxed">
                         {testimonial.quote}
                       </p>
                     </div>
-                    <div>
-                      <p className="font-medium text-lg text-[#2c6e49] mb-1">
+                    <div className="animate-fade-in">
+                      <p className="font-medium text-lg md:text-xl text-[#2c6e49] mb-1">
                         {testimonial.author}
                       </p>
-                      <p className="text-base text-gray-500">
+                      <p className="text-base md:text-lg text-gray-500">
                         {testimonial.role}
                       </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Navigation arrows */}
-            <button
-              onClick={prevSlide}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white rounded-full p-2 shadow-md z-10"
-              aria-label="Previous testimonial"
-              type="button"
-            >
-              <ChevronLeft className="h-5 w-5 text-[#2c6e49]" />
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 bg-white rounded-full p-2 shadow-md z-10"
-              aria-label="Next testimonial"
-              type="button"
-            >
-              <ChevronRight className="h-5 w-5 text-[#2c6e49]" />
-            </button>
-
-            {/* Navigation dots */}
-            <div className="flex justify-center mt-6 space-x-2">
-              {testimonials.map((testimonial, index) => (
-                <button
-                  key={testimonial.id}
-                  onClick={() => goToSlide(index)}
-                  className={`h-2 rounded-full transition-all ${
-                    currentIndex === index
-                      ? "w-6 bg-[#2c6e49]"
-                      : "w-2 bg-gray-300"
-                  }`}
-                  aria-label={`Go to testimonial ${index + 1}`}
-                  type="button"
-                />
+                </div>
               ))}
             </div>
           </div>
-        )}
+
+          {/* Navigation arrows */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 md:-translate-x-6 bg-white rounded-full p-2 shadow-md z-10 hover:bg-gray-100 transition-colors"
+            aria-label="Previous testimonial"
+            type="button"
+          >
+            <ChevronLeft className="h-5 w-5 md:h-6 md:w-6 text-[#2c6e49]" />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 md:translate-x-6 bg-white rounded-full p-2 shadow-md z-10 hover:bg-gray-100 transition-colors"
+            aria-label="Next testimonial"
+            type="button"
+          >
+            <ChevronRight className="h-5 w-5 md:h-6 md:w-6 text-[#2c6e49]" />
+          </button>
+
+          {/* Navigation dots */}
+          <div className="flex justify-center mt-8 space-x-2">
+            {testimonials.map((testimonial, index) => (
+              <button
+                key={testimonial.id}
+                onClick={() => goToSlide(index)}
+                className={`h-2 rounded-full transition-all ${
+                  index >= currentIndex && index < currentIndex + visibleItems
+                    ? "w-6 bg-[#2c6e49]"
+                    : "w-2 bg-gray-300"
+                }`}
+                aria-label={`Go to testimonial ${index + 1}`}
+                type="button"
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
