@@ -1,8 +1,12 @@
+"use client";
+
 import { CategorySelector } from "@/components/views/campaigns/CategorySelector";
 import { FilterSidebar } from "@/components/views/campaigns/FilterSidebar";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 
 const mockCampaigns = [
   {
@@ -85,7 +89,30 @@ const mockCampaigns = [
   },
 ];
 
+type SortOption = {
+  id: string;
+  label: string;
+};
+
+const sortOptions: SortOption[] = [
+  { id: "popular", label: "Más populares" },
+  { id: "nearby", label: "Cerca a ti" },
+  { id: "ongs", label: "ONGs" },
+];
+
 export default function CampaignsPage() {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedSort, setSelectedSort] = useState<SortOption>(sortOptions[0]);
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const selectOption = (option: SortOption) => {
+    setSelectedSort(option);
+    setIsDropdownOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
       <Header />
@@ -108,9 +135,54 @@ export default function CampaignsPage() {
           <FilterSidebar />
 
           <div className="flex-1">
-            <h2 className="text-3xl font-bold text-[#2c6e49] mb-8">
-              Campañas activas
-            </h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+              <div>
+                <h2 className="text-3xl font-bold text-[#333333]">
+                  Todas las campañas
+                </h2>
+                <p className="text-xl text-[#555555]">148 Resultados</p>
+              </div>
+
+              <div className="relative mt-4 sm:mt-0">
+                <div className="flex items-center">
+                  <span className="mr-3 text-[#555555] font-medium">
+                    Ordenar por:
+                  </span>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={toggleDropdown}
+                      className="flex items-center justify-between bg-transparent py-2 px-4 min-w-[160px] text-[#333333] font-medium focus:outline-none"
+                    >
+                      <span>{selectedSort.label}</span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-gray-600 ml-2 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+
+                    {isDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-sm z-10">
+                        {sortOptions.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => selectOption(option)}
+                            className={`block w-full text-left px-4 py-2 hover:bg-[#e9ebd8] ${
+                              selectedSort.id === option.id
+                                ? "text-[#2c6e49] font-medium"
+                                : "text-[#333333]"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {mockCampaigns.map((campaign) => (
                 <CampaignCard
