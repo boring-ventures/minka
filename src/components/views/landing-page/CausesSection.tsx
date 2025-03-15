@@ -51,7 +51,7 @@ export function CausesSection() {
         <h2 className="text-6xl md:text-7xl font-bold text-[#333333] mb-6 text-center">
           Causas que inspiran
         </h2>
-        <p className="text-xl text-[#555555] max-w-3xl mx-auto">
+        <p className="text-2xl md:text-3xl text-[#555555] max-w-3xl mx-auto">
           Conoce las causas o campañas que están activas transformando vidas ¡y
           haz la diferencia con tu aporte!
         </p>
@@ -90,11 +90,15 @@ export function CausesSection() {
                 </h3>
               </div>
               <div className="flex items-center text-base text-gray-600 mb-4">
-                <span className="mr-4">{campaign.category}</span>
-                <span>{campaign.location}</span>
+                <span className="mr-4 bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+                  {campaign.category}
+                </span>
+                <span className="bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+                  {campaign.location}
+                </span>
               </div>
               <div className="mb-4">
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-[#d1e7dd] rounded-full h-3">
                   <div
                     className="bg-[#2c6e49] h-3 rounded-full"
                     style={{ width: `${campaign.progress}%` }}
@@ -107,7 +111,7 @@ export function CausesSection() {
                 </div>
               </div>
               <Link href="/campaigns" className="block">
-                <Button className="w-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0">
+                <Button className="w-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start">
                   Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -133,8 +137,12 @@ export function CausesSection() {
               </div>
 
               <div className="flex items-center text-base text-gray-600 mb-3">
-                <span className="mr-4">{campaign.category}</span>
-                <span>{campaign.location}</span>
+                <span className="mr-4 border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+                  {campaign.category}
+                </span>
+                <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+                  {campaign.location}
+                </span>
               </div>
 
               <p className="text-gray-600 mb-4 flex-grow">
@@ -153,7 +161,7 @@ export function CausesSection() {
               </div>
 
               <div className="mb-4">
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-[#d1e7dd] rounded-full h-3">
                   <div
                     className="bg-[#2c6e49] h-3 rounded-full"
                     style={{ width: `${campaign.progress}%` }}
@@ -167,7 +175,7 @@ export function CausesSection() {
               </div>
 
               <Link href="/campaigns" className="block">
-                <Button className="w-full bg-[#2c6e49] text-white hover:bg-[#1e4d33] text-lg shadow-none border-0">
+                <Button className="w-full bg-[#2c6e49] text-white hover:bg-[#1e4d33] text-lg shadow-none border-0 rounded-full justify-start">
                   Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -179,7 +187,7 @@ export function CausesSection() {
       <div className="flex justify-center">
         <Link href="/campaigns">
           <Button
-            className="bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-xl shadow-none border-0"
+            className="bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-xl shadow-none border-0 rounded-full"
             size="lg"
           >
             Ver campañas <ArrowRight className="ml-2 h-5 w-5" />

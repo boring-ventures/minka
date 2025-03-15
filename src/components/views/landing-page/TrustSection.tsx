@@ -9,7 +9,7 @@ export function TrustSection() {
         <h2 className="text-6xl md:text-7xl font-bold text-[#333333] mb-6">
           ¿Por qué confiar en Minka?
         </h2>
-        <p className="text-xl text-[#555555]">
+        <p className="text-2xl md:text-3xl text-[#555555]">
           Transparencia y seguridad para donar y transformar vidas.
         </p>
       </div>
@@ -28,7 +28,7 @@ export function TrustSection() {
               <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">
                 Campañas verificadas
               </h3>
-              <p className="text-lg text-gray-600">
+              <p className="text-xl md:text-2xl text-gray-600">
                 Procuramos que la mayoría de las campañas estén verificadas para
                 asegurar su autenticidad.
               </p>
@@ -47,7 +47,7 @@ export function TrustSection() {
               <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">
                 Transacción segura
               </h3>
-              <p className="text-lg text-gray-600">
+              <p className="text-xl md:text-2xl text-gray-600">
                 Trabajamos con plataformas de pago seguras para garantizar la
                 protección de tus donaciones.
               </p>
@@ -66,7 +66,7 @@ export function TrustSection() {
               <h3 className="text-3xl font-medium text-[#2c6e49] mb-3">
                 Impacto social
               </h3>
-              <p className="text-lg text-gray-600">
+              <p className="text-xl md:text-2xl text-gray-600">
                 Tus aportes contribuyen a generar un impacto positivo en
                 comunidades y proyectos.
               </p>

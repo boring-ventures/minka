@@ -161,17 +161,16 @@ export function StartCampaignSection() {
               <h2 className="text-6xl md:text-7xl font-bold text-[#333333] mb-6 leading-tight text-center">
                 ¡Inicia tu campaña!
               </h2>
-              <p className="text-xl text-[#555555] mb-10 max-w-2xl mx-auto">
+              <p className="text-2xl md:text-3xl text-[#555555] mb-10 max-w-2xl mx-auto">
                 Sigue estos sencillos pasos y empieza a recibir la ayuda que tu
                 proyecto merece.
               </p>
               <Link href="/create-campaign">
                 <Button
-                  className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-xl font-medium group"
+                  className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] text-xl px-8 py-4 h-auto rounded-full"
                   size="lg"
                 >
-                  Crear campaña
-                  <ArrowRight className="ml-2 h-6 w-6 inline-block transition-transform group-hover:translate-x-1" />
+                  Crear campaña <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             </div>
@@ -212,18 +211,18 @@ export function StartCampaignSection() {
                 </h2>
 
                 {/* Step description */}
-                <p className="text-xl text-[#555555] mb-8 max-w-2xl mx-auto">
+                <p className="text-2xl md:text-3xl text-[#555555] mb-8 max-w-2xl mx-auto">
                   {step.description}
                 </p>
 
                 {/* Step button */}
                 <Link href={step.buttonLink}>
                   <Button
-                    className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white font-medium group"
+                    className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-xl px-8 py-4 h-auto rounded-full"
                     size="lg"
                   >
                     {step.buttonText}
-                    <ArrowRight className="ml-2 h-5 w-5 inline-block transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               </div>
