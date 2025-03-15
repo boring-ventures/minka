@@ -16,7 +16,7 @@ export function StartCampaignSection() {
     {
       id: "create",
       step: "01",
-      icon: "/icons/create-campaign.svg",
+      icon: "/landing-page/step-1.svg",
       title: "Crea tu campaña",
       description:
         "Establece tu meta y cuenta tu historia para inspirar a más personas.",
@@ -26,7 +26,7 @@ export function StartCampaignSection() {
     {
       id: "verify",
       step: "02",
-      icon: "/icons/verify-campaign.svg",
+      icon: "/landing-page/step-2.png",
       title: "Verifica tu campaña",
       description:
         "Completa este proceso para garantizar confianza y transparencia.",
@@ -36,7 +36,7 @@ export function StartCampaignSection() {
     {
       id: "share",
       step: "03",
-      icon: "/icons/share-campaign.svg",
+      icon: "/landing-page/step-3.svg",
       title: "Comparte tu campaña",
       description: "Difunde tu causa y atrae el apoyo que necesitas.",
       buttonText: "Crear campaña",
@@ -45,7 +45,7 @@ export function StartCampaignSection() {
     {
       id: "manage",
       step: "04",
-      icon: "/icons/manage-funds.svg",
+      icon: "/landing-page/step-4.svg",
       title: "Gestiona y retira los fondos",
       description:
         "Utiliza los fondos recaudados para hacer realidad tu propósito.",
@@ -191,16 +191,14 @@ export function StartCampaignSection() {
             <div className="container mx-auto px-4">
               <div className="max-w-3xl mx-auto text-center">
                 {/* Step icon */}
-                <div className="inline-flex items-center justify-center mb-2">
-                  <div className="w-16 h-16 flex items-center justify-center">
-                    <Image
-                      src={step.icon}
-                      alt={`Step ${step.step} icon`}
-                      width={48}
-                      height={48}
-                      className="text-[#2c6e49]"
-                    />
-                  </div>
+                <div className="mb-4">
+                  <Image
+                    src={step.icon}
+                    alt={`Step ${step.step} icon`}
+                    width={64}
+                    height={64}
+                    className="mx-auto"
+                  />
                 </div>
 
                 {/* Step number */}
