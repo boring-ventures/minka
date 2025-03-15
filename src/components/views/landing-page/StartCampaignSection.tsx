@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 export function StartCampaignSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const [activeStep, setActiveStep] = useState(-1); // Start with -1 to show intro first
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Campaign steps data
   const campaignSteps = [
@@ -63,6 +64,13 @@ export function StartCampaignSection() {
       const sectionHeight = sectionRef.current.offsetHeight;
       const windowHeight = window.innerHeight;
 
+      // Hide scroll prompt after user has started scrolling
+      if (window.scrollY > 100) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+
       // If section is not yet in view, reset to intro
       if (sectionTop > windowHeight) {
         setActiveStep(-1);
@@ -108,7 +116,7 @@ export function StartCampaignSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative w-full h-[300vh]">
+    <section ref={sectionRef} className="relative w-full h-[400vh]">
       {/* Content container - sticky positioned to follow scroll */}
       <div className="sticky top-0 left-0 w-full h-screen flex items-center justify-center overflow-hidden bg-[#f5f7e9]">
         {/* Background SVG */}
@@ -121,6 +129,22 @@ export function StartCampaignSection() {
             priority
             className="h-auto w-full"
           />
+        </div>
+
+        {/* Scroll down prompt */}
+        <div
+          className={`absolute bottom-12 left-1/2 transform -translate-x-1/2 z-20 transition-opacity duration-500 ${
+            isScrolled ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          <div className="flex flex-col items-center">
+            <p className="text-[#2c6e49] font-medium mb-2">
+              Desplázate para descubrir
+            </p>
+            <div className="animate-bounce bg-[#2c6e49] rounded-full p-2">
+              <ChevronDown className="h-6 w-6 text-white" />
+            </div>
+          </div>
         </div>
 
         {/* Intro section */}
