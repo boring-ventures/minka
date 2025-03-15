@@ -9,12 +9,13 @@ export function HeroSection() {
   return (
     <section className="container mx-auto px-4 py-20 md:py-28">
       <div className="max-w-4xl mx-auto text-center mb-16">
-        <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
-          Juntos podemos <br /> hacer la diferencia
+        <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold text-[#333333] mb-8">
+          Impulsa sueños, transforma vidas
         </h1>
-        <p className="text-2xl md:text-3xl mb-10 max-w-2xl">
-          Minka es la plataforma boliviana que conecta causas importantes con
-          personas que quieren ayudar.
+        <p className="text-2xl md:text-3xl text-[#555555] mb-10">
+          Conectamos a quienes anhelan recibir ayuda, con aquellos que quieren
+          hacer sueños realidad, a través de una plataforma segura que facilita
+          las donaciones.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-6">
           <Link href="/create-campaign">
