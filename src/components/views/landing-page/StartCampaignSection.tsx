@@ -7,7 +7,19 @@ import Link from "next/link";
 
 export function StartCampaignSection() {
   return (
-    <section className="relative w-full min-h-[80vh] flex items-center overflow-hidden">
+    <section className="relative w-full min-h-[80vh] flex items-center overflow-hidden bg-[#f5f7e9]">
+      {/* Background SVG covering the screen width */}
+      <div className="absolute bottom-0 left-0 right-0 z-0">
+        <Image
+          src="/auth/auth-bg.svg"
+          alt="Background with plants"
+          width={1440}
+          height={535}
+          priority
+          className="h-auto w-full"
+        />
+      </div>
+
       <div className="container mx-auto px-4 py-16 relative z-10">
         <div className="text-center max-w-3xl mx-auto">
           <span className="text-[#2c6e49] text-2xl font-medium mb-4 block">
@@ -30,28 +42,6 @@ export function StartCampaignSection() {
             </Button>
           </Link>
         </div>
-      </div>
-
-      {/* Background Images */}
-      <div className="absolute bottom-0 left-0 w-[541px] z-0">
-        <Image
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bushes-NKKZS522gupwFIzzHDRnVvddBZlT0K.svg"
-          alt="Background bushes"
-          width={541}
-          height={540}
-          className="w-full"
-          priority
-        />
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 z-[1]">
-        <Image
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/llama-dTq3LY2686U144YpUEJy0gWR2xB2P9.svg"
-          alt="Inicia tu campaña"
-          width={1920}
-          height={972}
-          className="w-full"
-          priority
-        />
       </div>
     </section>
   );

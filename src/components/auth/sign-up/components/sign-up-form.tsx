@@ -8,37 +8,46 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { useRouter } from "next/navigation";
 import { z } from "zod";
-import {
-  Facebook,
-  Mail,
-  Calendar,
-  User,
-  Phone,
-  FileText,
-  ChevronDown,
-  Apple,
-} from "lucide-react";
+import { Facebook, Mail, Calendar, ChevronDown, Apple } from "lucide-react";
+import { signInWithSocial } from "@/lib/supabase-auth";
 
-const signUpFormSchema = z.object({
-  firstName: z.string().min(1, "El nombre es requerido"),
-  lastName: z.string().min(1, "Los apellidos son requeridos"),
-  documentId: z.string().min(1, "El número de DNI es requerido"),
-  birthDate: z.string().min(1, "La fecha de nacimiento es requerida"),
-  email: z.string().email("Ingresa un correo electrónico válido"),
-  phone: z.string().min(1, "El número de teléfono es requerido"),
-  acceptTerms: z.boolean().refine((val) => val === true, {
-    message: "Debes aceptar los términos y condiciones",
-  }),
-});
+const signUpFormSchema = z
+  .object({
+    firstName: z.string().min(1, "El nombre es requerido"),
+    lastName: z.string().min(1, "Los apellidos son requeridos"),
+    documentId: z.string().min(1, "El número de DNI es requerido"),
+    birthDate: z.string().min(1, "La fecha de nacimiento es requerida"),
+    email: z.string().email("Ingresa un correo electrónico válido"),
+    phone: z.string().min(1, "El número de teléfono es requerido"),
+    password: z
+      .string()
+      .min(8, "La contraseña debe tener al menos 8 caracteres")
+      .regex(
+        /[A-Z]/,
+        "La contraseña debe contener al menos una letra mayúscula"
+      )
+      .regex(
+        /[a-z]/,
+        "La contraseña debe contener al menos una letra minúscula"
+      )
+      .regex(/[0-9]/, "La contraseña debe contener al menos un número"),
+    confirmPassword: z.string().min(1, "Confirma tu contraseña"),
+    acceptTerms: z.boolean().refine((val) => val === true, {
+      message: "Debes aceptar los términos y condiciones",
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
 
 type SignUpFormData = z.infer<typeof signUpFormSchema>;
 
 export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { signUp } = useAuth();
-  const router = useRouter();
 
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpFormSchema),
@@ -49,6 +58,8 @@ export function SignUpForm() {
       birthDate: "",
       email: "",
       phone: "",
+      password: "",
+      confirmPassword: "",
       acceptTerms: false,
     },
   });
@@ -56,21 +67,50 @@ export function SignUpForm() {
   async function onSubmit(data: SignUpFormData) {
     try {
       setIsLoading(true);
-      // In a real implementation, you would use the form data for registration
-      // For now, we'll just show a success message
+
+      await signUp({
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        documentId: data.documentId,
+        birthDate: data.birthDate,
+        phone: data.phone,
+      });
+
       toast({
         title: "Éxito",
-        description: "Tu cuenta ha sido creada correctamente.",
+        description:
+          "Tu cuenta ha sido creada correctamente. Por favor, verifica tu correo electrónico.",
       });
-      router.push("/sign-in");
     } catch (error) {
+      console.error("Error during sign up:", error);
       toast({
         title: "Error",
-        description: "No se pudo crear la cuenta.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo crear la cuenta.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleSocialSignIn(provider: "google" | "facebook" | "apple") {
+    try {
+      setSocialLoading(provider);
+      await signInWithSocial(provider);
+      // The redirect will be handled by Supabase
+    } catch (error) {
+      console.error(`Error signing in with ${provider}:`, error);
+      toast({
+        title: "Error",
+        description: `No se pudo iniciar sesión con ${provider}.`,
+        variant: "destructive",
+      });
+      setSocialLoading(null);
     }
   }
 
@@ -228,6 +268,51 @@ export function SignUpForm() {
         )}
       </div>
 
+      {/* Password */}
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium mb-2">
+          Contraseña
+        </label>
+        <div className="relative">
+          <Input
+            id="password"
+            type="password"
+            {...form.register("password")}
+            placeholder="Ingresa tu contraseña"
+            className="w-full"
+          />
+        </div>
+        {form.formState.errors.password && (
+          <p className="text-sm text-red-500 mt-1">
+            {form.formState.errors.password.message}
+          </p>
+        )}
+      </div>
+
+      {/* Confirm Password */}
+      <div>
+        <label
+          htmlFor="confirmPassword"
+          className="block text-sm font-medium mb-2"
+        >
+          Confirmar contraseña
+        </label>
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type="password"
+            {...form.register("confirmPassword")}
+            placeholder="Confirma tu contraseña"
+            className="w-full"
+          />
+        </div>
+        {form.formState.errors.confirmPassword && (
+          <p className="text-sm text-red-500 mt-1">
+            {form.formState.errors.confirmPassword.message}
+          </p>
+        )}
+      </div>
+
       {/* Terms Checkbox */}
       <div className="flex items-center space-x-2">
         <Checkbox id="terms" {...form.register("acceptTerms")} />
@@ -252,7 +337,7 @@ export function SignUpForm() {
         className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white font-medium py-2 rounded-full"
         disabled={isLoading}
       >
-        Crear cuenta
+        {isLoading ? "Creando cuenta..." : "Crear cuenta"}
       </Button>
 
       {/* Social Login Divider */}
@@ -268,14 +353,20 @@ export function SignUpForm() {
           type="button"
           variant="outline"
           className="flex items-center justify-center border rounded-full"
+          onClick={() => handleSocialSignIn("facebook")}
+          disabled={!!socialLoading}
         >
           <Facebook className="h-5 w-5 text-blue-600" />
-          <span className="ml-2">Facebook</span>
+          <span className="ml-2">
+            {socialLoading === "facebook" ? "Cargando..." : "Facebook"}
+          </span>
         </Button>
         <Button
           type="button"
           variant="outline"
           className="flex items-center justify-center border rounded-full"
+          onClick={() => handleSocialSignIn("google")}
+          disabled={!!socialLoading}
         >
           <svg
             className="h-5 w-5 mr-2"
@@ -301,15 +392,19 @@ export function SignUpForm() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          <span>Google</span>
+          <span>{socialLoading === "google" ? "Cargando..." : "Google"}</span>
         </Button>
         <Button
           type="button"
           variant="outline"
           className="flex items-center justify-center border rounded-full"
+          onClick={() => handleSocialSignIn("apple")}
+          disabled={!!socialLoading}
         >
           <Apple className="h-5 w-5" />
-          <span className="ml-2">Apple</span>
+          <span className="ml-2">
+            {socialLoading === "apple" ? "Cargando..." : "Apple"}
+          </span>
         </Button>
       </div>
     </div>

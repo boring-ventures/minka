@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { Facebook, Mail, Lock, Apple, ChevronDown } from "lucide-react";
+import { Facebook, Mail, Lock, Apple } from "lucide-react";
+import { signInWithSocial } from "@/lib/supabase-auth";
 
 const signInFormSchema = z.object({
   email: z.string().email("Ingresa un correo electrónico válido"),
@@ -25,6 +26,7 @@ type SignInFormData = z.infer<typeof signInFormSchema>;
 
 export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { signIn } = useAuth();
   const router = useRouter();
 
@@ -47,13 +49,31 @@ export function SignInForm() {
       });
       router.push("/dashboard");
     } catch (error) {
+      console.error("Error during sign in:", error);
       toast({
         title: "Error",
-        description: "Credenciales inválidas.",
+        description:
+          error instanceof Error ? error.message : "Credenciales inválidas.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleSocialSignIn(provider: "google" | "facebook" | "apple") {
+    try {
+      setSocialLoading(provider);
+      await signInWithSocial(provider);
+      // The redirect will be handled by Supabase
+    } catch (error) {
+      console.error(`Error signing in with ${provider}:`, error);
+      toast({
+        title: "Error",
+        description: `No se pudo iniciar sesión con ${provider}.`,
+        variant: "destructive",
+      });
+      setSocialLoading(null);
     }
   }
 
@@ -127,7 +147,7 @@ export function SignInForm() {
         className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white font-medium py-2 rounded-full"
         disabled={isLoading}
       >
-        Iniciar sesión
+        {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
       </Button>
 
       <div className="relative flex items-center justify-center">
@@ -141,14 +161,20 @@ export function SignInForm() {
           type="button"
           variant="outline"
           className="flex items-center justify-center border rounded-full"
+          onClick={() => handleSocialSignIn("facebook")}
+          disabled={!!socialLoading}
         >
           <Facebook className="h-5 w-5 text-blue-600" />
-          <span className="ml-2">Facebook</span>
+          <span className="ml-2">
+            {socialLoading === "facebook" ? "Cargando..." : "Facebook"}
+          </span>
         </Button>
         <Button
           type="button"
           variant="outline"
           className="flex items-center justify-center border rounded-full"
+          onClick={() => handleSocialSignIn("google")}
+          disabled={!!socialLoading}
         >
           <svg
             className="h-5 w-5 mr-2"
@@ -174,15 +200,19 @@ export function SignInForm() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          <span>Google</span>
+          <span>{socialLoading === "google" ? "Cargando..." : "Google"}</span>
         </Button>
         <Button
           type="button"
           variant="outline"
           className="flex items-center justify-center border rounded-full"
+          onClick={() => handleSocialSignIn("apple")}
+          disabled={!!socialLoading}
         >
           <Apple className="h-5 w-5" />
-          <span className="ml-2">Apple</span>
+          <span className="ml-2">
+            {socialLoading === "apple" ? "Cargando..." : "Apple"}
+          </span>
         </Button>
       </div>
     </div>

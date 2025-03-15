@@ -6,13 +6,23 @@ import type { User, Session } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import type { Profile } from "@/types/profile";
 
+type SignUpData = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  documentId: string;
+  birthDate: string;
+  phone: string;
+};
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (data: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -94,12 +104,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/dashboard");
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    if (error) throw error;
+  const signUp = async (data: SignUpData) => {
+    try {
+      // Call our custom registration endpoint
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Registration failed");
+      }
+
+      // Redirect to sign-in page after successful registration
+      router.push("/sign-in");
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
+    }
   };
 
   const signOut = async () => {

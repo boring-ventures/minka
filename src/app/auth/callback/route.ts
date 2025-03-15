@@ -5,54 +5,67 @@ import type { NextRequest } from 'next/server';
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
-  try {
-    const requestUrl = new URL(request.url);
-    const code = requestUrl.searchParams.get('code');
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get("code");
 
-    if (code) {
-      const supabase = createRouteHandlerClient({ cookies });
-      await supabase.auth.exchangeCodeForSession(code);
-      
-      // Get the current session
-      const { data: { session } } = await supabase.auth.getSession();
+  if (code) {
+    const supabase = createRouteHandlerClient({ cookies });
 
-      if (session?.user) {
+    // Exchange the code for a session
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      console.error("Error exchanging code for session:", error.message);
+      return NextResponse.redirect(
+        new URL(
+          `/sign-in?error=${encodeURIComponent(error.message)}`,
+          request.url
+        )
+      );
+    }
+
+    // Check if the user already has a profile
+    if (data.user) {
+      const existingProfile = await prisma.profile.findUnique({
+        where: { id: data.user.id },
+      });
+
+      // If the user doesn't have a profile, create one
+      if (!existingProfile) {
         try {
-          const userEmail = session.user.email || "";
-          const defaultName = userEmail ? userEmail.split("@")[0] : "user";
-          
+          // Get user metadata from Supabase
+          const { data: userData } = await supabase.auth.getUser();
+          const userMetadata = userData.user?.user_metadata;
+
+          // Create a profile in the database
           await prisma.profile.create({
             data: {
-              email: userEmail,
-              name: defaultName,
-              phone: "",
-              identityNumber: "",
-              profilePicture: "",
-              role: "user",
-              status: "active",
-              passwordHash: "",
+              id: data.user.id,
+              name:
+                userMetadata?.full_name ||
+                `${userMetadata?.first_name || ""} ${userMetadata?.last_name || ""}`.trim() ||
+                data.user.email?.split("@")[0] ||
+                "User",
+              email: data.user.email || "",
+              passwordHash: "", // We don't store the actual password
+              profilePicture: userMetadata?.avatar_url || "",
+              identityNumber: "", // This would need to be collected later
+              phone: userMetadata?.phone || "",
+              birthDate: new Date(), // This would need to be collected later
               address: "",
               bio: "",
               location: "",
-              birthDate: new Date(),
               joinDate: new Date(),
-              activeCampaignsCount: 0,
-              verificationStatus: false,
+              status: "active",
             },
           });
         } catch (error) {
-          console.error('Error creating profile:', error);
+          console.error("Error creating profile:", error);
         }
       }
-
-      // Redirect to profile setup page
-      return NextResponse.redirect(`${requestUrl.origin}/profile/setup`);
     }
-
-    // If no code, redirect to home page
-    return NextResponse.redirect(`${requestUrl.origin}`);
-  } catch (error) {
-    console.error('Auth callback error:', error);
-    return NextResponse.redirect(new URL('/sign-in', request.url));
   }
+
+  // Redirect to the dashboard
+  return NextResponse.redirect(new URL("/dashboard", request.url));
 } 

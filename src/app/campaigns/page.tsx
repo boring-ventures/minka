@@ -78,7 +78,15 @@ export default function CampaignsPage() {
           <div className="flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {mockCampaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
+                <CampaignCard
+                  key={campaign.id}
+                  title={campaign.title}
+                  image={campaign.image}
+                  category={campaign.category}
+                  location={campaign.location}
+                  progress={campaign.progress}
+                  verified={campaign.verified}
+                />
               ))}
             </div>
           </div>
