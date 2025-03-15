@@ -28,25 +28,25 @@ export function Footer() {
             <nav className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
               <Link
                 href="/help"
-                className="text-white hover:text-gray-200 transition-colors"
+                className="text-white hover:text-gray-200 transition-colors underline-offset-4 decoration-transparent hover:decoration-white underline"
               >
                 Centro de ayuda
               </Link>
               <Link
                 href="/campaigns"
-                className="text-white hover:text-gray-200 transition-colors"
+                className="text-white hover:text-gray-200 transition-colors underline-offset-4 decoration-transparent hover:decoration-white underline"
               >
                 Donar
               </Link>
               <Link
                 href="/recursos"
-                className="text-white hover:text-gray-200 transition-colors"
+                className="text-white hover:text-gray-200 transition-colors underline-offset-4 decoration-transparent hover:decoration-white underline"
               >
                 Más recursos
               </Link>
               <Link
                 href="/about-us"
-                className="text-white hover:text-gray-200 transition-colors"
+                className="text-white hover:text-gray-200 transition-colors underline-offset-4 decoration-transparent hover:decoration-white underline"
               >
                 Nosotros
               </Link>

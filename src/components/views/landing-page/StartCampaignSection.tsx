@@ -26,7 +26,7 @@ export function StartCampaignSection() {
     {
       id: "verify",
       step: "02",
-      icon: "/landing-page/step-2.png",
+      icon: "/landing-page/step-2.svg",
       title: "Verifica tu campaña",
       description:
         "Completa este proceso para garantizar confianza y transparencia.",

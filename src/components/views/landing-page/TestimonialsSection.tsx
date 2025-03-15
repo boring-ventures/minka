@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function TestimonialsSection() {
@@ -46,21 +46,21 @@ export function TestimonialsSection() {
     };
   }, []);
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     setCurrentIndex((prevIndex) =>
       prevIndex === testimonials.length - 1 ? 0 : prevIndex + 1
     );
-  };
+  }, [testimonials.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     setCurrentIndex((prevIndex) =>
       prevIndex === 0 ? testimonials.length - 1 : prevIndex - 1
     );
-  };
+  }, [testimonials.length]);
 
-  const goToSlide = (index: number) => {
+  const goToSlide = useCallback((index: number) => {
     setCurrentIndex(index);
-  };
+  }, []);
 
   // Auto-advance carousel every 5 seconds on mobile
   useEffect(() => {
@@ -71,7 +71,7 @@ export function TestimonialsSection() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isMobile, currentIndex]);
+  }, [isMobile, nextSlide]);
 
   return (
     <section className="bg-[#f5f7e9] py-24">
@@ -158,6 +158,7 @@ export function TestimonialsSection() {
               onClick={prevSlide}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white rounded-full p-2 shadow-md z-10"
               aria-label="Previous testimonial"
+              type="button"
             >
               <ChevronLeft className="h-5 w-5 text-[#2c6e49]" />
             </button>
@@ -165,15 +166,16 @@ export function TestimonialsSection() {
               onClick={nextSlide}
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 bg-white rounded-full p-2 shadow-md z-10"
               aria-label="Next testimonial"
+              type="button"
             >
               <ChevronRight className="h-5 w-5 text-[#2c6e49]" />
             </button>
 
             {/* Navigation dots */}
             <div className="flex justify-center mt-6 space-x-2">
-              {testimonials.map((_, index) => (
+              {testimonials.map((testimonial, index) => (
                 <button
-                  key={index}
+                  key={testimonial.id}
                   onClick={() => goToSlide(index)}
                   className={`h-2 rounded-full transition-all ${
                     currentIndex === index
@@ -181,6 +183,7 @@ export function TestimonialsSection() {
                       : "w-2 bg-gray-300"
                   }`}
                   aria-label={`Go to testimonial ${index + 1}`}
+                  type="button"
                 />
               ))}
             </div>
