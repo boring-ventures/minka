@@ -1,10 +1,13 @@
 import { Search } from "lucide-react";
 import { HelpAccordion } from "@/components/views/help/HelpAccordion";
 import { ContactSection } from "@/components/views/help/ContactSection";
+import { Header } from "@/components/views/landing-page/Header";
+import { Footer } from "@/components/views/landing-page/Footer";
 
 export default function HelpPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
+      <Header />
       <main className="container mx-auto px-4 py-16">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold text-[#2c6e49] mb-8">
@@ -31,6 +34,7 @@ export default function HelpPage() {
           <ContactSection />
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

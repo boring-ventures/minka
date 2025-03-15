@@ -4,10 +4,13 @@ import { TrustSection } from "@/components/views/landing-page/TrustSection";
 import { StartCampaignSection } from "@/components/views/landing-page/StartCampaignSection";
 import { TestimonialsSection } from "@/components/views/landing-page/TestimonialsSection";
 import { PartnersSection } from "@/components/views/landing-page/PartnersSection";
+import { Header } from "@/components/views/landing-page/Header";
+import { Footer } from "@/components/views/landing-page/Footer";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
+      <Header />
       <main className="flex-grow">
         <HeroSection />
         <CausesSection />
@@ -16,6 +19,7 @@ export default function Home() {
         <TestimonialsSection />
         <PartnersSection />
       </main>
+      <Footer />
     </div>
   );
 }

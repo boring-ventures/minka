@@ -1,6 +1,8 @@
 import { CategorySelector } from "@/components/views/campaigns/CategorySelector";
 import { FilterSidebar } from "@/components/views/campaigns/FilterSidebar";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
+import { Header } from "@/components/views/landing-page/Header";
+import { Footer } from "@/components/views/landing-page/Footer";
 
 const mockCampaigns = [
   {
@@ -62,56 +64,27 @@ const mockCampaigns = [
 export default function CampaignsPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
+      <Header />
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-[#2c6e49] mb-8">
+          Campañas activas
+        </h1>
 
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto mb-16">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-center mb-6">
-            Apoya una causa, cambia una vida
-          </h1>
-          <p className="text-center text-gray-600 text-xl">
-            Explora todas las campañas activas o encuentra las de tu interés con
-            nuestro buscador
-          </p>
-        </div>
+        <CategorySelector />
 
-        <div className="mb-12">
-          <CategorySelector />
-        </div>
-
-        <div className="flex gap-12">
+        <div className="flex flex-col md:flex-row gap-8 mt-8">
           <FilterSidebar />
 
           <div className="flex-1">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-4">
-                <h2 className="font-medium text-xl">Todas las campañas</h2>
-                <span className="text-sm text-gray-500">
-                  {mockCampaigns.length} Resultados
-                </span>
-              </div>
-              <select className="form-select rounded-md border-gray-300 text-sm">
-                <option>Más populares</option>
-                <option>Más recientes</option>
-                <option>Mayor progreso</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {mockCampaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  title={campaign.title}
-                  image={campaign.image}
-                  category={campaign.category}
-                  location={campaign.location}
-                  progress={campaign.progress}
-                  verified={campaign.verified}
-                />
+                <CampaignCard key={campaign.id} campaign={campaign} />
               ))}
             </div>
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

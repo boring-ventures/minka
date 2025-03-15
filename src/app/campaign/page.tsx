@@ -2,6 +2,8 @@ import { CampaignGallery } from "@/components/views/campaign/CampaignGallery";
 import { CampaignProgress } from "@/components/views/campaign/CampaignProgress";
 import { CampaignDetails } from "@/components/views/campaign/CampaignDetails";
 import { DonorComments } from "@/components/views/campaign/DonorComments";
+import { Header } from "@/components/views/landing-page/Header";
+import { Footer } from "@/components/views/landing-page/Footer";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check } from "lucide-react";
@@ -94,27 +96,39 @@ const campaignData = {
 export default function CampaignPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto mb-16">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-center mb-6">
-            {campaignData.title}
+      <Header />
+      <main className="container mx-auto px-4 py-8">
+        {/* Campaign Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-[#2c6e49] mb-4">
+            Protejamos juntos el Parque Nacional Amboró
           </h1>
-          <p className="text-center text-gray-600 text-xl">
-            El Parque Nacional Amboró es uno de los lugares más biodiversos del
-            mundo, hogar de especies únicas y ecosistemas vitales. Su
-            conservación depende de todos nosotros.
-          </p>
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full">
+              Medio ambiente
+            </span>
+            <span>Santa Cruz, Bolivia</span>
+            <span className="flex items-center gap-1">
+              <Check size={16} className="text-green-600" />
+              Verificado
+            </span>
+          </div>
         </div>
 
+        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+          {/* Left Column - Gallery */}
           <div className="lg:col-span-2">
             <CampaignGallery images={campaignData.images} />
           </div>
+
+          {/* Right Column - Progress and Donation */}
           <div>
             <CampaignProgress {...campaignData.progress} />
           </div>
         </div>
 
+        {/* Campaign Details */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
           <div className="lg:col-span-2">
             <CampaignDetails
@@ -128,21 +142,18 @@ export default function CampaignPage() {
           </div>
         </div>
 
-        <section className="py-16">
-          <h2 className="text-5xl md:text-6xl font-bold text-center mb-6">
-            Únete a otras causas
+        {/* Related Campaigns */}
+        <section className="mt-16">
+          <h2 className="text-2xl font-bold text-[#2c6e49] mb-6">
+            Campañas relacionadas
           </h2>
-          <p className="text-center text-gray-600 text-xl mb-12">
-            Juntos hacemos la diferencia ¡Apoya una campaña hoy!
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {relatedCampaigns.map((campaign) => (
               <div
                 key={campaign.id}
-                className="bg-white rounded-lg overflow-hidden shadow-md"
+                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
               >
-                <div className="relative h-56">
+                <div className="relative h-48">
                   <Image
                     src={campaign.image}
                     alt={campaign.title}
@@ -150,56 +161,45 @@ export default function CampaignPage() {
                     className="object-cover"
                   />
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center mb-3">
-                    <Check className="h-6 w-6 text-[#2c6e49] mr-3" />
-                    <h3 className="font-medium text-2xl text-[#2c6e49]">
-                      {campaign.title}
-                    </h3>
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-green-700 bg-green-50 px-2 py-1 rounded">
+                      {campaign.category}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {campaign.location}
+                    </span>
                   </div>
-                  <div className="flex items-center text-base text-gray-600 mb-4">
-                    <span className="mr-4">{campaign.category}</span>
-                    <span>Bolivia, {campaign.location}</span>
+                  <h3 className="font-bold mb-2 line-clamp-2">
+                    {campaign.title}
+                  </h3>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
+                      style={{ width: `${campaign.progress}%` }}
+                    />
                   </div>
-                  <div className="mb-4">
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className="bg-[#2c6e49] h-3 rounded-full"
-                        style={{ width: `${campaign.progress}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-end mt-2">
-                      <span className="text-base text-gray-600">
-                        {campaign.progress}%
-                      </span>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">
+                      {campaign.progress}% completado
+                    </span>
+                    <Link href={`/campaign?id=${campaign.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-700 hover:text-green-800 p-0"
+                      >
+                        Ver más <ArrowRight size={16} className="ml-1" />
+                      </Button>
+                    </Link>
                   </div>
-                  <Link href="/campaigns" className="block">
-                    <Button
-                      variant="outline"
-                      className="w-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg"
-                    >
-                      Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
                 </div>
               </div>
             ))}
           </div>
-
-          <div className="flex justify-center">
-            <Link href="/campaigns">
-              <Button
-                variant="outline"
-                className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-xl"
-                size="lg"
-              >
-                Ver más campañas <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

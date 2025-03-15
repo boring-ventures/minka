@@ -1,10 +1,13 @@
 import { FoundersCarousel } from "@/components/views/about-us/FounderCarousel";
 import { ContactForm } from "@/components/views/about-us/ContactForm";
 import { SuccessStory } from "@/components/views/about-us/SuccessStory";
+import { Header } from "@/components/views/landing-page/Header";
+import { Footer } from "@/components/views/landing-page/Footer";
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#f5f7e9]">
+      <Header />
       <main className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="max-w-4xl mx-auto text-center mb-32">
@@ -37,6 +40,7 @@ export default function AboutPage() {
           <SuccessStory />
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 import Image from "next/image"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
 
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
@@ -25,6 +27,11 @@ export function Header() {
     setIsMenuOpen(!isMenuOpen);
   };
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    router.push("/");
+  };
+
   const menuItems = [
     { href: "/campaigns", label: "Donar" },
     { href: "/create-campaign", label: "Crear campaña" },
@@ -36,7 +43,7 @@ export function Header() {
     <>
       {/* Desktop Header */}
       <header className="hidden md:flex container mx-auto py-6 px-4 justify-between items-center">
-        <Link href="/" className="flex items-center">
+        <Link href="/" onClick={handleLogoClick} className="flex items-center">
           <Image
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-2S5vgSiFRwu8gClKBuwTXkOi5H46aN.svg"
             alt="MINKA Logo"
@@ -86,7 +93,7 @@ export function Header() {
         >
           <Menu size={24} />
         </button>
-        <Link href="/" className="flex items-center">
+        <Link href="/" onClick={handleLogoClick} className="flex items-center">
           <Image
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-2S5vgSiFRwu8gClKBuwTXkOi5H46aN.svg"
             alt="MINKA Logo"
