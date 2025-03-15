@@ -1,5 +1,6 @@
 import { CampaignGallery } from "@/components/views/campaign/CampaignGallery";
 import { CampaignProgress } from "@/components/views/campaign/CampaignProgress";
+import { StickyProgressWrapper } from "@/components/views/campaign/StickyProgressWrapper";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
@@ -293,7 +294,18 @@ export default function CampaignPage() {
 
           {/* Right Column - Progress and Donation */}
           <div>
-            <CampaignProgress {...campaignData.progress} />
+            <StickyProgressWrapper>
+              <CampaignProgress
+                isVerified={campaignData.progress.isVerified}
+                createdAt={campaignData.progress.createdAt}
+                currentAmount={campaignData.progress.currentAmount}
+                targetAmount={campaignData.progress.targetAmount}
+                donorsCount={campaignData.progress.donorsCount}
+                campaignTitle={campaignData.title}
+                campaignOrganizer={campaignData.organizer.name}
+                campaignLocation={campaignData.organizer.location}
+              />
+            </StickyProgressWrapper>
           </div>
         </div>
 
@@ -312,7 +324,7 @@ export default function CampaignPage() {
         </div>
 
         {/* Related Campaigns */}
-        <section className="mt-24">
+        <section className="mt-24" id="related-campaigns">
           <div className="text-center mb-16">
             <h2 className="text-5xl md:text-6xl font-bold text-[#333333] mb-6">
               Únete a otras causas

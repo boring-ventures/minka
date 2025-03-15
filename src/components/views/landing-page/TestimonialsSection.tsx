@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function TestimonialsSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const [visibleItems, setVisibleItems] = useState(3);
 
@@ -58,7 +57,6 @@ export function TestimonialsSection() {
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;
-      setIsMobile(width < 768);
 
       if (width >= 1280) {
         setVisibleItems(3);
@@ -83,7 +81,7 @@ export function TestimonialsSection() {
       // If we're at the last possible position (considering visible items), go back to 0
       return nextIndex > testimonials.length - visibleItems ? 0 : nextIndex;
     });
-  }, [visibleItems]);
+  }, [visibleItems, testimonials.length]);
 
   const prevSlide = useCallback(() => {
     setCurrentIndex((prevIndex) => {
@@ -91,7 +89,7 @@ export function TestimonialsSection() {
       // If we're at the first position, go to the last possible position
       return nextIndex < 0 ? testimonials.length - visibleItems : nextIndex;
     });
-  }, [visibleItems]);
+  }, [visibleItems, testimonials.length]);
 
   const goToSlide = useCallback(
     (index: number) => {
@@ -102,7 +100,7 @@ export function TestimonialsSection() {
         setCurrentIndex(index);
       }
     },
-    [visibleItems]
+    [visibleItems, testimonials.length]
   );
 
   // Auto-advance carousel every 5 seconds
@@ -113,18 +111,6 @@ export function TestimonialsSection() {
 
     return () => clearInterval(interval);
   }, [nextSlide]);
-
-  // Calculate visible testimonials based on current index and visible items
-  const getVisibleTestimonials = () => {
-    const indices = [];
-
-    for (let i = 0; i < visibleItems; i++) {
-      const index = (currentIndex + i) % testimonials.length;
-      indices.push(index);
-    }
-
-    return indices.map((index) => testimonials[index]);
-  };
 
   return (
     <section className="bg-[#f5f7e9] py-24">

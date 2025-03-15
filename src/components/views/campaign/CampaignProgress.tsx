@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Check, Clock, Share2, Bookmark } from "lucide-react";
+import Link from "next/link";
 
 interface CampaignProgressProps {
   isVerified: boolean;
@@ -9,6 +10,9 @@ interface CampaignProgressProps {
   currentAmount: number;
   targetAmount: number;
   donorsCount: number;
+  campaignTitle?: string;
+  campaignOrganizer?: string;
+  campaignLocation?: string;
 }
 
 export function CampaignProgress({
@@ -17,11 +21,17 @@ export function CampaignProgress({
   currentAmount,
   targetAmount,
   donorsCount,
+  campaignTitle = "",
+  campaignOrganizer = "",
+  campaignLocation = "",
 }: CampaignProgressProps) {
   const progress = (currentAmount / targetAmount) * 100;
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div
+      className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+      id="campaign-progress"
+    >
       <h2 className="text-xl font-semibold text-[#2c6e49] mb-1">
         Avances de la campaña
       </h2>
@@ -29,7 +39,7 @@ export function CampaignProgress({
         Cada aporte cuenta. ¡Sé parte del cambio!
       </p>
 
-      <div className="flex items-center gap-6 mb-6">
+      <div className="flex items-center gap-6 mb-4">
         {isVerified && (
           <div className="flex items-center gap-2">
             <Check className="h-4 w-4 text-[#2c6e49]" />
@@ -42,7 +52,10 @@ export function CampaignProgress({
         </div>
       </div>
 
-      <div className="space-y-4 mb-6">
+      {/* First separator */}
+      <hr className="h-px w-full bg-gray-200 my-4" />
+
+      <div className="space-y-4 mb-4">
         <div className="flex justify-between text-sm">
           <span>Recaudado Bs. {currentAmount.toLocaleString()}</span>
           <span>{donorsCount} donadores</span>
@@ -59,10 +72,25 @@ export function CampaignProgress({
         </div>
       </div>
 
+      {/* Second separator */}
+      <hr className="h-px w-full bg-gray-200 my-4" />
+
       <div className="space-y-3">
-        <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-6">
-          Donar ahora
-        </Button>
+        <Link
+          href={{
+            pathname: "/donate",
+            query: {
+              campaignId: "1", // This would be the actual campaign ID
+              title: campaignTitle,
+              organizer: campaignOrganizer,
+              location: campaignLocation,
+            },
+          }}
+        >
+          <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-6">
+            Donar ahora
+          </Button>
+        </Link>
         <Button
           variant="outline"
           className="w-full border-gray-200 hover:bg-gray-50 rounded-full py-6"
@@ -71,8 +99,8 @@ export function CampaignProgress({
           Compartir
         </Button>
         <Button
-          variant="outline"
-          className="w-full border-gray-200 hover:bg-gray-50 rounded-full py-6"
+          variant="ghost"
+          className="w-full hover:bg-gray-50 rounded-full py-6"
         >
           <Bookmark className="mr-2 h-4 w-4" />
           Guardar campaña

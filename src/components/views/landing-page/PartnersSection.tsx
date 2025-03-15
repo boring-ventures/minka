@@ -61,7 +61,6 @@ export function PartnersSection() {
     // Clone the allies for infinite scroll effect
     const scrollContainer = scrollContainerRef.current;
     const scrollWidth = scrollContainer.scrollWidth;
-    const animationDuration = scrollWidth * 20; // Adjust speed based on width
 
     // Set up the animation
     const startAnimation = () => {
