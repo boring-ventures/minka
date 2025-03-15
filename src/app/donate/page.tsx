@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,7 +32,8 @@ const PAYMENT_METHODS = [
   },
 ];
 
-export default function DonatePage() {
+// Create a client component that uses useSearchParams
+function DonatePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -371,5 +372,43 @@ export default function DonatePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function DonatePageLoading() {
+  return (
+    <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
+      <div className="text-center">
+        <div className="h-16 w-16 mx-auto rounded-full bg-[#e8f0e9] flex items-center justify-center animate-pulse">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-8 w-8 text-[#2c6e49]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            role="img"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+        </div>
+        <p className="mt-4 text-gray-600">Cargando...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function DonatePage() {
+  return (
+    <Suspense fallback={<DonatePageLoading />}>
+      <DonatePageContent />
+    </Suspense>
   );
 }
