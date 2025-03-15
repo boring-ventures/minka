@@ -2,61 +2,46 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Card } from "@/components/ui/card";
-import AuthLayout from "@/components/auth/auth-layout";
-import { SignUpForm } from "@/components/auth/sign-up/components/sign-up-form";
 import Link from "next/link";
+import { SignUpForm } from "@/components/auth/sign-up/components/sign-up-form";
 
 export const metadata: Metadata = {
-  title: "Sign Up",
-  description: "Create a new account",
+  title: "Regístrate",
+  description: "Crea una cuenta en Minka",
 };
 
 export default async function SignUpPage() {
   const supabase = createServerComponentClient({ cookies });
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (session) {
     redirect("/dashboard");
   }
 
   return (
-    <AuthLayout>
-      <Card className="p-6">
-        <div className="mb-2 flex flex-col space-y-2 text-left">
-          <h1 className="text-lg font-semibold tracking-tight">
-            Create an account
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your email and password to create an account. <br />
-            Already have an account?{" "}
-            <Link
-              href="/sign-in"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Sign In
-            </Link>
-          </p>
-        </div>
-        <SignUpForm />
-        <p className="mt-4 px-8 text-center text-sm text-muted-foreground">
-          By creating an account, you agree to our{" "}
-          <Link
-            href="/terms"
-            className="underline underline-offset-4 hover:text-primary"
-          >
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link
-            href="/privacy"
-            className="underline underline-offset-4 hover:text-primary"
-          >
-            Privacy Policy
-          </Link>
-          .
+    <div className="w-full">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-2">Regístrate</h1>
+        <p className="text-black">
+          Tu primer paso hacia un impacto positivo comienza aquí.
         </p>
-      </Card>
-    </AuthLayout>
+      </div>
+
+      <SignUpForm />
+
+      <div className="mt-8 text-center">
+        <p className="text-black">
+          ¿Ya formas parte de Minka?{" "}
+          <Link
+            href="/sign-in"
+            className="text-[#2c6e49] font-medium hover:underline"
+          >
+            Inicia sesión
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 } 

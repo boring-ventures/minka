@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Quicksand, Geist_Mono } from "next/font/google";
 import "../globals.css";
-import Link from "next/link";
+import { Card } from "@/components/ui/card";
 
 const quicksand = Quicksand({
   variable: "--font-quicksand",
@@ -69,7 +70,9 @@ export default function AuthLayout({
                 />
               </Link>
             </div>
-            {children}
+            <Card className="p-8 shadow-md bg-white rounded-xl">
+              {children}
+            </Card>
           </div>
         </div>
       </div>
