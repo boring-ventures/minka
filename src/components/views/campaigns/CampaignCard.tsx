@@ -20,6 +20,7 @@ interface CampaignCardProps {
 }
 
 export function CampaignCard({
+  id,
   title,
   image,
   category,
@@ -29,8 +30,11 @@ export function CampaignCard({
   description = "Ayuda a esta campaña y sé parte del cambio que queremos ver en el mundo.",
   donorCount = 0,
   amountRaised = "Bs. 0,00",
-  href = "/campaigns",
+  href,
 }: CampaignCardProps) {
+  // Generate the campaign URL - if href is provided use it, otherwise use /campaign
+  const campaignUrl = href || (id ? `/campaign?id=${id}` : "/campaign");
+
   return (
     <div className="bg-white rounded-xl overflow-hidden group relative transition-all duration-300 h-full">
       {/* Campaign Image - Always visible but partially covered */}
@@ -82,7 +86,7 @@ export function CampaignCard({
             <span className="text-base text-gray-600">{progress}%</span>
           </div>
         </div>
-        <Link href={href} className="block">
+        <Link href={campaignUrl} className="block">
           <Button className="w-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start">
             Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
@@ -148,7 +152,7 @@ export function CampaignCard({
           </div>
         </div>
 
-        <Link href={href} className="block">
+        <Link href={campaignUrl} className="block">
           <Button className="w-full bg-[#2c6e49] text-white hover:bg-[#1e4d33] text-lg shadow-none border-0 rounded-full justify-start">
             Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
           </Button>

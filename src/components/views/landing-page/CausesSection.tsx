@@ -61,6 +61,7 @@ export function CausesSection() {
         {campaigns.map((campaign) => (
           <CampaignCard
             key={campaign.id}
+            id={campaign.id}
             title={campaign.title}
             image={campaign.image}
             category={campaign.category}
@@ -70,7 +71,6 @@ export function CausesSection() {
             description={campaign.description}
             donorCount={campaign.donorCount}
             amountRaised={campaign.amountRaised}
-            href="/campaigns"
           />
         ))}
       </div>
