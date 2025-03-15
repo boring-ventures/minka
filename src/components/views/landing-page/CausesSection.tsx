@@ -57,11 +57,11 @@ export function CausesSection() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
         {campaigns.map((campaign) => (
           <div
             key={campaign.id}
-            className="bg-white rounded-lg overflow-hidden group relative transition-all duration-300"
+            className="bg-white rounded-lg overflow-hidden group relative transition-all duration-300 h-full"
           >
             {/* Campaign Image - Always visible but partially covered */}
             <div className="relative h-56">
@@ -74,7 +74,7 @@ export function CausesSection() {
             </div>
 
             {/* Default Card Content */}
-            <div className="p-6 bg-white transition-all duration-300 group-hover:bg-white/80 group-hover:backdrop-blur-sm">
+            <div className="p-6 bg-white transition-all duration-300 group-hover:bg-white/80 group-hover:backdrop-blur-sm h-[calc(100%-224px)]">
               <div className="flex flex-col mb-3">
                 <div className="mb-2 flex-shrink-0">
                   <Image
@@ -85,15 +85,15 @@ export function CausesSection() {
                     className="text-[#2c6e49]"
                   />
                 </div>
-                <h3 className="font-medium text-2xl text-[#2c6e49]">
+                <h3 className="font-medium text-2xl text-[#2c6e49] line-clamp-2">
                   {campaign.title}
                 </h3>
               </div>
-              <div className="flex items-center text-base text-gray-600 mb-4">
-                <span className="mr-4 bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+              <div className="flex items-center text-base text-gray-600 mb-4 flex-wrap gap-2">
+                <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
                   {campaign.category}
                 </span>
-                <span className="bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+                <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
                   {campaign.location}
                 </span>
               </div>
@@ -131,13 +131,13 @@ export function CausesSection() {
                     />
                   </div>
                 </div>
-                <h3 className="font-medium text-2xl text-[#2c6e49]">
+                <h3 className="font-medium text-2xl text-[#2c6e49] line-clamp-2">
                   {campaign.title}
                 </h3>
               </div>
 
-              <div className="flex items-center text-base text-gray-600 mb-3">
-                <span className="mr-4 border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+              <div className="flex items-center text-base text-gray-600 mb-3 flex-wrap gap-2">
+                <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
                   {campaign.category}
                 </span>
                 <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
@@ -145,7 +145,7 @@ export function CausesSection() {
                 </span>
               </div>
 
-              <p className="text-gray-600 mb-4 flex-grow">
+              <p className="text-gray-600 mb-4 flex-grow line-clamp-4">
                 {campaign.description}
               </p>
 

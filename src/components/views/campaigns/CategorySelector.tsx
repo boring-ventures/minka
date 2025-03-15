@@ -26,7 +26,7 @@ export function CategorySelector() {
   const [selectedCategory, setSelectedCategory] = useState("todas");
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="flex flex-nowrap overflow-x-auto pb-4 gap-4 max-w-full mx-auto hide-scrollbar">
       {categories.map((category) => {
         const Icon = category.icon;
         return (
@@ -35,11 +35,11 @@ export function CategorySelector() {
             key={category.id}
             onClick={() => setSelectedCategory(category.id)}
             className={cn(
-              "flex flex-col items-center justify-center p-4 rounded-xl border transition-all",
+              "flex flex-col items-center justify-center px-6 py-4 rounded-xl border transition-all flex-shrink-0",
               "hover:border-[#2c6e49] hover:shadow-sm",
-              "min-w-[120px] aspect-[4/3]",
+              "w-[140px]",
               selectedCategory === category.id
-                ? "border-[#2c6e49] bg-[#e8f0e9]"
+                ? "border-[#2c6e49] bg-[#f8f9fa]"
                 : "border-gray-200 bg-white"
             )}
           >
@@ -53,7 +53,7 @@ export function CategorySelector() {
             />
             <span
               className={cn(
-                "text-sm font-medium text-center",
+                "text-base font-medium text-center",
                 selectedCategory === category.id
                   ? "text-[#2c6e49]"
                   : "text-gray-600"
@@ -67,3 +67,4 @@ export function CategorySelector() {
     </div>
   );
 }
+

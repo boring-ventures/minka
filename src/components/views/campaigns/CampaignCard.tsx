@@ -29,7 +29,7 @@ export function CampaignCard({
   amountRaised = "Bs. 0,00",
 }: CampaignCardProps) {
   return (
-    <div className="bg-white rounded-lg overflow-hidden group relative transition-all duration-300">
+    <div className="bg-white rounded-lg overflow-hidden group relative transition-all duration-300 h-full">
       {/* Campaign Image - Always visible but partially covered */}
       <div className="relative h-56">
         <Image
@@ -41,7 +41,7 @@ export function CampaignCard({
       </div>
 
       {/* Default Card Content */}
-      <div className="p-6 bg-white transition-all duration-300 group-hover:bg-white/80 group-hover:backdrop-blur-sm">
+      <div className="p-6 bg-white transition-all duration-300 group-hover:bg-white/80 group-hover:backdrop-blur-sm h-[calc(100%-224px)]">
         <div className="flex flex-col mb-3">
           <div className="mb-2 flex-shrink-0">
             {verified && (
@@ -54,10 +54,12 @@ export function CampaignCard({
               />
             )}
           </div>
-          <h3 className="font-medium text-2xl text-[#2c6e49]">{title}</h3>
+          <h3 className="font-medium text-2xl text-[#2c6e49] line-clamp-2">
+            {title}
+          </h3>
         </div>
-        <div className="flex items-center text-base text-gray-600 mb-4">
-          <span className="mr-4 border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+        <div className="flex items-center text-base text-gray-600 mb-4 flex-wrap gap-2">
+          <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
             {category}
           </span>
           <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
@@ -98,11 +100,13 @@ export function CampaignCard({
               </div>
             )}
           </div>
-          <h3 className="font-medium text-2xl text-[#2c6e49]">{title}</h3>
+          <h3 className="font-medium text-2xl text-[#2c6e49] line-clamp-2">
+            {title}
+          </h3>
         </div>
 
-        <div className="flex items-center text-base text-gray-600 mb-3">
-          <span className="mr-4 border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
+        <div className="flex items-center text-base text-gray-600 mb-3 flex-wrap gap-2">
+          <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
             {category}
           </span>
           <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
@@ -110,7 +114,9 @@ export function CampaignCard({
           </span>
         </div>
 
-        <p className="text-gray-600 mb-4 flex-grow">{description}</p>
+        <p className="text-gray-600 mb-4 flex-grow line-clamp-4">
+          {description}
+        </p>
 
         <div className="flex justify-between text-gray-600 mb-3">
           <div>
