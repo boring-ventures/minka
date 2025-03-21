@@ -5,6 +5,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { User, Session } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import type { Profile } from "@/types/profile";
+import { toast } from "@/components/ui/use-toast";
 
 type SignUpData = {
   email: string;
@@ -48,25 +49,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string) => {
     try {
       const response = await fetch(`/api/profile/${userId}`);
-      if (!response.ok) throw new Error("Failed to fetch profile");
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error fetching profile:", errorData);
+        throw new Error(errorData.error || "Failed to fetch profile");
+      }
       const data = await response.json();
       setProfile(data.profile);
+      return data.profile;
     } catch (error) {
       console.error("Error fetching profile:", error);
       setProfile(null);
+      return null;
     }
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    const initAuth = async () => {
+      try {
+        setIsLoading(true);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+        toast({
+          title: "Error",
+          description: "Error initializing authentication.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
+
+    initAuth();
 
     const {
       data: { subscription },
@@ -80,8 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
       }
 
-      setIsLoading(false);
-
       if (event === "SIGNED_OUT") {
         router.push("/sign-in");
       }
@@ -93,19 +116,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router, supabase]);
 
   const signIn = async (email: string, password: string) => {
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    if (data.user) {
-      await fetchProfile(data.user.id);
+    try {
+      setIsLoading(true);
+
+      // Call our login API endpoint
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Authentication failed");
+      }
+
+      const data = await response.json();
+
+      // The session will be updated via onAuthStateChange
+      // Navigate to dashboard
+      router.push("/dashboard");
+      return data;
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-    router.push("/dashboard");
   };
 
   const signUp = async (data: SignUpData) => {
     try {
+      setIsLoading(true);
+
       // Call our custom registration endpoint
       const response = await fetch("/api/auth/register", {
         method: "POST",
@@ -117,22 +162,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Registration failed");
+        console.error("Registration API error:", errorData);
+
+        // Enhanced error message that includes the details if available
+        const errorMessage = errorData.error
+          ? errorData.details
+            ? `${errorData.error}: ${errorData.details}`
+            : errorData.error
+          : "Registration failed";
+
+        throw new Error(errorMessage);
       }
 
+      const responseData = await response.json();
+
+      toast({
+        title: "Éxito",
+        description: "Cuenta creada exitosamente. Por favor inicia sesión.",
+      });
+
       // Redirect to sign-in page after successful registration
-      router.push("/sign-in");
+      router.push("/sign-in?registered=true");
+      return responseData;
     } catch (error) {
       console.error("Registration error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Registration failed",
+        variant: "destructive",
+      });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    setProfile(null);
-    router.push("/sign-in");
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setProfile(null);
+      router.push("/sign-in");
+    } catch (error) {
+      console.error("Sign out error:", error);
+      toast({
+        title: "Error",
+        description: "Error signing out.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -144,4 +227,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const useAuth = () => useContext(AuthContext); 
+export const useAuth = () => useContext(AuthContext);

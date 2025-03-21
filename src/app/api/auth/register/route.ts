@@ -16,8 +16,45 @@ export async function POST(request: Request) {
       phone,
     } = requestData;
 
-    // Create a Supabase client
-    const supabase = createRouteHandlerClient({ cookies });
+    // Validate required fields
+    if (
+      !email ||
+      !password ||
+      !firstName ||
+      !lastName ||
+      !documentId ||
+      !birthDate ||
+      !phone
+    ) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // Create a Supabase client with awaited cookies
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+
+    // Check if the profile already exists in our database
+    const existingProfile = await prisma.profile.findUnique({
+      where: { email },
+    });
+
+    if (existingProfile) {
+      return NextResponse.json(
+        {
+          error: "User with this email already exists",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     // Register the user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -43,27 +80,54 @@ export async function POST(request: Request) {
     }
 
     // Format birth date from DD/MM/YYYY to a Date object
-    const [day, month, year] = birthDate.split("/");
-    const formattedBirthDate = new Date(`${year}-${month}-${day}`);
+    let formattedBirthDate: Date;
+    try {
+      const [day, month, year] = birthDate.split("/");
+      formattedBirthDate = new Date(`${year}-${month}-${day}`);
+
+      // Check if date is valid
+      if (isNaN(formattedBirthDate.getTime())) {
+        throw new Error("Invalid date format");
+      }
+    } catch (error) {
+      console.error("Error parsing birth date:", error);
+      return NextResponse.json(
+        {
+          error: "Invalid birth date format. Please use DD/MM/YYYY",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     // Create a profile in the database
-    await prisma.profile.create({
-      data: {
-        id: authData.user.id,
-        name: `${firstName} ${lastName}`,
-        email,
-        passwordHash: "", // We don't store the actual password, Supabase handles auth
-        profilePicture: "", // Default empty profile picture
-        identityNumber: documentId,
-        phone,
-        birthDate: formattedBirthDate,
-        address: "",
-        bio: "",
-        location: "",
-        joinDate: new Date(),
-        status: "active",
-      },
-    });
+    try {
+      await prisma.profile.create({
+        data: {
+          id: authData.user.id,
+          name: `${firstName} ${lastName}`,
+          email,
+          passwordHash: "", // We don't store the actual password, Supabase handles auth
+          identityNumber: documentId,
+          phone,
+          birthDate: formattedBirthDate,
+          joinDate: new Date(),
+          status: "active",
+        },
+      });
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      // We can't delete the auth user here as we don't have admin access
+      // But we should report the error
+      return NextResponse.json(
+        {
+          error: "Failed to create user profile",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       {

@@ -64,16 +64,16 @@ model Profile {
   name                  String
   email                 String    @unique
   passwordHash          String    @map("password_hash")
-  profilePicture        String    @map("profile_picture")
+  profilePicture        String?   @map("profile_picture")
   role                  UserRole  @default(user)
   identityNumber        String    @unique @map("identity_number")
   phone                 String
   birthDate             DateTime  @map("birth_date") @db.Date
-  address               String
-  bio                   String    @db.Text
-  location              String
-  joinDate             DateTime  @map("join_date") @db.Date
-  activeCampaignsCount Int       @default(0) @map("active_campaigns_count")
+  address               String?
+  bio                   String?   @db.Text
+  location              String?
+  joinDate              DateTime  @default(now()) @map("join_date") @db.Date
+  activeCampaignsCount  Int       @default(0) @map("active_campaigns_count")
   verificationStatus    Boolean   @default(false) @map("verification_status")
   status                Status    @default(active)
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp()
@@ -83,7 +83,7 @@ model Profile {
   campaigns        Campaign[]        @relation("OrganizerCampaigns")
   donations        Donation[]        @relation("DonorDonations")
   comments         Comment[]         @relation("ProfileComments")
-  savedCampaigns   SavedCampaign[]  @relation("ProfileSavedCampaigns")
+  savedCampaigns   SavedCampaign[]   @relation("ProfileSavedCampaigns")
 
   @@map("profiles")
 }

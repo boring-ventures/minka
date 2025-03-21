@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
@@ -9,19 +9,40 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { z } from "zod";
-import { Facebook, Mail, Calendar, ChevronDown, Apple } from "lucide-react";
+import {
+  Facebook,
+  Mail,
+  Calendar,
+  ChevronDown,
+  Apple,
+  Info,
+} from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
 
+// Improved validation schema with better error messages
 const signUpFormSchema = z
   .object({
     firstName: z.string().min(1, "El nombre es requerido"),
     lastName: z.string().min(1, "Los apellidos son requeridos"),
     documentId: z.string().min(1, "El número de DNI es requerido"),
-    birthDate: z.string().min(1, "La fecha de nacimiento es requerida"),
-    email: z.string().email("Ingresa un correo electrónico válido"),
-    phone: z.string().min(1, "El número de teléfono es requerido"),
+    birthDate: z
+      .string()
+      .min(1, "La fecha de nacimiento es requerida")
+      .regex(
+        /^\d{2}\/\d{2}\/\d{4}$/,
+        "La fecha debe tener el formato DD/MM/AAAA"
+      ),
+    email: z
+      .string()
+      .min(1, "El correo electrónico es requerido")
+      .email("Ingresa un correo electrónico válido"),
+    phone: z
+      .string()
+      .min(1, "El número de teléfono es requerido")
+      .regex(/^\d+$/, "El número de teléfono debe contener solo dígitos"),
     password: z
       .string()
+      .min(1, "La contraseña es requerida")
       .min(8, "La contraseña debe tener al menos 8 caracteres")
       .regex(
         /[A-Z]/,
@@ -49,7 +70,14 @@ export function SignUpForm() {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { signUp } = useAuth();
 
-  const form = useForm<SignUpFormData>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+    setError,
+    reset,
+  } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpFormSchema),
     defaultValues: {
       firstName: "",
@@ -65,6 +93,8 @@ export function SignUpForm() {
   });
 
   async function onSubmit(data: SignUpFormData) {
+    if (isLoading) return;
+
     try {
       setIsLoading(true);
 
@@ -78,27 +108,44 @@ export function SignUpForm() {
         phone: data.phone,
       });
 
-      toast({
-        title: "Éxito",
-        description:
-          "Tu cuenta ha sido creada correctamente. Por favor, verifica tu correo electrónico.",
-      });
+      // Success toast is now in the auth provider
+      // Reset form on success
+      reset();
     } catch (error) {
       console.error("Error during sign up:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "No se pudo crear la cuenta.",
-        variant: "destructive",
-      });
+
+      // Extract the error message
+      const errorMessage =
+        error instanceof Error ? error.message : "No se pudo crear la cuenta.";
+
+      // Handle field-specific errors if possible
+      if (
+        errorMessage.toLowerCase().includes("email") ||
+        errorMessage.toLowerCase().includes("correo")
+      ) {
+        setError("email", { type: "manual", message: errorMessage });
+      } else if (
+        errorMessage.toLowerCase().includes("password") ||
+        errorMessage.toLowerCase().includes("contraseña")
+      ) {
+        setError("password", { type: "manual", message: errorMessage });
+      } else if (
+        errorMessage.toLowerCase().includes("identity") ||
+        errorMessage.toLowerCase().includes("documento") ||
+        errorMessage.toLowerCase().includes("dni")
+      ) {
+        setError("documentId", { type: "manual", message: errorMessage });
+      } else {
+        // General error is handled by the auth provider
+      }
     } finally {
       setIsLoading(false);
     }
   }
 
   async function handleSocialSignIn(provider: "google" | "facebook" | "apple") {
+    if (socialLoading) return;
+
     try {
       setSocialLoading(provider);
       await signInWithSocial(provider);
@@ -110,12 +157,13 @@ export function SignUpForm() {
         description: `No se pudo iniciar sesión con ${provider}.`,
         variant: "destructive",
       });
+    } finally {
       setSocialLoading(null);
     }
   }
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* First Name */}
       <div>
         <label htmlFor="firstName" className="block text-sm font-medium mb-2">
@@ -124,14 +172,17 @@ export function SignUpForm() {
         <div className="relative">
           <Input
             id="firstName"
-            {...form.register("firstName")}
+            {...register("firstName")}
             placeholder="Ingresa tu nombre"
             className="w-full"
+            aria-invalid={errors.firstName ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.firstName && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.firstName.message}
+        {errors.firstName && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.firstName.message}
           </p>
         )}
       </div>
@@ -144,14 +195,17 @@ export function SignUpForm() {
         <div className="relative">
           <Input
             id="lastName"
-            {...form.register("lastName")}
+            {...register("lastName")}
             placeholder="Ingresa tus apellidos"
             className="w-full"
+            aria-invalid={errors.lastName ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.lastName && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.lastName.message}
+        {errors.lastName && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.lastName.message}
           </p>
         )}
       </div>
@@ -166,6 +220,7 @@ export function SignUpForm() {
             <button
               type="button"
               className="flex items-center justify-between h-11 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
+              disabled={isLoading || isSubmitting}
             >
               <div className="flex items-center">
                 <span className="mr-2">🇧🇴</span>
@@ -176,14 +231,17 @@ export function SignUpForm() {
           </div>
           <Input
             id="documentId"
-            {...form.register("documentId")}
+            {...register("documentId")}
             placeholder="Ingresa el número de tu DNI"
             className="flex-1 rounded-l-none"
+            aria-invalid={errors.documentId ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.documentId && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.documentId.message}
+        {errors.documentId && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.documentId.message}
           </p>
         )}
       </div>
@@ -200,14 +258,17 @@ export function SignUpForm() {
           <Input
             id="birthDate"
             type="text"
-            {...form.register("birthDate")}
+            {...register("birthDate")}
             placeholder="DD/MM/AAAA"
             className="pl-10"
+            aria-invalid={errors.birthDate ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.birthDate && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.birthDate.message}
+        {errors.birthDate && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.birthDate.message}
           </p>
         )}
       </div>
@@ -224,14 +285,17 @@ export function SignUpForm() {
           <Input
             id="email"
             type="email"
-            {...form.register("email")}
+            {...register("email")}
             placeholder="tucorreo@dominio.com"
             className="pl-10"
+            aria-invalid={errors.email ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.email && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.email.message}
+        {errors.email && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.email.message}
           </p>
         )}
       </div>
@@ -246,6 +310,7 @@ export function SignUpForm() {
             <button
               type="button"
               className="flex items-center justify-between h-11 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
+              disabled={isLoading || isSubmitting}
             >
               <div className="flex items-center">
                 <span className="mr-2">🇧🇴</span>
@@ -256,14 +321,17 @@ export function SignUpForm() {
           </div>
           <Input
             id="phone"
-            {...form.register("phone")}
+            {...register("phone")}
             placeholder="Ingresa tu número de teléfono"
             className="flex-1 rounded-l-none"
+            aria-invalid={errors.phone ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.phone && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.phone.message}
+        {errors.phone && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.phone.message}
           </p>
         )}
       </div>
@@ -277,14 +345,17 @@ export function SignUpForm() {
           <Input
             id="password"
             type="password"
-            {...form.register("password")}
-            placeholder="Ingresa tu contraseña"
+            {...register("password")}
+            placeholder="••••••••"
             className="w-full"
+            aria-invalid={errors.password ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.password && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.password.message}
+        {errors.password && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.password.message}
           </p>
         )}
       </div>
@@ -295,28 +366,52 @@ export function SignUpForm() {
           htmlFor="confirmPassword"
           className="block text-sm font-medium mb-2"
         >
-          Confirmar contraseña
+          Confirmar Contraseña
         </label>
         <div className="relative">
           <Input
             id="confirmPassword"
             type="password"
-            {...form.register("confirmPassword")}
-            placeholder="Confirma tu contraseña"
+            {...register("confirmPassword")}
+            placeholder="••••••••"
             className="w-full"
+            aria-invalid={errors.confirmPassword ? "true" : "false"}
+            disabled={isLoading || isSubmitting}
           />
         </div>
-        {form.formState.errors.confirmPassword && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.confirmPassword.message}
+        {errors.confirmPassword && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.confirmPassword.message}
           </p>
         )}
       </div>
 
-      {/* Terms Checkbox */}
+      {/* Terms */}
       <div className="flex items-center space-x-2">
-        <Checkbox id="terms" {...form.register("acceptTerms")} />
-        <label htmlFor="terms" className="text-sm leading-none">
+        <Controller
+          name="acceptTerms"
+          control={control}
+          render={({ field }) => (
+            <Checkbox
+              id="terms"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+              disabled={isLoading || isSubmitting}
+            />
+          )}
+        />
+        <label
+          htmlFor="terms"
+          className="text-sm leading-none cursor-pointer"
+          onClick={() => {
+            if (isLoading || isSubmitting) return;
+            const currentValue = control._getWatch("acceptTerms");
+            control._setValue("acceptTerms", !currentValue, {
+              shouldValidate: true,
+            });
+          }}
+        >
           Acepto los{" "}
           <Link href="/terminos" className="text-[#2c6e49] hover:underline">
             Términos, Condiciones y Políticas de Minka
@@ -324,23 +419,22 @@ export function SignUpForm() {
           .
         </label>
       </div>
-      {form.formState.errors.acceptTerms && (
-        <p className="text-sm text-red-500 mt-1">
-          {form.formState.errors.acceptTerms.message}
+      {errors.acceptTerms && (
+        <p className="text-sm text-red-500 mt-1 flex items-center">
+          <Info className="h-3 w-3 mr-1" />
+          {errors.acceptTerms.message}
         </p>
       )}
 
       {/* Submit Button */}
       <Button
-        type="button"
-        onClick={form.handleSubmit(onSubmit)}
+        type="submit"
         className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white font-medium py-2 rounded-full"
-        disabled={isLoading}
+        disabled={isLoading || isSubmitting}
       >
         {isLoading ? "Creando cuenta..." : "Crear cuenta"}
       </Button>
 
-      {/* Social Login Divider */}
       <div className="relative flex items-center justify-center">
         <div className="border-t border-gray-300 flex-grow" />
         <span className="mx-4 text-sm text-gray-500">O regístrate con</span>
@@ -354,7 +448,7 @@ export function SignUpForm() {
           variant="outline"
           className="flex items-center justify-center border border-black rounded-md h-11"
           onClick={() => handleSocialSignIn("facebook")}
-          disabled={!!socialLoading}
+          disabled={!!socialLoading || isLoading || isSubmitting}
         >
           <Facebook className="h-5 w-5 text-blue-600" />
           <span className="ml-2">
@@ -366,7 +460,7 @@ export function SignUpForm() {
           variant="outline"
           className="flex items-center justify-center border border-black rounded-md h-11"
           onClick={() => handleSocialSignIn("google")}
-          disabled={!!socialLoading}
+          disabled={!!socialLoading || isLoading || isSubmitting}
         >
           <svg
             className="h-5 w-5"
@@ -401,7 +495,7 @@ export function SignUpForm() {
           variant="outline"
           className="flex items-center justify-center border border-black rounded-md h-11"
           onClick={() => handleSocialSignIn("apple")}
-          disabled={!!socialLoading}
+          disabled={!!socialLoading || isLoading || isSubmitting}
         >
           <Apple className="h-5 w-5" />
           <span className="ml-2">
@@ -409,6 +503,6 @@ export function SignUpForm() {
           </span>
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

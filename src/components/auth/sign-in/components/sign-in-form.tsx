@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
@@ -11,12 +11,18 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { Facebook, Mail, Lock, Apple } from "lucide-react";
+import { Facebook, Mail, Lock, Apple, Info } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
 
 const signInFormSchema = z.object({
-  email: z.string().email("Ingresa un correo electrónico válido"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  email: z
+    .string()
+    .min(1, "El correo electrónico es requerido")
+    .email("Ingresa un correo electrónico válido"),
+  password: z
+    .string()
+    .min(1, "La contraseña es requerida")
+    .min(6, "La contraseña debe tener al menos 6 caracteres"),
   acceptTerms: z.boolean().refine((val) => val === true, {
     message: "Debes aceptar los términos y condiciones",
   }),
@@ -30,7 +36,13 @@ export function SignInForm() {
   const { signIn } = useAuth();
   const router = useRouter();
 
-  const form = useForm<SignInFormData>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+    setError,
+  } = useForm<SignInFormData>({
     resolver: zodResolver(signInFormSchema),
     defaultValues: {
       email: "",
@@ -47,15 +59,37 @@ export function SignInForm() {
         title: "Éxito",
         description: "Has iniciado sesión correctamente.",
       });
-      router.push("/dashboard");
+      // Navigation is handled in the auth provider
     } catch (error) {
       console.error("Error during sign in:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Credenciales inválidas.",
-        variant: "destructive",
-      });
+
+      // Set field-specific errors if possible
+      const errorMessage =
+        error instanceof Error ? error.message : "Credenciales inválidas.";
+
+      if (
+        errorMessage.toLowerCase().includes("email") ||
+        errorMessage.toLowerCase().includes("correo")
+      ) {
+        setError("email", {
+          type: "manual",
+          message: errorMessage,
+        });
+      } else if (
+        errorMessage.toLowerCase().includes("password") ||
+        errorMessage.toLowerCase().includes("contraseña")
+      ) {
+        setError("password", {
+          type: "manual",
+          message: errorMessage,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +112,7 @@ export function SignInForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <label htmlFor="email" className="block text-sm font-medium mb-2">
           Correo electrónico
@@ -90,14 +124,16 @@ export function SignInForm() {
           <Input
             id="email"
             type="email"
-            {...form.register("email")}
+            {...register("email")}
             placeholder="correo@ejemplo.com"
             className="pl-10"
+            aria-invalid={errors.email ? "true" : "false"}
           />
         </div>
-        {form.formState.errors.email && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.email.message}
+        {errors.email && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.email.message}
           </p>
         )}
       </div>
@@ -113,21 +149,42 @@ export function SignInForm() {
           <Input
             id="password"
             type="password"
-            {...form.register("password")}
+            {...register("password")}
             placeholder="••••••••"
             className="pl-10"
+            aria-invalid={errors.password ? "true" : "false"}
           />
         </div>
-        {form.formState.errors.password && (
-          <p className="text-sm text-red-500 mt-1">
-            {form.formState.errors.password.message}
+        {errors.password && (
+          <p className="text-sm text-red-500 mt-1 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            {errors.password.message}
           </p>
         )}
       </div>
 
       <div className="flex items-center space-x-2">
-        <Checkbox id="terms" {...form.register("acceptTerms")} />
-        <label htmlFor="terms" className="text-sm leading-none">
+        <Controller
+          name="acceptTerms"
+          control={control}
+          render={({ field }) => (
+            <Checkbox
+              id="terms"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
+        <label
+          htmlFor="terms"
+          className="text-sm leading-none cursor-pointer"
+          onClick={() => {
+            const currentValue = control._getWatch("acceptTerms");
+            control._setValue("acceptTerms", !currentValue, {
+              shouldValidate: true,
+            });
+          }}
+        >
           Acepto los{" "}
           <Link href="/terminos" className="text-[#2c6e49] hover:underline">
             Términos, Condiciones y Políticas de Minka
@@ -135,15 +192,15 @@ export function SignInForm() {
           .
         </label>
       </div>
-      {form.formState.errors.acceptTerms && (
-        <p className="text-sm text-red-500 mt-1">
-          {form.formState.errors.acceptTerms.message}
+      {errors.acceptTerms && (
+        <p className="text-sm text-red-500 mt-1 flex items-center">
+          <Info className="h-3 w-3 mr-1" />
+          {errors.acceptTerms.message}
         </p>
       )}
 
       <Button
-        type="button"
-        onClick={form.handleSubmit(onSubmit)}
+        type="submit"
         className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white font-medium py-2 rounded-full"
         disabled={isLoading}
       >
@@ -217,6 +274,6 @@ export function SignInForm() {
           </span>
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

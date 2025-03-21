@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   description: "Inicia sesión en tu cuenta de Minka",
 };
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: { registered?: string };
+}) {
   const supabase = createServerComponentClient({ cookies });
   const {
     data: { session },
@@ -20,6 +24,8 @@ export default async function SignInPage() {
     redirect("/dashboard");
   }
 
+  const showRegistrationSuccess = searchParams.registered === "true";
+
   return (
     <div className="w-full">
       <div className="mb-8">
@@ -28,6 +34,14 @@ export default async function SignInPage() {
           Vuelve a conectarte con proyectos que inspiran.
         </p>
       </div>
+
+      {showRegistrationSuccess && (
+        <div className="mb-6 p-4 bg-green-50 text-green-800 rounded-md">
+          <p>
+            ¡Tu cuenta ha sido creada exitosamente! Ahora puedes iniciar sesión.
+          </p>
+        </div>
+      )}
 
       <SignInForm />
 
@@ -44,4 +58,4 @@ export default async function SignInPage() {
       </div>
     </div>
   );
-} 
+}

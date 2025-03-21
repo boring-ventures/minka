@@ -2,12 +2,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { userId: string } }
 ) {
   try {
-    const { id } = await params;
+    const { userId } = params;
     const profile = await prisma.profile.findUnique({
-      where: { id },
+      where: { id: userId },
       include: {
         campaigns: true,
         donations: true,
@@ -28,7 +28,8 @@ export async function GET(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
       {
@@ -41,14 +42,14 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { userId: string } }
 ) {
   try {
-    const { id } = await params;
+    const { userId } = params;
     const json = await request.json();
 
     const profile = await prisma.profile.update({
-      where: { id },
+      where: { id: userId },
       data: {
         name: json.name,
         phone: json.phone,
@@ -67,7 +68,8 @@ export async function PATCH(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
       {
