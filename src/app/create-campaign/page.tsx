@@ -5,7 +5,7 @@ import { Footer } from "@/components/views/landing-page/Footer";
 
 export default function CreateCampaignPage() {
   return (
-    <div className="min-h-screen bg-[#f5f7e9]">
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
       <Header />
       <main>
         <CreateCampaignHeader />

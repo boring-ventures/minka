@@ -270,7 +270,7 @@ function CustomDonorComments({ comments }: { comments: DonorComment[] }) {
 
 export default function CampaignPage() {
   return (
-    <div className="min-h-screen bg-[#f5f7e9]">
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
       <Header />
       <main className="container mx-auto px-4 py-8">
         {/* Campaign Header */}

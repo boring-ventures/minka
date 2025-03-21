@@ -90,7 +90,7 @@ export default function RootLayout({
           flex 
           min-h-screen 
           flex-col 
-          bg-[#f5f7e9]
+          bg-gradient-to-r from-white to-[#f5f7e9]
           font-quicksand
         `}
       >

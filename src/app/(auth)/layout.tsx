@@ -25,7 +25,7 @@ export default function AuthLayout({
 }) {
   return (
     <div
-      className={`${quicksand.variable} ${geistMono.variable} font-quicksand min-h-screen bg-[#f5f7e9]`}
+      className={`${quicksand.variable} ${geistMono.variable} font-quicksand min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]`}
     >
       {/* Background SVG covering the screen width */}
       <div className="fixed bottom-0 left-0 right-0 z-0">

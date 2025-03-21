@@ -114,7 +114,7 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7e9]">
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
       <Header />
       <main className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">

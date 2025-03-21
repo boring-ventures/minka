@@ -9,7 +9,7 @@ import { Footer } from "@/components/views/landing-page/Footer";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#f5f7e9]">
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
       <Header />
       <main className="flex-grow">
         <HeroSection />
