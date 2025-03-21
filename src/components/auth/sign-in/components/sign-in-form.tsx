@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { z } from "zod";
 import { Facebook, Mail, Lock, Apple, Info } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const signInFormSchema = z.object({
   email: z
@@ -107,6 +108,10 @@ export function SignInForm() {
       });
       setSocialLoading(null);
     }
+  }
+
+  if (isLoading || socialLoading) {
+    return <LoadingScreen />;
   }
 
   return (

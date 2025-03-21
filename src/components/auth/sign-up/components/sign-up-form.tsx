@@ -18,6 +18,7 @@ import {
   Info,
 } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 // Improved validation schema with better error messages
 const signUpFormSchema = z
@@ -68,13 +69,14 @@ type SignUpFormData = z.infer<typeof signUpFormSchema>;
 export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { signUp } = useAuth();
 
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     setError,
     reset,
   } = useForm<SignUpFormData>({
@@ -97,6 +99,7 @@ export function SignUpForm() {
 
     try {
       setIsLoading(true);
+      setIsSubmitting(true);
 
       await signUp({
         email: data.email,
@@ -140,6 +143,7 @@ export function SignUpForm() {
       }
     } finally {
       setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -160,6 +164,10 @@ export function SignUpForm() {
     } finally {
       setSocialLoading(null);
     }
+  }
+
+  if (isLoading || socialLoading || isSubmitting) {
+    return <LoadingScreen />;
   }
 
   return (

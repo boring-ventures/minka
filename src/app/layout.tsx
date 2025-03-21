@@ -5,6 +5,7 @@ import { QueryProvider } from "@/lib/providers/QueryProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/context/theme-context";
+import { LoadingProvider } from "@/components/ui/loading-provider";
 
 const APP_NAME = "MINKA - Impulsa sueños, transforma vidas";
 const APP_DESCRIPTION =
@@ -95,10 +96,12 @@ export default function RootLayout({
       >
         <ThemeProvider defaultTheme="system" storageKey="app-theme">
           <AuthProvider>
-            <QueryProvider>
-              <div className="flex-grow">{children}</div>
-              <Toaster />
-            </QueryProvider>
+            <LoadingProvider>
+              <QueryProvider>
+                <div className="flex-grow">{children}</div>
+                <Toaster />
+              </QueryProvider>
+            </LoadingProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
