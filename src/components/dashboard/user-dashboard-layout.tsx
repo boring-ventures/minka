@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { ArrowLeft, User, LogOut } from "lucide-react";
+import { ArrowLeft, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Footer } from "@/components/views/landing-page/Footer";
 
@@ -45,7 +45,13 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
   };
 
   const handleBack = () => {
-    router.push("/");
+    // Try to go back in history first
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+    } else {
+      // Fallback to the homepage if there's no history
+      router.push("/");
+    }
   };
 
   return (

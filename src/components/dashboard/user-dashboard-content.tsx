@@ -25,9 +25,13 @@ interface ProfileData {
 
 interface UserDashboardContentProps {
   profile: ProfileData;
+  onEditProfile?: () => void;
 }
 
-export function UserDashboardContent({ profile }: UserDashboardContentProps) {
+export function UserDashboardContent({
+  profile,
+  onEditProfile,
+}: UserDashboardContentProps) {
   const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
   const router = useRouter();
   const supabase = createClientComponentClient();
@@ -55,6 +59,7 @@ export function UserDashboardContent({ profile }: UserDashboardContentProps) {
         <Button
           variant="ghost"
           className="text-[#2c6e49] hover:text-[#1e4d33] flex items-center gap-2"
+          onClick={onEditProfile}
         >
           Editar <Edit size={16} />
         </Button>
@@ -101,7 +106,7 @@ export function UserDashboardContent({ profile }: UserDashboardContentProps) {
               variant="outline"
               className="flex items-center gap-2 text-[#2c6e49] border-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
             >
-               Seleccionar imagen <Camera size={16} />
+              Seleccionar imagen <Camera size={16} />
             </Button>
           </div>
         </div>

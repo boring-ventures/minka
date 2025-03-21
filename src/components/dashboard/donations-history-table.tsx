@@ -1,0 +1,177 @@
+"use client";
+
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface Donation {
+  id: string;
+  amount: number;
+  created_at: string;
+  campaign?: {
+    id: string;
+    title: string;
+  };
+}
+
+interface DonationsHistoryTableProps {
+  donations: Donation[];
+  currentPage: number;
+  totalPages: number;
+  basePath?: string;
+}
+
+export function DonationsHistoryTable({
+  donations,
+  currentPage,
+  totalPages,
+  basePath = "/dashboard/donations",
+}: DonationsHistoryTableProps) {
+  // Format date as DD/MM/YYYY
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
+  };
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-4 px-2 font-medium text-gray-600">
+                Campañas apoyadas
+              </th>
+              <th className="text-center py-4 px-2 font-medium text-gray-600">
+                Fecha
+              </th>
+              <th className="text-right py-4 px-2 font-medium text-gray-600">
+                Monto
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {donations.map((donation) => (
+              <tr key={donation.id} className="border-b border-gray-100">
+                <td className="py-4 px-2">
+                  <Link
+                    href={`/campaign/${donation.campaign?.id}`}
+                    className="text-gray-800 hover:text-[#2c6e49]"
+                  >
+                    {donation.campaign?.title}
+                  </Link>
+                </td>
+                <td className="py-4 px-2 text-center text-gray-700">
+                  {formatDate(donation.created_at)}
+                </td>
+                <td className="py-4 px-2 text-right">
+                  Bs. {donation.amount.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-center mt-6 gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={currentPage <= 1}
+            className="rounded-full bg-gray-100 hover:bg-gray-200"
+            asChild
+          >
+            <Link
+              href={{
+                pathname: basePath,
+                query: { page: currentPage > 1 ? currentPage - 1 : 1 },
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum = i + 1;
+
+            // Logic to show pages around the current page when there are many pages
+            if (totalPages > 5) {
+              if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+            }
+
+            return (
+              <Button
+                key={pageNum}
+                variant="ghost"
+                size="icon"
+                className={`rounded-full bg-gray-100 ${
+                  currentPage === pageNum
+                    ? "border-[#2c6e49] border text-[#2c6e49]"
+                    : "hover:bg-gray-200"
+                }`}
+                asChild
+              >
+                <Link
+                  href={{
+                    pathname: basePath,
+                    query: { page: pageNum },
+                  }}
+                >
+                  {pageNum}
+                </Link>
+              </Button>
+            );
+          })}
+
+          {totalPages > 5 && currentPage < totalPages - 2 && (
+            <>
+              <span className="px-2">...</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full bg-gray-100 hover:bg-gray-200"
+                asChild
+              >
+                <Link
+                  href={{
+                    pathname: basePath,
+                    query: { page: totalPages },
+                  }}
+                >
+                  {totalPages}
+                </Link>
+              </Button>
+            </>
+          )}
+
+          <Button
+            variant="default"
+            size="icon"
+            disabled={currentPage >= totalPages}
+            className="rounded-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
+            asChild
+          >
+            <Link
+              href={{
+                pathname: basePath,
+                query: {
+                  page: currentPage < totalPages ? currentPage + 1 : totalPages,
+                },
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
+    </>
+  );
+}
