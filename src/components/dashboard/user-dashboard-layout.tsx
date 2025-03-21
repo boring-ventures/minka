@@ -56,7 +56,7 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
           {/* Left: Back button */}
           <Button
             variant="ghost"
-            className="text-[#2c6e49] hover:text-[#1e4d33] font-medium flex items-center"
+            className="text-[#2c6e49] hover:text-[#1e4d33] font-medium flex items-center text-base"
             onClick={handleBack}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -77,7 +77,7 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
           {/* Right: User profile */}
           <div className="flex items-center">
             <User className="h-5 w-5 text-[#2c6e49] mr-2" />
-            <span className="text-[#2c6e49] font-medium">
+            <span className="text-[#2c6e49] font-medium text-base">
               {profile?.name || "Usuario"}
             </span>
           </div>
