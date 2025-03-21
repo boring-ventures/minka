@@ -51,20 +51,6 @@ export function LoadingSpinner({
             }}
           ></div>
 
-          {/* Rounded cap element */}
-          <div
-            className="absolute"
-            style={{
-              width: "4%",
-              height: "4%",
-              borderRadius: "50%",
-              background: "#356945",
-              top: "36%",
-              left: "64%",
-              zIndex: 10,
-              boxShadow: "0 0 3px 1px rgba(53, 105, 69, 0.3)",
-            }}
-          ></div>
         </div>
 
         {/* Minka Icon in center */}
