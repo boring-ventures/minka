@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { NextRequest } from "next/server";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { userId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
     const profile = await prisma.profile.findUnique({
       where: { id: userId },
       include: {
@@ -41,11 +42,11 @@ export async function GET(
 }
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { userId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
     const json = await request.json();
 
     const profile = await prisma.profile.update({

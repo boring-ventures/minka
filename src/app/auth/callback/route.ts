@@ -1,7 +1,7 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -9,7 +9,9 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
 
   if (code) {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createRouteHandlerClient({
+      cookies: () => cookies(),
+    });
 
     // Exchange the code for a session
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -68,4 +70,4 @@ export async function GET(request: NextRequest) {
 
   // Redirect to the dashboard
   return NextResponse.redirect(new URL("/dashboard", request.url));
-} 
+}

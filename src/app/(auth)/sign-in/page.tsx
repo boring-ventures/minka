@@ -10,12 +10,15 @@ export const metadata: Metadata = {
   description: "Inicia sesión en tu cuenta de Minka",
 };
 
-export default async function SignInPage({
-  searchParams,
-}: {
-  searchParams: { registered?: string };
-}) {
-  const isRegistered = searchParams?.registered === "true";
+// This function is used to safely get the registered status from searchParams
+function getRegistrationStatus(searchParams: { registered?: string }): boolean {
+  return searchParams?.registered === "true";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default async function SignInPage({ searchParams }: any) {
+  // We'll calculate the registration status once, outside of any components or hooks
+  const isRegistered = getRegistrationStatus(searchParams);
 
   const supabase = createServerComponentClient({
     cookies: () => cookies(),

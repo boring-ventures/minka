@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { Facebook, Mail, Lock, Apple, Info } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
@@ -34,7 +33,6 @@ export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { signIn } = useAuth();
-  const router = useRouter();
 
   const {
     register,
@@ -175,16 +173,7 @@ export function SignInForm() {
             />
           )}
         />
-        <label
-          htmlFor="terms"
-          className="text-sm leading-none cursor-pointer"
-          onClick={() => {
-            const currentValue = control._getWatch("acceptTerms");
-            control._setValue("acceptTerms", !currentValue, {
-              shouldValidate: true,
-            });
-          }}
-        >
+        <label htmlFor="terms" className="text-sm leading-none cursor-pointer">
           Acepto los{" "}
           <Link href="/terminos" className="text-[#2c6e49] hover:underline">
             Términos, Condiciones y Políticas de Minka

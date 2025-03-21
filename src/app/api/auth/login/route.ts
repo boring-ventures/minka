@@ -20,9 +20,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create a Supabase client with awaited cookies
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    // Create a Supabase client with properly handled cookies
+    const supabase = createRouteHandlerClient({
+      cookies: () => cookies(),
+    });
 
     // Sign in the user with Supabase Auth
     const { data: authData, error: authError } =

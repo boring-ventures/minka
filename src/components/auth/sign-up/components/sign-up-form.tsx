@@ -401,17 +401,7 @@ export function SignUpForm() {
             />
           )}
         />
-        <label
-          htmlFor="terms"
-          className="text-sm leading-none cursor-pointer"
-          onClick={() => {
-            if (isLoading || isSubmitting) return;
-            const currentValue = control.getValues("acceptTerms");
-            control.setValue("acceptTerms", !currentValue, {
-              shouldValidate: true,
-            });
-          }}
-        >
+        <label htmlFor="terms" className="text-sm leading-none cursor-pointer">
           Acepto los{" "}
           <Link href="/terminos" className="text-[#2c6e49] hover:underline">
             Términos, Condiciones y Políticas de Minka

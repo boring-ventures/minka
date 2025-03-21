@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    // Create Supabase client with properly handled cookies
+    const supabase = createRouteHandlerClient({
+      cookies: () => cookies(),
+    });
 
     // Get the session from Supabase
     const {
