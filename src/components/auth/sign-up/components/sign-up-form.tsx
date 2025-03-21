@@ -406,8 +406,8 @@ export function SignUpForm() {
           className="text-sm leading-none cursor-pointer"
           onClick={() => {
             if (isLoading || isSubmitting) return;
-            const currentValue = control._getWatch("acceptTerms");
-            control._setValue("acceptTerms", !currentValue, {
+            const currentValue = control.getValues("acceptTerms");
+            control.setValue("acceptTerms", !currentValue, {
               shouldValidate: true,
             });
           }}

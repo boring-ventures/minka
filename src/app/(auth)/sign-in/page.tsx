@@ -15,7 +15,12 @@ export default async function SignInPage({
 }: {
   searchParams: { registered?: string };
 }) {
-  const supabase = createServerComponentClient({ cookies });
+  const isRegistered = searchParams?.registered === "true";
+
+  const supabase = createServerComponentClient({
+    cookies: () => cookies(),
+  });
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -23,8 +28,6 @@ export default async function SignInPage({
   if (session) {
     redirect("/dashboard");
   }
-
-  const showRegistrationSuccess = searchParams.registered === "true";
 
   return (
     <div className="w-full">
@@ -35,7 +38,7 @@ export default async function SignInPage({
         </p>
       </div>
 
-      {showRegistrationSuccess && (
+      {isRegistered && (
         <div className="mb-6 p-4 bg-green-50 text-green-800 rounded-md">
           <p>
             ¡Tu cuenta ha sido creada exitosamente! Ahora puedes iniciar sesión.
