@@ -41,32 +41,30 @@ export function LoadingSpinner({
             style={{
               animationDuration: "1.5s",
               backgroundImage:
-                "conic-gradient(from 0deg, #356945 0deg, #356945 180deg, rgba(232, 240, 233, 0.3) 180deg, rgba(232, 240, 233, 0.1) 270deg, transparent 271deg)",
+                "conic-gradient(from 0deg, #356945 0deg, #7fb78a 20%, transparent 100%)",
               maskImage:
                 "radial-gradient(transparent 58%, black 58%, black 72%, transparent 72%)",
               WebkitMaskImage:
                 "radial-gradient(transparent 58%, black 58%, black 72%, transparent 72%)",
-              // Add styles to create rounded head effect
               borderRadius: "50%",
               position: "relative",
             }}
-          >
-            {/* Rounded cap for spinner head */}
-            <div
-              className="absolute"
-              style={{
-                width: "14%",
-                height: "14%",
-                borderRadius: "50%",
-                background: "#356945",
-                top: "15%",
-                left: "71%",
-                transform: "rotate(0deg)",
-                zIndex: 10,
-                boxShadow: "0 0 6px 1px rgba(53, 105, 69, 0.2)",
-              }}
-            ></div>
-          </div>
+          ></div>
+
+          {/* Rounded cap element */}
+          <div
+            className="absolute"
+            style={{
+              width: "4%",
+              height: "4%",
+              borderRadius: "50%",
+              background: "#356945",
+              top: "36%",
+              left: "64%",
+              zIndex: 10,
+              boxShadow: "0 0 3px 1px rgba(53, 105, 69, 0.3)",
+            }}
+          ></div>
         </div>
 
         {/* Minka Icon in center */}
