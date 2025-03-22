@@ -39,7 +39,7 @@ export default function NotFound() {
           </div>
 
           {/* Error content */}
-          <div className="w-full max-w-md lg:w-2/5">
+          <div className="w-full max-w-xl lg:w-3/5">
             {/* Mobile logo (only visible on small screens) */}
             <div className="mb-6 flex justify-center lg:hidden">
               <Link href="/">
@@ -52,21 +52,21 @@ export default function NotFound() {
                 />
               </Link>
             </div>
-            <div className=" p-8 rounded-xl">
+            <div className="p-8 rounded-xl">
               <div className="flex flex-col items-center text-center space-y-8">
-                <h1 className="text-5xl font-bold text-[#2c6e49]">¡Ups!</h1>
-                <h2 className="text-3xl font-semibold text-gray-800">
+                <h1 className="text-8xl font-bold text-[#2c6e49]">¡Ups!</h1>
+                <h2 className="text-6xl font-semibold text-gray-800">
                   Algo salió mal
                 </h2>
-                <p className="text-xl text-black">
+                <p className="text-3xl text-black">
                   ¡Lo sentimos! Por favor, intenta de nuevo más tarde o
                   contáctanos si el problema persiste. Estamos aquí para
                   ayudarte.
                 </p>
-                <div className="flex flex-col space-y-4 w-full pt-4">
+                <div className="flex flex-col space-y-4 w-full pt-4 items-center">
                   <Button
                     asChild
-                    className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-6 py-6 text-lg w-full"
+                    className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-6 py-6 text-lg w-[70%]"
                   >
                     <Link href="/" className="flex items-center justify-center">
                       Ir al inicio
@@ -76,7 +76,7 @@ export default function NotFound() {
                   <Button
                     asChild
                     variant="outline"
-                    className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#e8f5ed] rounded-full px-6 py-6 text-lg w-full"
+                    className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#e8f5ed] rounded-full px-6 py-6 text-lg w-[70%]"
                   >
                     <Link
                       href="https://wa.me/5215555555555"
