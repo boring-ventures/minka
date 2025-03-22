@@ -17,35 +17,47 @@ interface UserDashboardLayoutProps {
 
 export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
   const router = useRouter();
-  const supabase = createClientComponentClient();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const supabase = createClientComponentClient();
+  const [isCampaignPage, setIsCampaignPage] = useState(false);
 
   useEffect(() => {
-    async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    async function getUserProfile() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (user) {
+        if (!session) {
+          router.push("/sign-in");
+          return;
+        }
+
         const { data } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", user.id)
+          .eq("id", session.user.id)
           .single();
+
         setProfile(data);
+      } catch (error) {
+        console.error("Error getting user profile", error);
       }
     }
-    getUser();
-  }, [supabase]);
+
+    getUserProfile();
+  }, [router, supabase]);
+
+  // Check if the page is a campaign detail page
+  useEffect(() => {
+    // This checks if we're on a specific campaign page (/dashboard/campaigns/[id])
+    const path = window.location.pathname;
+    const isCampaignDetailPage = /\/dashboard\/campaigns\/[^\/]+$/.test(path);
+    setIsCampaignPage(isCampaignDetailPage);
+  }, []);
 
   const handleBack = () => {
-    // Try to go back in history first
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      window.history.back();
-    } else {
-      // Fallback to the homepage if there's no history
-      router.push("/");
-    }
+    router.back();
   };
 
   return (
@@ -84,14 +96,23 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
         </div>
       </header>
 
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="max-w-[80%] mx-auto">{children}</div>
+      <main
+        className={
+          isCampaignPage
+            ? "flex-grow w-full"
+            : "flex-grow container mx-auto px-4 py-8"
+        }
+      >
+        <div className={isCampaignPage ? "w-full" : "max-w-[80%] mx-auto"}>
+          {children}
+        </div>
       </main>
 
       {/* Added extra space before footer */}
-      <div className="py-16"></div>
+      {!isCampaignPage && <div className="py-16"></div>}
 
-      <Footer />
+      {/* Only show footer on non-campaign pages */}
+      {!isCampaignPage && <Footer />}
     </div>
   );
 }

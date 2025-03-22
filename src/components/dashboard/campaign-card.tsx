@@ -91,7 +91,7 @@ export function CampaignCard({
 
         {/* Campaign Title */}
         <h3 className="text-lg font-medium text-[#2c6e49] mb-2">
-          <Link href={`/campaign/${id}`} className="hover:underline">
+          <Link href={`/campaigns/${id}`} className="hover:underline">
             {title}
           </Link>
         </h3>
@@ -129,7 +129,7 @@ export function CampaignCard({
             className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
             asChild
           >
-            <Link href={`/campaign/${id}/dashboard`}>
+            <Link href={`/dashboard/campaigns/${id}`}>
               Administrar Campaña
               <Edit className="ml-2 h-4 w-4" />
             </Link>

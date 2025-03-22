@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { X } from "lucide-react";
 import { ProfileData } from "@/types";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -105,7 +106,11 @@ export default function DashboardPage() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center py-16">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
   return (
