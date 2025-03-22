@@ -10,21 +10,10 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Camera, FileText, Bell, Bookmark, LogOut, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-
-interface ProfileData {
-  id: string;
-  name: string;
-  email: string;
-  identity_number: string;
-  phone: string;
-  birth_date: string;
-  address: string;
-  profile_picture?: string;
-  [key: string]: any;
-}
+import { ProfileData } from "@/types";
 
 interface UserDashboardContentProps {
-  profile: ProfileData;
+  profile: ProfileData | null;
   onEditProfile?: () => void;
 }
 
@@ -36,7 +25,7 @@ export function UserDashboardContent({
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
     if (!dateString) return "";
 
     const date = new Date(dateString);

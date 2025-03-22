@@ -60,7 +60,6 @@ export default async function SavedCampaignsPage() {
                 id={campaign.id}
                 title={campaign.title}
                 imageUrl={campaign.imageUrl}
-                category={campaign.category}
                 location={campaign.location}
                 isInclusive={campaign.isInclusive}
               />

@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { X } from "lucide-react";
+import { ProfileData } from "@/types";
 
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -64,6 +65,8 @@ export default function DashboardPage() {
 
   const handleSaveChanges = async () => {
     try {
+      if (!profile) return;
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -72,7 +75,7 @@ export default function DashboardPage() {
           phone: profileForm.phone,
           address: profileForm.address,
         })
-        .eq("id", profile?.id);
+        .eq("id", profile.id);
 
       if (error) throw error;
 

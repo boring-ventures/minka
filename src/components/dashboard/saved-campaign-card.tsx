@@ -16,10 +16,9 @@ export function SavedCampaignCard({
   id,
   title,
   imageUrl,
-  category,
   location,
   isInclusive = false,
-}: SavedCampaignCardProps) {
+}: Omit<SavedCampaignCardProps, "category">) {
   return (
     <div className="bg-white rounded-lg shadow-sm flex overflow-hidden min-h-[120px] relative">
       <div className="relative w-[120px]">

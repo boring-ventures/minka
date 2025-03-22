@@ -1,17 +1,10 @@
 "use client";
 
 import React from "react";
-
-interface ProfileData {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  [key: string]: any;
-}
+import { ProfileData } from "@/types";
 
 interface AdminDashboardContentProps {
-  profile: ProfileData;
+  profile: ProfileData | null;
 }
 
 export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {

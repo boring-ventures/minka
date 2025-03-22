@@ -52,18 +52,20 @@ export function CampaignCard({
 
   const statusInfo = getStatusLabel(status);
 
-  // Use placeholder image if no image URL provided
-  const imageSrc = "/amboro-main.jpg";
+  // Use imageUrl from props and fallback to placeholder if not available
+  const imageSrc = imageUrl || "/amboro-main.jpg";
 
   return (
     <div className="rounded-lg overflow-hidden bg-white border border-gray-100 hover:shadow-md transition-all">
       <div className="relative">
         {/* Campaign Image */}
         <div className="h-40 relative">
-          <img
+          <Image
             src={imageSrc}
             alt={title}
-            className="object-cover w-full h-full"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 384px"
           />
         </div>
       </div>
@@ -104,7 +106,7 @@ export function CampaignCard({
         <div className="mb-2 flex justify-between text-sm">
           <span className="text-gray-600">Recaudado</span>
           <span className="font-medium">
-            Bs. {raisedAmount.toLocaleString()}
+            Bs. {raisedAmount.toLocaleString()} de {goalAmount.toLocaleString()}
           </span>
         </div>
 

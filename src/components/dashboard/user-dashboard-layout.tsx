@@ -9,6 +9,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowLeft, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Footer } from "@/components/views/landing-page/Footer";
+import { ProfileData } from "@/types";
 
 interface UserDashboardLayoutProps {
   children: React.ReactNode;
@@ -17,15 +18,13 @@ interface UserDashboardLayoutProps {
 export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
   const router = useRouter();
   const supabase = createClientComponentClient();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
 
   useEffect(() => {
     async function getUser() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      setUser(user);
 
       if (user) {
         const { data } = await supabase
@@ -38,11 +37,6 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
     }
     getUser();
   }, [supabase]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
 
   const handleBack = () => {
     // Try to go back in history first
