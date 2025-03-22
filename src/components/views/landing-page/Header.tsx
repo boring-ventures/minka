@@ -1,14 +1,42 @@
 "use client";
-import Image from "next/image"
-import Link from "next/link"
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/providers/auth-provider";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
+  const { user } = useAuth();
+  const [profileName, setProfileName] = useState<string>("");
+  const supabase = createClientComponentClient();
+
+  // Fetch user profile data from Supabase
+  useEffect(() => {
+    async function fetchUserProfile() {
+      if (!user) return;
+
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", user.id)
+          .single();
+
+        if (data?.name) {
+          setProfileName(data.name);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile", error);
+      }
+    }
+
+    fetchUserProfile();
+  }, [user, supabase]);
 
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
@@ -64,22 +92,33 @@ export function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          <Link href="/sign-in">
-            <Button
-              variant="ghost"
-              className="text-[#2c6e49] hover:text-[#1e4d33] text-lg"
-            >
-              Ingresar
-            </Button>
-          </Link>
-          <Link href="/sign-up">
-            <Button
-              variant="outline"
-              className="rounded-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg px-6 py-2"
-            >
-              Registrarse
-            </Button>
-          </Link>
+          {user ? (
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <User className="h-5 w-5 text-[#2c6e49]" />
+              <span className="text-[#2c6e49] font-medium">
+                {profileName || "Usuario"}
+              </span>
+            </Link>
+          ) : (
+            <>
+              <Link href="/sign-in">
+                <Button
+                  variant="ghost"
+                  className="text-[#2c6e49] hover:text-[#1e4d33] text-lg"
+                >
+                  Ingresar
+                </Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button
+                  variant="outline"
+                  className="rounded-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg px-6 py-2"
+                >
+                  Registrarse
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -145,18 +184,29 @@ export function Header() {
 
           {/* Mobile Menu Footer */}
           <div className="p-4 flex justify-center">
-            <Link href="/sign-in" className="w-full">
-              <Button
-                className="w-full bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
-                onClick={toggleMenu}
-              >
-                Ingresar / Registrarse
-              </Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard" className="w-full">
+                <Button
+                  className="w-full flex items-center justify-center gap-2 bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
+                  onClick={toggleMenu}
+                >
+                  <User className="h-5 w-5" />
+                  <span>{profileName || "Usuario"}</span>
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/sign-in" className="w-full">
+                <Button
+                  className="w-full bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
+                  onClick={toggleMenu}
+                >
+                  Ingresar / Registrarse
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       )}
     </>
   );
 }
-
