@@ -115,6 +115,15 @@ export default async function ManageCampaignsPage() {
         <h1 className="text-3xl font-bold text-gray-800">
           Administrar mis campañas
         </h1>
+        <Button
+          className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full flex items-center gap-2"
+          asChild
+        >
+          <Link href="/create-campaign">
+            <Plus size={18} />
+            Nueva Campaña
+          </Link>
+        </Button>
       </div>
 
       {displayActiveCampaigns && displayActiveCampaigns.length > 0 ? (
@@ -158,13 +167,13 @@ export default async function ManageCampaignsPage() {
       )}
 
       {displayCompletedCampaigns && displayCompletedCampaigns.length > 0 && (
-        <div className="space-y-4 mt-10">
+        <div className="space-y-6 mt-10">
           <h2 className="text-2xl font-bold text-gray-800">
             Campañas completadas
           </h2>
-          <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="space-y-6">
             {displayCompletedCampaigns.map((campaign, index) => (
-              <div key={campaign.id}>
+              <div key={campaign.id} className="space-y-6">
                 <CompletedCampaignCard
                   id={campaign.id}
                   title={campaign.title}
@@ -172,7 +181,7 @@ export default async function ManageCampaignsPage() {
                   description={campaign.description}
                 />
                 {index < displayCompletedCampaigns.length - 1 && (
-                  <div className="h-px bg-gray-200 my-3" />
+                  <div className="h-px bg-gray-200" />
                 )}
               </div>
             ))}

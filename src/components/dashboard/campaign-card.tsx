@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export type CampaignStatus =
   | "active"
@@ -68,15 +69,21 @@ export function CampaignCard({
       </div>
 
       <div className="p-4">
-        {/* Status and Verified Tags - Left side, below image */}
+        {/* Status indicator with verified check for active campaigns */}
         <div className="flex items-center gap-2 mb-3">
           {status === "active" && (
-            <img src="/verified-badge.svg" alt="Verified" className="w-5 h-5" />
+            <Image
+              src="/icons/verified.svg"
+              alt="Verified"
+              width={30}
+              height={30}
+            />
           )}
           <span
             className={`text-xs font-medium py-1 px-2 rounded-full ${statusInfo.color} flex items-center gap-1`}
           >
-            • {statusInfo.label}
+            <span className="text-lg inline-block leading-none">•</span>{" "}
+            {statusInfo.label}
           </span>
         </div>
 
@@ -117,12 +124,12 @@ export function CampaignCard({
           <Button
             variant="ghost"
             size="sm"
-            className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0"
+            className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
             asChild
           >
             <Link href={`/campaign/${id}/dashboard`}>
-              <Edit size={16} />
               Administrar Campaña
+              <Edit className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </div>

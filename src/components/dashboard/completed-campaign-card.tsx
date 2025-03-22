@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Edit } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface CompletedCampaignCardProps {
   id: string;
@@ -17,54 +17,52 @@ export function CompletedCampaignCard({
   imageUrl,
   description,
 }: CompletedCampaignCardProps) {
-  // Use fixed placeholder image
-  const imageSrc = "/amboro-main.jpg";
-
   return (
-    <div className="bg-white mb-0 flex">
-      {/* Image with full height */}
-      <div className="w-20 h-20 relative mr-4 flex-shrink-0">
-        <img
-          src={imageSrc}
+    <div className="bg-white rounded-lg shadow-sm flex overflow-hidden min-h-[120px] relative">
+      <div className="relative w-[120px]">
+        <Image
+          src={imageUrl}
           alt={title}
-          className="object-cover w-full h-full rounded-md"
+          fill
+          className="object-cover rounded-l-lg"
+          sizes="120px"
         />
       </div>
 
-      {/* Content area */}
-      <div className="flex-1 flex items-center">
-        <div className="flex-1">
-          <h3 className="text-base font-medium">
-            <Link href={`/campaign/${id}`} className="hover:underline">
-              {title}
-            </Link>
-          </h3>
+      {/* Floating verified badge - repositioned to overlap image and content exactly 50/50 */}
+      <div className="absolute left-[120px] top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10">
+        <div className="bg-[#2c6e49] rounded-full p-1 flex items-center justify-center w-[30px] h-[30px]">
+          <Image
+            src="/icons/verified.svg"
+            alt="Verified"
+            width={20}
+            height={20}
+            className="brightness-0 invert" /* Make icon white */
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 p-5 flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900">{title}</h3>
           {description && (
             <p className="text-sm text-gray-600 mt-1">{description}</p>
           )}
 
-          {/* Status indicator with a point instead of an icon */}
+          {/* Status indicator with a bigger point */}
           <div className="mt-2">
             <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-600">
-              • Finalizada
+              <span className="text-lg inline-block leading-none">•</span>{" "}
+              Finalizada
             </span>
           </div>
         </div>
-
-        {/* Button to the right */}
-        <div className="ml-auto">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center"
-            asChild
-          >
-            <Link href={`/campaign/${id}/dashboard`}>
-              Administrar Campaña
-              <Edit size={16} className="ml-2" />
-            </Link>
-          </Button>
-        </div>
+        <Link
+          href={`/campaign/${id}/dashboard`}
+          className="text-[#2c6e49] flex items-center hover:underline font-bold"
+        >
+          Administrar Campaña <Edit className="ml-2 h-3.5 w-3.5" />
+        </Link>
       </div>
     </div>
   );
