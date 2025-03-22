@@ -205,3 +205,15 @@ model SavedCampaign {
 
   @@map("saved_campaigns")
 }
+
+model NotificationPreference {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @unique @map("user_id") @db.Uuid
+  newsUpdates       Boolean   @default(false) @map("news_updates")
+  campaignUpdates   Boolean   @default(true) @map("campaign_updates")
+  status            Status    @default(active)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamp()
+
+  @@map("notification_preferences")
+}
