@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Pencil, MessageSquare, Heart, ArrowRight, Eye } from "lucide-react";
+import { Pencil, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "@/components/ui/use-toast";
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EditCampaignTab } from "@/components/campaign-admin/edit-campaign-tab";
@@ -20,7 +19,7 @@ import { TransferFundsTab } from "@/components/campaign-admin/transfer-funds-tab
 export default function CampaignDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [campaign, setCampaign] = useState<any>(null);
+  const [campaign, setCampaign] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("editar");
   const supabase = createClientComponentClient();

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { ProfileData } from "@/types";
 
 interface AdminDashboardContentProps {
@@ -24,12 +25,12 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
           <p className="text-muted-foreground mb-6">
             Review and manage all active campaigns
           </p>
-          <a
+          <Link
             href="/dashboard/campaigns"
             className="text-primary hover:underline font-medium"
           >
             Manage Campaigns →
-          </a>
+          </Link>
         </div>
 
         <div className="bg-card rounded-lg p-6">
@@ -37,12 +38,12 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
           <p className="text-muted-foreground mb-6">
             Manage user accounts and permissions
           </p>
-          <a
+          <Link
             href="/dashboard/users"
             className="text-primary hover:underline font-medium"
           >
             Manage Users →
-          </a>
+          </Link>
         </div>
 
         <div className="bg-card rounded-lg p-6">
@@ -50,12 +51,12 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
           <p className="text-muted-foreground mb-6">
             View donation statistics and platform metrics
           </p>
-          <a
+          <Link
             href="/dashboard/analytics"
             className="text-primary hover:underline font-medium"
           >
             View Analytics →
-          </a>
+          </Link>
         </div>
       </div>
     </div>

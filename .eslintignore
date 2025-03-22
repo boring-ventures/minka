@@ -1,0 +1,3 @@
+src/app/(dashboard)/dashboard/campaigns/[id]/page.tsx
+src/components/campaign-admin/*
+src/types/index.ts 

@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface CommentsTabProps {
-  campaign: any;
+  campaign: Record<string, any>;
 }
 
 type Comment = {
@@ -28,10 +28,21 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [replyData, setReplyData] = useState<Record<string, string>>({});
   const [replying, setReplying] = useState<Record<string, boolean>>({});
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showSaveBar, setShowSaveBar] = useState(false);
 
   useEffect(() => {
     fetchComments();
-  }, []);
+  }, [campaign.id]);
+
+  useEffect(() => {
+    // Check if there are pending replies
+    const hasPendingReplies =
+      Object.values(replying).some((value) => value) &&
+      Object.values(replyData).some((value) => value?.trim().length > 0);
+    setHasChanges(hasPendingReplies);
+    setShowSaveBar(hasPendingReplies);
+  }, [replying, replyData]);
 
   const fetchComments = async () => {
     setIsLoading(true);
@@ -213,6 +224,8 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
       });
 
       setComments(updatedComments);
+      setHasChanges(false);
+      setShowSaveBar(false);
 
       toast({
         title: "Respuesta enviada",
@@ -226,6 +239,47 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
         variant: "destructive",
       });
     }
+  };
+
+  const saveAllChanges = async () => {
+    // Find all comments with pending replies
+    const commentsToUpdate = Object.entries(replying)
+      .filter(([id, isReplying]) => isReplying && replyData[id]?.trim())
+      .map(([id]) => id);
+
+    if (commentsToUpdate.length === 0) return;
+
+    let hasErrors = false;
+
+    // Update each comment
+    for (const commentId of commentsToUpdate) {
+      try {
+        await submitReply(commentId);
+      } catch (error) {
+        console.error(`Error saving reply for comment ${commentId}:`, error);
+        hasErrors = true;
+      }
+    }
+
+    if (!hasErrors) {
+      setHasChanges(false);
+      setShowSaveBar(false);
+      toast({
+        title: "Cambios guardados",
+        description: "Todas las respuestas han sido publicadas correctamente.",
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    const resetReplying: Record<string, boolean> = {};
+    Object.keys(replying).forEach((id) => {
+      resetReplying[id] = false;
+    });
+    setReplying(resetReplying);
+    setReplyData({});
+    setHasChanges(false);
+    setShowSaveBar(false);
   };
 
   const toggleCommentVisibility = async (
@@ -284,11 +338,11 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Comentarios</h2>
-        <p className="text-sm text-gray-500">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Comentarios</h2>
+        <p className="text-gray-600 mb-6">
           Gestiona y responde a los comentarios de los donadores y seguidores de
-          tu campaña
+          tu campaña. Puedes ocultar comentarios inapropiados.
         </p>
       </div>
 
@@ -427,6 +481,28 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
             Cuando los seguidores de tu campaña dejen comentarios, aparecerán
             aquí.
           </p>
+        </div>
+      )}
+
+      {/* Save Changes Bar */}
+      {showSaveBar && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 py-4 px-6 border-t border-gray-200 z-50 flex justify-between items-center">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-gray-300 bg-white"
+            onClick={handleCancel}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
+            disabled={!hasChanges}
+            onClick={saveAllChanges}
+          >
+            Guardar cambios
+          </Button>
         </div>
       )}
     </div>

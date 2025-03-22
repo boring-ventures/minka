@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -9,18 +9,37 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 
 interface TransferFundsTabProps {
-  campaign: any;
+  campaign: Record<string, any>;
 }
 
 export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    accountHolderName: "",
-    bankName: "",
-    accountNumber: "",
-    amount: 0,
-  });
+  const [showSaveBar, setShowSaveBar] = useState(false);
+
+  const initialFormState = useMemo(
+    () => ({
+      accountHolderName: "",
+      bankName: "",
+      accountNumber: "",
+      amount: 0,
+    }),
+    []
+  );
+
+  const [formData, setFormData] = useState(initialFormState);
   const [transferSuccess, setTransferSuccess] = useState(false);
+
+  useEffect(() => {
+    // Check if form has any changes and is valid
+    const formChanged =
+      formData.accountHolderName.trim() !==
+        initialFormState.accountHolderName ||
+      formData.bankName !== initialFormState.bankName ||
+      formData.accountNumber.trim() !== initialFormState.accountNumber ||
+      (formData.amount > 0 && formData.amount !== initialFormState.amount);
+
+    setShowSaveBar(formChanged);
+  }, [formData, initialFormState]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -28,12 +47,14 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: name === "amount" ? parseFloat(value) || 0 : value,
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     setIsLoading(true);
 
     try {
@@ -56,6 +77,7 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
       if (error) throw error;
 
       setTransferSuccess(true);
+      setShowSaveBar(false);
 
       toast({
         title: "Solicitud enviada",
@@ -75,20 +97,33 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
     }
   };
 
+  const handleCancel = () => {
+    setFormData(initialFormState);
+    setShowSaveBar(false);
+  };
+
   const availableAmount = campaign.current_amount || 0;
   const canWithdraw = availableAmount > 0;
 
+  const isFormValid =
+    formData.accountHolderName.trim() !== "" &&
+    formData.bankName !== "" &&
+    formData.accountNumber.trim() !== "" &&
+    formData.amount > 0 &&
+    formData.amount <= availableAmount;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Transferir fondos</h2>
-        <p className="text-sm text-gray-500">
-          Transfiere los fondos recaudados a tu cuenta bancaria
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Transferir fondos</h2>
+        <p className="text-gray-600 mb-6">
+          Transfiere los fondos recaudados a tu cuenta bancaria. La
+          transferencia puede tardar de 2 a 3 días hábiles en procesarse.
         </p>
       </div>
 
       {/* Available Balance */}
-      <div className="p-6 bg-[#F9F9F3] rounded-lg">
+      <div className="p-6 bg-[#F9F9F3] rounded-lg shadow-sm">
         <div className="flex justify-between items-center">
           <div>
             <p className="text-sm text-gray-500">
@@ -115,7 +150,10 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
           </p>
           <Button
             className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
-            onClick={() => setTransferSuccess(false)}
+            onClick={() => {
+              setTransferSuccess(false);
+              setFormData(initialFormState);
+            }}
           >
             Hacer otra transferencia
           </Button>
@@ -271,6 +309,28 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
           <p className="text-gray-500">No hay transferencias previas</p>
         </div>
       </div>
+
+      {/* Save Changes Bar */}
+      {showSaveBar && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 py-4 px-6 border-t border-gray-200 z-50 flex justify-between items-center">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-gray-300 bg-white"
+            onClick={handleCancel}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
+            disabled={isLoading || !isFormValid}
+            onClick={handleSubmit}
+          >
+            {isLoading ? "Procesando..." : "Solicitar transferencia"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

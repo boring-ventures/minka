@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface DonationsTabProps {
-  campaign: any;
+  campaign: Record<string, any>;
 }
 
 type Donation = {
@@ -32,7 +32,7 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
 
   useEffect(() => {
     fetchDonations();
-  }, []);
+  }, [campaign.id]);
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
@@ -293,28 +293,30 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Donaciones</h2>
-        <p className="text-sm text-gray-500">
-          Visualiza y administra todas las donaciones recibidas en tu campaña
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Donaciones</h2>
+        <p className="text-gray-600 mb-6">
+          Visualiza y administra todas las donaciones recibidas en tu campaña.
+          Puedes buscar donaciones específicas y exportar los datos para un
+          análisis detallado.
         </p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-[#F9F9F3] p-4 rounded-lg">
+        <div className="bg-[#F9F9F3] p-4 rounded-lg shadow-sm">
           <p className="text-sm text-gray-500">Total recaudado</p>
           <p className="text-2xl font-bold text-[#2c6e49]">
             Bs. {total.toLocaleString()}
           </p>
         </div>
-        <div className="bg-[#F9F9F3] p-4 rounded-lg">
+        <div className="bg-[#F9F9F3] p-4 rounded-lg shadow-sm">
           <p className="text-sm text-gray-500">Número de donaciones</p>
           <p className="text-2xl font-bold text-[#2c6e49]">
             {donations.length}
           </p>
         </div>
-        <div className="bg-[#F9F9F3] p-4 rounded-lg">
+        <div className="bg-[#F9F9F3] p-4 rounded-lg shadow-sm">
           <p className="text-sm text-gray-500">Donación promedio</p>
           <p className="text-2xl font-bold text-[#2c6e49]">
             Bs.{" "}

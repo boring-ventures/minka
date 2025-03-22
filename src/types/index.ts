@@ -12,3 +12,24 @@ export interface ProfileData {
   profile_picture?: string;
   [key: string]: string | boolean | number | null | undefined;
 }
+
+export interface Campaign {
+  id: string;
+  title?: string;
+  description?: string;
+  goal_amount?: number;
+  current_amount?: number;
+  location?: string;
+  image_url?: string;
+  category_id?: string;
+  youtube_url?: string;
+  presentation?: string;
+  end_date?: string;
+  organizer_id?: string;
+  categories?: {
+    name: string;
+  };
+  donor_count?: number;
+  days_remaining?: number;
+  [key: string]: any; // For any additional properties that may exist
+}
