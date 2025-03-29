@@ -20,7 +20,7 @@ export default function CreateCampaignPage() {
           <h1 className="text-[90px] font-bold text-white">Crea tu campaña</h1>
         </div>
       </div>
-      <main>
+      <main className="overflow-x-hidden">
         <CreateCampaignHeader />
         <div className="container mx-auto px-4 py-16">
           <CampaignForm />
