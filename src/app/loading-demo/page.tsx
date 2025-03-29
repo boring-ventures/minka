@@ -18,7 +18,7 @@ export default function LoadingDemoPage() {
 
         <div className="grid grid-cols-1 mb-8">
           <div className="bg-[#f5f7e9] p-12 rounded-lg flex flex-col justify-center items-center">
-            <LoadingSpinner size="xl" />
+            <LoadingSpinner size="lg" />
           </div>
         </div>
 

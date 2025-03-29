@@ -4,10 +4,10 @@ import { getAuthSession } from "@/lib/auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const session = await getAuthSession();
 
     const campaign = await db.campaign.findUnique({

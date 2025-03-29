@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let campaign;
+    let campaign: any;
 
     // If campaignId is provided, update the existing campaign
     if (validatedData.campaignId) {

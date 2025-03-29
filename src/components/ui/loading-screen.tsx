@@ -25,7 +25,7 @@ export function LoadingScreen({
         className
       )}
     >
-      <LoadingSpinner size="xl" text={text} showText={showText} />
+      <LoadingSpinner size="lg" text={text} showText={showText} />
     </div>
   );
 }
