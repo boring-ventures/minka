@@ -3,6 +3,7 @@ import { CampaignForm } from "@/components/views/create-campaign/CampaignForm";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
 import Image from "next/image";
+import { CampaignFormProvider } from "@/components/providers/campaign-form-provider";
 
 export default function CreateCampaignPage() {
   return (
@@ -23,7 +24,9 @@ export default function CreateCampaignPage() {
       <main className="overflow-x-hidden">
         <CreateCampaignHeader />
         <div className="container mx-auto px-4 py-16">
-          <CampaignForm />
+          <CampaignFormProvider>
+            <CampaignForm />
+          </CampaignFormProvider>
         </div>
       </main>
       <Footer />
