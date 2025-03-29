@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 // Update the form sections (showing only the modified parts)
 export function CampaignForm() {
@@ -601,24 +602,26 @@ export function CampaignForm() {
                   </p>
                   <div className="w-full h-px bg-gray-200 my-6"></div>
                   <div className="space-y-3">
-                    <Button className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-4 flex items-center justify-center gap-2">
-                      <span>Solicitar verificación</span>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M14 5L21 12M21 12L14 19M21 12H3"
-                          stroke="white"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </Button>
+                    <Link href="/campaign-verification" className="block">
+                      <Button className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-4 flex items-center justify-center gap-2">
+                        <span>Solicitar verificación</span>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M14 5L21 12M21 12L14 19M21 12H3"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Button>
+                    </Link>
                     <Button
                       variant="outline"
                       className="w-full border-[#478C5C]/20 text-gray-600 rounded-full py-4 flex items-center justify-center gap-1"
