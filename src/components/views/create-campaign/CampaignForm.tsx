@@ -264,12 +264,13 @@ export function CampaignForm() {
 
     // Create a preview URL
     const previewUrl = URL.createObjectURL(file);
+    console.log("Created preview URL:", previewUrl);
 
     // Set the image to edit
     setImageToEdit(previewUrl);
 
-    // Add to media files list for future upload
-    setMediaFiles((prev) => [...prev, file]);
+    // Store original file for later reference (we'll upload the edited version)
+    setUploadingFile(file);
 
     // Reset file input
     if (fileInputRef.current) {
@@ -279,44 +280,106 @@ export function CampaignForm() {
 
   // Add handler for saving edited image
   const handleSaveEditedImage = (editedUrl: string) => {
-    if (editingImageIndex !== null) {
-      // If editing an existing image
-      const newPreviewUrls = [...mediaPreviewUrls];
-      URL.revokeObjectURL(newPreviewUrls[editingImageIndex]); // Clean up old URL
-      newPreviewUrls[editingImageIndex] = editedUrl;
-      setMediaPreviewUrls(newPreviewUrls);
+    try {
+      console.log("Saving edited image...");
+
+      // Create file from edited image dataURL first
+      const blob = dataURLtoBlob(editedUrl);
+      const fileName = uploadingFile
+        ? uploadingFile.name
+        : `edited-image-${Date.now()}.jpg`;
+      const file = new File([blob], fileName, {
+        type: "image/jpeg",
+      });
+
+      // Create an object URL from the blob for preview
+      const objectUrl = URL.createObjectURL(blob);
+      console.log("Created object URL for preview:", objectUrl);
+
+      if (editingImageIndex !== null) {
+        // If editing an existing image
+        console.log(`Updating image at index ${editingImageIndex}`);
+        const newPreviewUrls = [...mediaPreviewUrls];
+
+        // Clean up old URL
+        if (newPreviewUrls[editingImageIndex]) {
+          URL.revokeObjectURL(newPreviewUrls[editingImageIndex]);
+        }
+
+        // Set the new edited URL
+        newPreviewUrls[editingImageIndex] = objectUrl;
+        setMediaPreviewUrls(newPreviewUrls);
+
+        // Replace existing file
+        const newMediaFiles = [...mediaFiles];
+        newMediaFiles[editingImageIndex] = file;
+        setMediaFiles(newMediaFiles);
+      } else {
+        // If adding a new image
+        console.log("Adding new image");
+        setMediaPreviewUrls((prev) => [...prev, objectUrl]);
+        setMediaFiles((prev) => [...prev, file]);
+      }
+
+      // Start upload
+      console.log("Starting file upload...");
+      uploadFile(file)
+        .then(() => {
+          console.log("File upload completed");
+          setUploadingFile(null);
+        })
+        .catch((error) => {
+          console.error("Error uploading file:", error);
+          toast({
+            title: "Error al subir la imagen",
+            description: "No se pudo subir la imagen. Intenta nuevamente.",
+            variant: "destructive",
+          });
+        });
+
+      // Reset editing state
+      setImageToEdit(null);
       setEditingImageIndex(null);
-    } else {
-      // If adding a new image
-      setMediaPreviewUrls((prev) => [...prev, editedUrl]);
+
+      // Log current media previews
+      console.log("Current media preview URLs:", mediaPreviewUrls);
+
+      // Force a re-render of the preview after a short delay
+      setTimeout(() => {
+        console.log("Forcing re-render of media previews");
+        setMediaPreviewUrls((prev) => [...prev]);
+      }, 100);
+    } catch (error) {
+      console.error("Error processing edited image:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar la imagen.",
+        variant: "destructive",
+      });
+
+      // Reset editing state even if there's an error
+      setImageToEdit(null);
+      setEditingImageIndex(null);
     }
-
-    // Start upload
-    const blob = dataURLtoBlob(editedUrl);
-    const file = new File([blob], `edited-image-${Date.now()}.jpg`, {
-      type: "image/jpeg",
-    });
-
-    setUploadingFile(file);
-    uploadFile(file).then(() => {
-      setUploadingFile(null);
-    });
-
-    // Reset editing state
-    setImageToEdit(null);
   };
 
   // Add utility function to convert data URL to Blob
   const dataURLtoBlob = (dataURL: string): Blob => {
-    const arr = dataURL.split(",");
-    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
+    try {
+      const arr = dataURL.split(",");
+      const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    } catch (error) {
+      console.error("Error converting dataURL to Blob:", error);
+      // Return a small empty blob as fallback
+      return new Blob([], { type: "image/jpeg" });
     }
-    return new Blob([u8arr], { type: mime });
   };
 
   // Add handler for editing existing image
