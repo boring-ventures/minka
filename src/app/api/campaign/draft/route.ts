@@ -25,6 +25,7 @@ const campaignDraftSchema = z.object({
     .transform((str) => new Date(str))
     .optional(),
   youtubeUrl: z.string().url().optional().or(z.literal("")),
+  youtubeUrls: z.array(z.string().url()).optional(),
   media: z
     .array(
       z.object({
@@ -105,6 +106,7 @@ export async function POST(req: NextRequest) {
           endDate: validatedData.endDate,
           daysRemaining,
           youtubeUrl: validatedData.youtubeUrl || null,
+          youtubeUrls: validatedData.youtubeUrls || [],
         },
       });
 
@@ -153,6 +155,7 @@ export async function POST(req: NextRequest) {
             validatedData.endDate ||
             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           youtubeUrl: validatedData.youtubeUrl || null,
+          youtubeUrls: validatedData.youtubeUrls || [],
           verificationStatus: false,
           verificationDate: new Date(),
           campaignStatus: "draft",

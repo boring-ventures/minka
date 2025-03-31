@@ -100,6 +100,7 @@ model Campaign {
   percentageFunded       Float             @map("percentage_funded")
   daysRemaining          Int               @map("days_remaining")
   youtubeUrl             String?           @map("youtube_url")
+  youtubeUrls            String[]          @default([]) @map("youtube_urls")
   location               String
   endDate                DateTime          @map("end_date") @db.Date
   verificationStatus     Boolean           @default(false) @map("verification_status")

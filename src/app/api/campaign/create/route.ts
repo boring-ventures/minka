@@ -19,6 +19,7 @@ const campaignCreateSchema = z.object({
   location: z.string().min(3).max(100),
   endDate: z.string().transform((str) => new Date(str)),
   youtubeUrl: z.string().url().optional().or(z.literal("")),
+  youtubeUrls: z.array(z.string().url()).optional(),
   media: z
     .array(
       z.object({
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
         location: validatedData.location,
         endDate: validatedData.endDate,
         youtubeUrl: validatedData.youtubeUrl || null,
+        youtubeUrls: validatedData.youtubeUrls || [],
         verificationStatus: false,
         verificationDate: new Date(),
         campaignStatus: "draft",
