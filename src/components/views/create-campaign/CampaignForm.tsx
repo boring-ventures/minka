@@ -183,49 +183,22 @@ export function CampaignForm() {
           })),
         };
         await saveCampaignDraft(draftData);
+        setCurrentStep(currentStep + 1);
+        window.scrollTo(0, 0);
       } catch (error) {
         console.error("Error saving draft:", error);
-        // Continue to next step even if draft saving fails
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-
-    if (currentStep === 2) {
-      try {
-        setIsSubmitting(true);
-        // Create the campaign before showing step 3
-        const newCampaignId = await createCampaign({
-          ...formData,
-          // Include media information
-          media: uploadedUrls.map((url, index) => ({
-            mediaUrl: url,
-            type: "image" as const,
-            isPrimary: index === 0,
-            orderIndex: index,
-          })),
-        });
-
-        if (!newCampaignId) {
-          toast({
-            title: "Error",
-            description: "No se pudo crear la campaña. Intenta nuevamente.",
-            variant: "destructive",
-          });
-          return;
-        }
-      } catch (error) {
-        console.error("Error creating campaign:", error);
         toast({
           title: "Error",
-          description: "Ocurrió un error al crear la campaña.",
+          description: "Ocurrió un error al guardar el borrador.",
           variant: "destructive",
         });
-        return;
       } finally {
         setIsSubmitting(false);
       }
+      return;
     }
+
+    // Skip this section - step 2 to 3 transition is now handled by recipient selection
 
     setCurrentStep(currentStep + 1);
     window.scrollTo(0, 0);
@@ -417,6 +390,72 @@ export function CampaignForm() {
       mediaPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  const handleSelectRecipient = async (recipient: string) => {
+    try {
+      setIsSubmitting(true);
+
+      // Update form data with the selected recipient
+      setFormData((prev) => ({
+        ...prev,
+        recipient,
+      }));
+
+      // Create the campaign before showing step 3
+      const newCampaignId = await createCampaign({
+        ...formData,
+        recipient,
+        // Include media information
+        media: uploadedUrls.map((url, index) => ({
+          mediaUrl: url,
+          type: "image" as const,
+          isPrimary: index === 0,
+          orderIndex: index,
+        })),
+      });
+
+      if (!newCampaignId) {
+        toast({
+          title: "Error",
+          description: "No se pudo crear la campaña. Intenta nuevamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Move to step 3
+      setCurrentStep(3);
+      window.scrollTo(0, 0);
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al crear la campaña.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Update the modals for recipient selection
+  const handleSelectOtraPersona = () => {
+    setShowOtraPersonaModal(true);
+  };
+
+  const handleSelectONG = () => {
+    setShowONGsModal(true);
+  };
+
+  const handleOtraPersonaSubmit = async () => {
+    closeOtraPersonaModal();
+    await handleSelectRecipient("otra_persona");
+  };
+
+  const handleONGSubmit = async () => {
+    closeONGsModal();
+    await handleSelectRecipient("organizacion");
+  };
 
   return (
     <>
@@ -907,9 +946,21 @@ export function CampaignForm() {
                   fondos de tu campaña. Esto garantiza que el apoyo llegue a
                   quien más lo necesita.
                 </p>
+                {/* Display loading state here if submitting */}
+                {isSubmitting && (
+                  <div className="mt-6 p-4 bg-green-50 rounded-lg flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    <span className="text-base text-green-800">
+                      Creando tu campaña...
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="space-y-4">
-                <label className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white">
+                <label
+                  className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white"
+                  onClick={() => handleSelectRecipient("tu_mismo")}
+                >
                   <div className="flex items-center space-x-4">
                     <Image
                       src="/views/create-campaign/yourself.svg"
@@ -929,7 +980,7 @@ export function CampaignForm() {
 
                 <label
                   className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white"
-                  onClick={() => setShowOtraPersonaModal(true)}
+                  onClick={handleSelectOtraPersona}
                 >
                   <div className="flex items-center space-x-4">
                     <Image
@@ -950,7 +1001,7 @@ export function CampaignForm() {
 
                 <label
                   className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white"
-                  onClick={() => setShowONGsModal(true)}
+                  onClick={handleSelectONG}
                 >
                   <div className="flex items-center space-x-4">
                     <Image
@@ -974,28 +1025,14 @@ export function CampaignForm() {
             </div>
           </div>
 
-          {/* Step navigation */}
-          <div className="flex justify-between mt-8">
+          {/* Just show a back button */}
+          <div className="flex justify-start mt-8">
             <Button
               variant="outline"
               onClick={prevStep}
               disabled={isSubmitting}
             >
-              Volver
-            </Button>
-            <Button
-              className="bg-[#478C5C] text-white"
-              onClick={nextStep}
-              disabled={isSubmitting || !isStep2Valid}
-            >
-              {isSubmitting ? (
-                <div className="flex items-center gap-2">
-                  <LoadingSpinner size="sm" />
-                  <span>Creando campaña...</span>
-                </div>
-              ) : (
-                "Siguiente"
-              )}
+              Volver al paso anterior
             </Button>
           </div>
         </div>
@@ -1411,8 +1448,19 @@ export function CampaignForm() {
               </div>
 
               <div className="flex justify-center">
-                <Button className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8">
-                  Continuar
+                <Button
+                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
+                  onClick={handleOtraPersonaSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" />
+                      <span>Procesando...</span>
+                    </div>
+                  ) : (
+                    "Continuar"
+                  )}
                 </Button>
               </div>
             </div>
@@ -1459,8 +1507,19 @@ export function CampaignForm() {
               </div>
 
               <div className="flex justify-center">
-                <Button className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8">
-                  Continuar
+                <Button
+                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
+                  onClick={handleONGSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" />
+                      <span>Procesando...</span>
+                    </div>
+                  ) : (
+                    "Continuar"
+                  )}
                 </Button>
               </div>
             </div>

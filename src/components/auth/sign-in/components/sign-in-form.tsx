@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import { z } from "zod";
 import { Facebook, Mail, Lock, Apple, Info } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const signInFormSchema = z.object({
   email: z
@@ -34,6 +35,9 @@ export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { signIn } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl");
 
   const {
     register,
@@ -58,7 +62,12 @@ export function SignInForm() {
         title: "Éxito",
         description: "Has iniciado sesión correctamente.",
       });
-      // Navigation is handled in the auth provider
+
+      // Handle redirect after successful login
+      if (returnUrl) {
+        router.push(returnUrl);
+      }
+      // If no returnUrl, navigation is handled in the auth provider
     } catch (error) {
       console.error("Error during sign in:", error);
 

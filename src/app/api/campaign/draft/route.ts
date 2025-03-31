@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
@@ -40,7 +41,13 @@ const campaignDraftSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getAuthSession();
+    // Use createRouteHandlerClient for better cookie handling
+    const supabase = createRouteHandlerClient({ cookies });
+
+    // Get session using supabase client
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session?.user) {
       return NextResponse.json(
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     // Find the organizer profile
     const organizer = await db.profile.findUnique({
-      where: { email: session.user.email as string },
+      where: { email: session.user.email },
     });
 
     if (!organizer) {

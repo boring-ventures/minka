@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Plus, Link as LinkIcon } from "lucide-react";
+import { X, Plus, Link as LinkIcon, Play } from "lucide-react";
 import NextImage from "next/image";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -107,14 +107,8 @@ export function YouTubeLinks({ links, onChange }: YouTubeLinksProps) {
                           className="object-cover"
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-16 h-12 bg-red-600 rounded-lg flex items-center justify-center">
-                            <NextImage
-                              src="/icons/youtube.svg"
-                              alt="YouTube Play"
-                              width={24}
-                              height={24}
-                              className="text-white"
-                            />
+                          <div className="w-12 h-12 bg-[#478C5C]/80 rounded-full flex items-center justify-center">
+                            <Play className="h-6 w-6 text-white" fill="white" />
                           </div>
                         </div>
                       </div>

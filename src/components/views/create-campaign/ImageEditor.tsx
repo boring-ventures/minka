@@ -31,6 +31,7 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
   const [naturalHeight, setNaturalHeight] = useState(0);
   const [imgReady, setImgReady] = useState(false);
   const [scale, setScale] = useState(0.8);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   // Track if user has modified the crop
   const [hasModifiedCrop, setHasModifiedCrop] = useState(false);
@@ -103,7 +104,12 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
 
       setNaturalWidth(naturalWidth);
       setNaturalHeight(naturalHeight);
+      setImageSize({ width, height });
       setImgReady(true);
+
+      // Reset crop when loading a new image
+      setCrop(undefined);
+      setHasModifiedCrop(false);
 
       // Set initial completedCrop to entire image dimensions
       const initialCrop = {
@@ -140,6 +146,10 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
   const handleRotate = useCallback(() => {
     setRotation((prev) => (prev + 90) % 360);
 
+    // Reset crop when rotating
+    setCrop(undefined);
+    setHasModifiedCrop(false);
+
     // When rotating, swap dimensions for modal size calculation
     if (naturalWidth && naturalHeight) {
       // If we're going from landscape to portrait or vice versa, swap dimensions
@@ -175,6 +185,17 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
     setScale(values[0]);
   }, []);
 
+  // When scale changes, reset crop
+  useEffect(() => {
+    if (hasModifiedCrop) {
+      // If user has already set a crop, don't reset it
+      return;
+    }
+
+    // Reset crop only if it's not been explicitly set by user
+    setCrop(undefined);
+  }, [scale, hasModifiedCrop]);
+
   // Save the edited image
   const handleSave = useCallback(() => {
     if (!imgRef.current || !completedCrop) return;
@@ -185,105 +206,187 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Create a new canvas with the correct dimensions for the cropped area
-      const scaleX = image.naturalWidth / image.width;
-      const scaleY = image.naturalHeight / image.height;
+      // Clear debug info
+      console.log("Crop:", completedCrop);
+      console.log("Scale:", scale);
+      console.log("Rotation:", rotation);
 
-      // Account for pixel density
-      const pixelRatio = window.devicePixelRatio || 1;
+      // Get natural dimensions of the image
+      const naturalWidth = image.naturalWidth;
+      const naturalHeight = image.naturalHeight;
 
-      // If the user hasn't modified the crop, use the full image
-      const cropToDraw =
-        hasModifiedCrop && crop
-          ? completedCrop
-          : {
-              x: 0,
-              y: 0,
-              width: image.width,
-              height: image.height,
-              unit: "px",
-            };
+      // Get the displayed dimensions of the image (before scaling and rotation)
+      const displayedWidth = image.width;
+      const displayedHeight = image.height;
 
-      // Get target dimensions
-      let targetWidth = Math.floor(cropToDraw.width * scaleX);
-      let targetHeight = Math.floor(cropToDraw.height * scaleY);
+      // Calculate the ratio between natural and displayed dimensions
+      const scaleRatioX = naturalWidth / displayedWidth;
+      const scaleRatioY = naturalHeight / displayedHeight;
 
-      // For rotated images, swap dimensions
-      if (rotation % 180 !== 0) {
-        [targetWidth, targetHeight] = [targetHeight, targetWidth];
-      }
-
-      // Set canvas sizing
-      canvas.width = targetWidth * pixelRatio;
-      canvas.height = targetHeight * pixelRatio;
-
-      // Scale the context to account for the device pixel ratio
-      ctx.scale(pixelRatio, pixelRatio);
-      ctx.imageSmoothingQuality = "high";
-
-      // Apply rotation to canvas before drawing
-      const cropX = cropToDraw.x * scaleX;
-      const cropY = cropToDraw.y * scaleY;
-      const cropWidth = cropToDraw.width * scaleX;
-      const cropHeight = cropToDraw.height * scaleY;
-
-      // If we have rotation, we need more complex transformation
-      if (rotation > 0) {
-        // Center of the canvas
-        const centerX = canvas.width / (2 * pixelRatio);
-        const centerY = canvas.height / (2 * pixelRatio);
-
-        // Translate to center, rotate, then translate back
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate((rotation * Math.PI) / 180);
-
-        // For rotated images, we need to account for the dimension swap
-        const rotatedOffsetX =
-          rotation % 180 !== 0 ? -cropHeight / 2 : -cropWidth / 2;
-        const rotatedOffsetY =
-          rotation % 180 !== 0 ? -cropWidth / 2 : -cropHeight / 2;
-
-        ctx.drawImage(
-          image,
-          cropX,
-          cropY,
-          cropWidth,
-          cropHeight,
-          rotatedOffsetX,
-          rotatedOffsetY,
-          cropWidth,
-          cropHeight
+      // If user has made a crop selection
+      if (hasModifiedCrop && completedCrop) {
+        // Convert crop from display coordinates to natural image coordinates
+        // We need to account for the current scale factor
+        const sourceX = Math.round((completedCrop.x / scale) * scaleRatioX);
+        const sourceY = Math.round((completedCrop.y / scale) * scaleRatioY);
+        const sourceWidth = Math.round(
+          (completedCrop.width / scale) * scaleRatioX
+        );
+        const sourceHeight = Math.round(
+          (completedCrop.height / scale) * scaleRatioY
         );
 
-        ctx.restore();
+        // Output dimensions for the cropped image
+        let targetWidth = sourceWidth;
+        let targetHeight = sourceHeight;
+
+        // If rotated by 90 or 270 degrees, swap width and height
+        if (rotation % 180 !== 0) {
+          [targetWidth, targetHeight] = [targetHeight, targetWidth];
+        }
+
+        // Create canvas with correct dimensions
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        // Enable high quality rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        // Draw the cropped image with rotation
+        if (rotation > 0) {
+          // For rotation, we need to:
+          // 1. Translate to the center of the canvas
+          // 2. Rotate by the specified angle
+          // 3. Draw the image with correct offsets
+          // 4. Restore the context
+
+          const centerX = canvas.width / 2;
+          const centerY = canvas.height / 2;
+
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate((rotation * Math.PI) / 180);
+
+          const rotatedOffsetX =
+            rotation % 180 !== 0 ? -sourceHeight / 2 : -sourceWidth / 2;
+          const rotatedOffsetY =
+            rotation % 180 !== 0 ? -sourceWidth / 2 : -sourceHeight / 2;
+
+          ctx.drawImage(
+            image,
+            sourceX,
+            sourceY,
+            sourceWidth,
+            sourceHeight,
+            rotatedOffsetX,
+            rotatedOffsetY,
+            sourceWidth,
+            sourceHeight
+          );
+
+          ctx.restore();
+        } else {
+          // No rotation - simple draw
+          ctx.drawImage(
+            image,
+            sourceX,
+            sourceY,
+            sourceWidth,
+            sourceHeight,
+            0,
+            0,
+            targetWidth,
+            targetHeight
+          );
+        }
       } else {
-        // No rotation, simple draw
-        ctx.drawImage(
-          image,
-          cropX,
-          cropY,
-          cropWidth,
-          cropHeight,
-          0,
-          0,
-          cropWidth,
-          cropHeight
-        );
+        // Use the full image
+        const sourceX = 0;
+        const sourceY = 0;
+        const sourceWidth = naturalWidth;
+        const sourceHeight = naturalHeight;
+
+        // Get output dimensions, accounting for rotation
+        let targetWidth = sourceWidth;
+        let targetHeight = sourceHeight;
+
+        if (rotation % 180 !== 0) {
+          [targetWidth, targetHeight] = [targetHeight, targetWidth];
+        }
+
+        // Set canvas size
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        // Apply rotation if needed
+        if (rotation > 0) {
+          const centerX = canvas.width / 2;
+          const centerY = canvas.height / 2;
+
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate((rotation * Math.PI) / 180);
+
+          const rotatedOffsetX =
+            rotation % 180 !== 0 ? -sourceHeight / 2 : -sourceWidth / 2;
+          const rotatedOffsetY =
+            rotation % 180 !== 0 ? -sourceWidth / 2 : -sourceHeight / 2;
+
+          ctx.drawImage(
+            image,
+            sourceX,
+            sourceY,
+            sourceWidth,
+            sourceHeight,
+            rotatedOffsetX,
+            rotatedOffsetY,
+            sourceWidth,
+            sourceHeight
+          );
+
+          ctx.restore();
+        } else {
+          // No rotation - simple draw
+          ctx.drawImage(
+            image,
+            sourceX,
+            sourceY,
+            sourceWidth,
+            sourceHeight,
+            0,
+            0,
+            targetWidth,
+            targetHeight
+          );
+        }
       }
 
-      // Convert the canvas to a data URL
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      // Create a high-quality JPEG data URL
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       onSave(dataUrl);
     } catch (error) {
       console.error("Error saving edited image:", error);
     }
-  }, [imgRef, completedCrop, rotation, onSave, crop, hasModifiedCrop]);
+  }, [imgRef, completedCrop, rotation, onSave, hasModifiedCrop, scale]);
 
-  // Handle crop change
+  // Handle crop change with scale adjustment
   const handleCropChange = useCallback((c: CropType) => {
+    // Store the crop coordinates as they are shown on screen
     setCrop(c);
     setHasModifiedCrop(true);
+  }, []);
+
+  // Store the final crop coordinates, adjusted for scale
+  const handleCropComplete = useCallback((c: PixelCrop) => {
+    console.log("Crop complete (screen coordinates):", c);
+
+    // Store the completed crop as-is (in screen coordinates)
+    // The scale adjustment will happen when saving
+    setCompletedCrop(c);
   }, []);
 
   const getEditorAreaStyle = () => {
@@ -322,35 +425,29 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
           className="flex-1 relative overflow-hidden bg-gray-900 flex items-center justify-center p-2"
         >
           {imgReady && (
-            <div
-              style={{
-                transform: `scale(${scale})`,
-                transition: "transform 0.2s ease",
-                maxWidth: "100%",
-                maxHeight: "100%",
-              }}
+            <ReactCrop
+              crop={crop}
+              onChange={handleCropChange}
+              onComplete={handleCropComplete}
+              aspect={undefined}
+              minWidth={10}
+              minHeight={10}
+              className="flex items-center justify-center max-h-full max-w-full"
+              keepSelection={true}
             >
-              <ReactCrop
-                crop={crop}
-                onChange={handleCropChange}
-                onComplete={setCompletedCrop}
-                aspect={undefined}
-                className="flex items-center justify-center"
-              >
-                <img
-                  ref={imgRef}
-                  src={imgSrc}
-                  alt="Editable"
-                  style={{
-                    transform: `rotate(${rotation}deg)`,
-                    display: "block",
-                    margin: "0 auto",
-                  }}
-                  onLoad={onImageLoad}
-                  className="max-h-full max-w-full object-contain"
-                />
-              </ReactCrop>
-            </div>
+              <img
+                ref={imgRef}
+                src={imgSrc}
+                alt="Editable"
+                style={{
+                  transform: `scale(${scale}) rotate(${rotation}deg)`,
+                  transformOrigin: "center",
+                  transition: "transform 0.2s ease",
+                }}
+                onLoad={onImageLoad}
+                className="object-contain max-h-full max-w-full"
+              />
+            </ReactCrop>
           )}
           {!imgReady && (
             <div className="flex items-center justify-center h-full w-full">

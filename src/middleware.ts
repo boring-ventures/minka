@@ -17,7 +17,8 @@ export async function middleware(req: NextRequest) {
   const isProtectedRoute =
     req.nextUrl.pathname.startsWith("/dashboard") ||
     req.nextUrl.pathname.startsWith("/profile") ||
-    req.nextUrl.pathname.startsWith("/campaigns/create");
+    req.nextUrl.pathname.startsWith("/campaigns/create") ||
+    req.nextUrl.pathname.startsWith("/create-campaign");
 
   // Define auth routes (sign-in, sign-up)
   const isAuthRoute =
@@ -31,7 +32,11 @@ export async function middleware(req: NextRequest) {
 
   // Redirect unauthenticated users trying to access protected routes to sign-in
   if (!isAuthenticated && isProtectedRoute) {
-    return NextResponse.redirect(new URL("/sign-in", req.url));
+    // Store the original URL to redirect back after sign-in
+    const returnUrl = req.nextUrl.pathname;
+    const signInUrl = new URL("/sign-in", req.url);
+    signInUrl.searchParams.set("returnUrl", returnUrl);
+    return NextResponse.redirect(signInUrl);
   }
 
   return res;
@@ -44,8 +49,9 @@ export const config = {
     "/dashboard/:path*",
     "/profile/:path*",
     "/campaigns/create/:path*",
+    "/create-campaign",
     // Auth routes
     "/sign-in",
     "/sign-up",
   ],
-}; 
+};

@@ -136,8 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       // The session will be updated via onAuthStateChange
-      // Navigate to dashboard
-      router.push("/dashboard");
+      // Note: Default navigation to dashboard is handled in the sign-in form component now
+      // so we don't redirect here anymore to allow for custom redirects
       return data;
     } catch (error) {
       console.error("Login error:", error);
