@@ -32,8 +32,14 @@ export function CampaignForm() {
   const { toast } = useToast();
   const { isCreating, campaignId, createCampaign, saveCampaignDraft } =
     useCampaign();
-  const { isUploading, progress, uploadedUrls, uploadFile, uploadFiles } =
-    useUpload();
+  const {
+    isUploading,
+    progress,
+    uploadedUrls,
+    setUploadedUrls,
+    uploadFile,
+    uploadFiles,
+  } = useUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -86,55 +92,80 @@ export function CampaignForm() {
     setIsStep2Valid(true);
   }, [formData.recipient]);
 
-  const handlePublish = async () => {
+  const handleSelectRecipient = async (recipient: string) => {
     try {
       setIsSubmitting(true);
 
-      // Map form data to API format
-      const formattedData: CampaignFormData = {
-        ...formData,
-        title: formData.title,
-        description: formData.description,
-        category: formData.category || "medioambiente", // Default category
-        goalAmount: formData.goalAmount || 1000, // Default amount
-        location: formData.location,
-        endDate:
-          formData.endDate ||
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-        story: formData.story,
-        beneficiariesDescription: formData.story, // Use story as beneficiaries description for now
-        mediaFiles: mediaFiles,
-      };
+      // Update form data with the selected recipient
+      setFormData((prev) => ({
+        ...prev,
+        recipient,
+      }));
 
-      // Create the campaign
+      // Create the campaign (status will be set to draft by default in the API)
       const newCampaignId = await createCampaign({
-        ...formattedData,
-        // In a real implementation, use the actual uploaded URLs
-        // For this implementation, we're using the mock URLs from the useUpload hook
+        ...formData,
+        recipient,
+        // Include media information
         media: uploadedUrls.map((url, index) => ({
           mediaUrl: url,
           type: "image" as const,
-          isPrimary: index === 0, // First image is primary
+          isPrimary: index === 0,
           orderIndex: index,
         })),
       });
 
-      if (newCampaignId) {
-        setShowSuccessModal(true);
-      } else {
+      if (!newCampaignId) {
         toast({
           title: "Error",
           description: "No se pudo crear la campaña. Intenta nuevamente.",
           variant: "destructive",
         });
+        return;
       }
+
+      // Move to step 3
+      setCurrentStep(3);
+      window.scrollTo(0, 0);
     } catch (error) {
       console.error("Error creating campaign:", error);
       toast({
         title: "Error",
         description: "Ocurrió un error al crear la campaña.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      setIsSubmitting(true);
+
+      // Update campaign status to active and set verification status to true
+      const response = await fetch(`/api/campaign/${campaignId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          campaignStatus: "active",
+          verificationStatus: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update campaign status");
+      }
+
+      setShowSuccessModal(true);
+      router.push("/dashboard/campaigns");
+    } catch (error) {
+      console.error("Error publishing campaign:", error);
+      toast({
+        title: "Error",
+        description: "Error al publicar la campaña",
         variant: "destructive",
       });
     } finally {
@@ -252,7 +283,7 @@ export function CampaignForm() {
   };
 
   // Add handler for saving edited image
-  const handleSaveEditedImage = (editedUrl: string) => {
+  const handleSaveEditedImage = async (editedUrl: string) => {
     try {
       console.log("Saving edited image...");
 
@@ -296,32 +327,24 @@ export function CampaignForm() {
 
       // Start upload
       console.log("Starting file upload...");
-      uploadFile(file)
-        .then(() => {
-          console.log("File upload completed");
-          setUploadingFile(null);
-        })
-        .catch((error) => {
-          console.error("Error uploading file:", error);
-          toast({
-            title: "Error al subir la imagen",
-            description: "No se pudo subir la imagen. Intenta nuevamente.",
-            variant: "destructive",
-          });
-        });
+      const result = await uploadFile(file);
+
+      if (!result.success) {
+        throw new Error("Failed to upload file");
+      }
+
+      console.log("File upload completed");
+      setUploadingFile(null);
 
       // Reset editing state
       setImageToEdit(null);
       setEditingImageIndex(null);
 
-      // Log current media previews
-      console.log("Current media preview URLs:", mediaPreviewUrls);
-
-      // Force a re-render of the preview after a short delay
-      setTimeout(() => {
-        console.log("Forcing re-render of media previews");
-        setMediaPreviewUrls((prev) => [...prev]);
-      }, 100);
+      // Show success toast
+      toast({
+        title: "Imagen subida",
+        description: "La imagen se ha subido correctamente.",
+      });
     } catch (error) {
       console.error("Error processing edited image:", error);
       toast({
@@ -382,6 +405,11 @@ export function CampaignForm() {
     URL.revokeObjectURL(newPreviewUrls[index]); // Clean up object URL
     newPreviewUrls.splice(index, 1);
     setMediaPreviewUrls(newPreviewUrls);
+
+    // Remove from uploaded URLs
+    const newUploadedUrls = [...uploadedUrls];
+    newUploadedUrls.splice(index, 1);
+    setUploadedUrls(newUploadedUrls);
   };
 
   // Clean up preview URLs when component unmounts
@@ -390,53 +418,6 @@ export function CampaignForm() {
       mediaPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
-
-  const handleSelectRecipient = async (recipient: string) => {
-    try {
-      setIsSubmitting(true);
-
-      // Update form data with the selected recipient
-      setFormData((prev) => ({
-        ...prev,
-        recipient,
-      }));
-
-      // Create the campaign before showing step 3
-      const newCampaignId = await createCampaign({
-        ...formData,
-        recipient,
-        // Include media information
-        media: uploadedUrls.map((url, index) => ({
-          mediaUrl: url,
-          type: "image" as const,
-          isPrimary: index === 0,
-          orderIndex: index,
-        })),
-      });
-
-      if (!newCampaignId) {
-        toast({
-          title: "Error",
-          description: "No se pudo crear la campaña. Intenta nuevamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Move to step 3
-      setCurrentStep(3);
-      window.scrollTo(0, 0);
-    } catch (error) {
-      console.error("Error creating campaign:", error);
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al crear la campaña.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   // Update the modals for recipient selection
   const handleSelectOtraPersona = () => {

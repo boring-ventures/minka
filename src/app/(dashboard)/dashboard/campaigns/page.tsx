@@ -4,8 +4,44 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CampaignCard } from "@/components/dashboard/campaign-card";
+import {
+  CampaignCard,
+  CampaignStatus,
+} from "@/components/dashboard/campaign-card";
 import { CompletedCampaignCard } from "@/components/dashboard/completed-campaign-card";
+
+interface CampaignMedia {
+  media_url: string;
+  is_primary: boolean;
+}
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  collected_amount: number;
+  goal_amount: number;
+  campaign_status: CampaignStatus;
+  created_at: string;
+  verification_status: string;
+  organizer_id: string;
+  media: CampaignMedia[];
+}
+
+interface FormattedCampaign {
+  id: string;
+  title: string;
+  imageUrl: string;
+  category: string;
+  location: string;
+  raisedAmount: number;
+  goalAmount: number;
+  progress: number;
+  status: CampaignStatus;
+  description: string;
+}
 
 export default async function ManageCampaignsPage() {
   const supabase = createServerComponentClient({ cookies });
@@ -17,97 +53,65 @@ export default async function ManageCampaignsPage() {
     redirect("/sign-in");
   }
 
-  // Get user's campaigns
-  const { data: userCampaigns } = await supabase
+  // Get user's campaigns directly from Supabase
+  const { data: campaigns, error } = await supabase
     .from("campaigns")
-    .select("*, categories(name)")
+    .select(
+      `
+      id,
+      title,
+      description,
+      category,
+      location,
+      collected_amount,
+      goal_amount,
+      campaign_status,
+      created_at,
+      verification_status,
+      organizer_id,
+      media:campaign_media(
+        media_url,
+        is_primary
+      )
+    `
+    )
     .eq("organizer_id", session.user.id)
     .order("created_at", { ascending: false });
 
-  // For now, let's use placeholder data to match the image example
-  const activeCampaigns = [
-    {
-      id: "1",
-      title: "Protejamos juntos el Parque Nacional Amboró",
-      imageUrl: "/amboro-main.jpg",
-      category: "Medio ambiente",
-      location: "Bolivia, Santa Cruz",
-      raisedAmount: 1200,
-      goalAmount: 1500,
-      progress: 80,
-      status: "active",
-    },
-    {
-      id: "2",
-      title: "Protejamos juntos el Parque Nacional Amboró",
-      imageUrl: "/amboro-main.jpg",
-      category: "Medio ambiente",
-      location: "Bolivia, Santa Cruz",
-      raisedAmount: 1200,
-      goalAmount: 1500,
-      progress: 80,
-      status: "pending_verification",
-    },
-    {
-      id: "3",
-      title: "Protejamos juntos el Parque Nacional Amboró",
-      imageUrl: "/amboro-main.jpg",
-      category: "Medio ambiente",
-      location: "Bolivia, Santa Cruz",
-      raisedAmount: 1200,
-      goalAmount: 1500,
-      progress: 80,
-      status: "in_revision",
-    },
-  ];
+  if (error) {
+    console.error("Error fetching campaigns:", error);
+    throw new Error("Failed to fetch campaigns");
+  }
 
-  const completedCampaigns = [
-    {
-      id: "4",
-      title: "Una nueva sonrisa para Mateo: ¡Gracias por tu apoyo!",
-      imageUrl: "/amboro-main.jpg",
-      description: "",
-    },
-    {
-      id: "5",
-      title: "Energía limpia para comunidades rurales",
-      imageUrl: "/amboro-main.jpg",
-      description: "",
-    },
-  ];
+  // Format campaigns for display
+  const formattedCampaigns = campaigns?.map(
+    (campaign: Campaign): FormattedCampaign => ({
+      id: campaign.id,
+      title: campaign.title,
+      imageUrl: campaign.media?.[0]?.media_url || "/amboro-main.jpg",
+      category: campaign.category || "General",
+      location: campaign.location || "Bolivia",
+      raisedAmount: campaign.collected_amount || 0,
+      goalAmount: campaign.goal_amount || 1,
+      progress:
+        campaign.goal_amount > 0
+          ? Math.round(
+              (campaign.collected_amount / campaign.goal_amount) * 100
+            ) || 0
+          : 0,
+      status: campaign.campaign_status || "draft",
+      description: campaign.description || "",
+    })
+  );
 
-  // Format real data for use in components
-  const mappedRealCampaigns = userCampaigns?.map((campaign) => ({
-    id: campaign.id,
-    title: campaign.title,
-    imageUrl: campaign.image_url || "/amboro-main.jpg",
-    category: campaign.categories?.name || "General",
-    location: campaign.location || "Bolivia",
-    raisedAmount: campaign.current_amount || 0,
-    goalAmount: campaign.goal_amount || 1,
-    progress:
-      campaign.goal_amount > 0
-        ? Math.round((campaign.current_amount / campaign.goal_amount) * 100) ||
-          0
-        : 0,
-    status: campaign.status || "draft",
-    description: campaign.description || "",
-  }));
-
-  // Use real data in production, placeholder for development
   const displayActiveCampaigns =
-    process.env.NODE_ENV === "development"
-      ? activeCampaigns
-      : mappedRealCampaigns?.filter((c) => c.status !== "completed") || [];
-
+    formattedCampaigns?.filter(
+      (c: FormattedCampaign) => c.status !== "completed"
+    ) || [];
   const displayCompletedCampaigns =
-    process.env.NODE_ENV === "development"
-      ? completedCampaigns
-      : mappedRealCampaigns?.filter((c) => c.status === "completed") || [];
-
-  // For testing empty state, uncomment the following lines
-  // const displayActiveCampaigns = [];
-  // const displayCompletedCampaigns = [];
+    formattedCampaigns?.filter(
+      (c: FormattedCampaign) => c.status === "completed"
+    ) || [];
 
   return (
     <div className="space-y-8">
@@ -126,9 +130,9 @@ export default async function ManageCampaignsPage() {
         </Button>
       </div>
 
-      {displayActiveCampaigns && displayActiveCampaigns.length > 0 ? (
+      {displayActiveCampaigns.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayActiveCampaigns.map((campaign) => (
+          {displayActiveCampaigns.map((campaign: FormattedCampaign) => (
             <CampaignCard
               key={campaign.id}
               id={campaign.id}
@@ -166,25 +170,27 @@ export default async function ManageCampaignsPage() {
         </div>
       )}
 
-      {displayCompletedCampaigns && displayCompletedCampaigns.length > 0 && (
+      {displayCompletedCampaigns.length > 0 && (
         <div className="space-y-6 mt-10">
           <h2 className="text-2xl font-bold text-gray-800">
             Campañas completadas
           </h2>
           <div className="space-y-6">
-            {displayCompletedCampaigns.map((campaign, index) => (
-              <div key={campaign.id} className="space-y-6">
-                <CompletedCampaignCard
-                  id={campaign.id}
-                  title={campaign.title}
-                  imageUrl={campaign.imageUrl}
-                  description={campaign.description}
-                />
-                {index < displayCompletedCampaigns.length - 1 && (
-                  <div className="h-px bg-gray-200" />
-                )}
-              </div>
-            ))}
+            {displayCompletedCampaigns.map(
+              (campaign: FormattedCampaign, index: number) => (
+                <div key={campaign.id} className="space-y-6">
+                  <CompletedCampaignCard
+                    id={campaign.id}
+                    title={campaign.title}
+                    imageUrl={campaign.imageUrl}
+                    description={campaign.description}
+                  />
+                  {index < displayCompletedCampaigns.length - 1 && (
+                    <div className="h-px bg-gray-200" />
+                  )}
+                </div>
+              )
+            )}
           </div>
         </div>
       )}
