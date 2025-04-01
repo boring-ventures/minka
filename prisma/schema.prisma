@@ -1,17 +1,157 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  role                 UserRole        @default(user)
+  activeCampaignsCount Int             @default(0) @map("active_campaigns_count")
+  address              String?
+  bio                  String?
+  birthDate            DateTime        @map("birth_date") @db.Date
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamp(6)
+  email                String          @unique
+  identityNumber       String          @unique @map("identity_number")
+  joinDate             DateTime        @default(now()) @map("join_date") @db.Date
+  location             String?
+  name                 String
+  passwordHash         String          @map("password_hash")
+  phone                String
+  profilePicture       String?         @map("profile_picture")
+  status               Status          @default(active)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamp(6)
+  verificationStatus   Boolean         @default(false) @map("verification_status")
+  id                   String          @id @default(uuid()) @db.Uuid
+  campaigns            Campaign[]      @relation("OrganizerCampaigns")
+  comments             Comment[]       @relation("ProfileComments")
+  donations            Donation[]      @relation("DonorDonations")
+  savedCampaigns       SavedCampaign[] @relation("ProfileSavedCampaigns")
+
+  @@map("profiles")
+}
+
+model Campaign {
+  id                       String           @id @default(uuid()) @db.Uuid
+  title                    String
+  description              String
+  beneficiariesDescription String           @map("beneficiaries_description")
+  category                 CampaignCategory
+  goalAmount               Decimal          @map("goal_amount") @db.Decimal
+  collectedAmount          Decimal          @default(0) @map("collected_amount") @db.Decimal
+  donorCount               Int              @default(0) @map("donor_count")
+  percentageFunded         Float            @map("percentage_funded")
+  daysRemaining            Int              @map("days_remaining")
+  youtubeUrl               String?          @map("youtube_url")
+  location                 String
+  endDate                  DateTime         @map("end_date") @db.Date
+  verificationStatus       Boolean          @default(false) @map("verification_status")
+  verificationDate         DateTime?        @map("verification_date") @db.Timestamp(6)
+  campaignStatus           CampaignStatus   @default(draft) @map("campaign_status")
+  status                   Status           @default(active)
+  organizerId              String           @map("organizer_id") @db.Uuid
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
+  youtubeUrls              String[]         @default([]) @map("youtube_urls")
+  media                    CampaignMedia[]  @relation("CampaignMedia")
+  updates                  CampaignUpdate[] @relation("CampaignUpdates")
+  organizer                Profile          @relation("OrganizerCampaigns", fields: [organizerId], references: [id])
+  comments                 Comment[]        @relation("CampaignComments")
+  donations                Donation[]       @relation("CampaignDonations")
+  savedBy                  SavedCampaign[]  @relation("CampaignSaved")
+
+  @@map("campaigns")
+}
+
+model CampaignMedia {
+  id         String    @id @default(uuid()) @db.Uuid
+  campaignId String    @map("campaign_id") @db.Uuid
+  mediaUrl   String    @map("media_url")
+  type       MediaType
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  orderIndex Int       @map("order_index")
+  status     Status    @default(active)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+  campaign   Campaign  @relation("CampaignMedia", fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_media")
+}
+
+model CampaignUpdate {
+  id         String   @id @default(uuid()) @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  title      String
+  content    String
+  status     Status   @default(active)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+  campaign   Campaign @relation("CampaignUpdates", fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_updates")
+}
+
+model Donation {
+  id                  String        @id @default(uuid()) @db.Uuid
+  campaignId          String        @map("campaign_id") @db.Uuid
+  donorId             String        @map("donor_id") @db.Uuid
+  amount              Decimal       @db.Decimal
+  predefinedAmount    Boolean       @default(true) @map("predefined_amount")
+  paymentMethod       PaymentMethod @map("payment_method")
+  paymentStatus       PaymentStatus @default(pending) @map("payment_status")
+  message             String?
+  isAnonymous         Boolean       @default(false) @map("is_anonymous")
+  notificationEnabled Boolean       @default(false) @map("notification_enabled")
+  status              Status        @default(active)
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+  campaign            Campaign      @relation("CampaignDonations", fields: [campaignId], references: [id], onDelete: Cascade)
+  donor               Profile       @relation("DonorDonations", fields: [donorId], references: [id], onDelete: Cascade)
+
+  @@map("donations")
+}
+
+model Comment {
+  id         String   @id @default(uuid()) @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  message    String
+  status     Status   @default(active)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+  campaign   Campaign @relation("CampaignComments", fields: [campaignId], references: [id], onDelete: Cascade)
+  profile    Profile  @relation("ProfileComments", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model SavedCampaign {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  status     Status   @default(active)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+  campaign   Campaign @relation("CampaignSaved", fields: [campaignId], references: [id], onDelete: Cascade)
+  profile    Profile  @relation("ProfileSavedCampaigns", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("saved_campaigns")
+}
+
+model NotificationPreference {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  newsUpdates     Boolean  @default(false) @map("news_updates")
+  campaignUpdates Boolean  @default(true) @map("campaign_updates")
+  status          Status   @default(active)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@map("notification_preferences")
 }
 
 enum UserRole {
@@ -57,164 +197,4 @@ enum PaymentStatus {
 enum Status {
   active
   inactive
-}
-
-model Profile {
-  id                    String    @id @default(uuid()) @db.Uuid
-  name                  String
-  email                 String    @unique
-  passwordHash          String    @map("password_hash")
-  profilePicture        String?   @map("profile_picture")
-  role                  UserRole  @default(user)
-  identityNumber        String    @unique @map("identity_number")
-  phone                 String
-  birthDate             DateTime  @map("birth_date") @db.Date
-  address               String?
-  bio                   String?   @db.Text
-  location              String?
-  joinDate              DateTime  @default(now()) @map("join_date") @db.Date
-  activeCampaignsCount  Int       @default(0) @map("active_campaigns_count")
-  verificationStatus    Boolean   @default(false) @map("verification_status")
-  status                Status    @default(active)
-  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamp()
-
-  // Relations
-  campaigns        Campaign[]        @relation("OrganizerCampaigns")
-  donations        Donation[]        @relation("DonorDonations")
-  comments         Comment[]         @relation("ProfileComments")
-  savedCampaigns   SavedCampaign[]   @relation("ProfileSavedCampaigns")
-
-  @@map("profiles")
-}
-
-model Campaign {
-  id                      String            @id @default(uuid()) @db.Uuid
-  title                   String
-  description            String            @db.Text
-  beneficiariesDescription String          @map("beneficiaries_description") @db.Text
-  category               CampaignCategory
-  goalAmount             Decimal           @map("goal_amount") @db.Decimal
-  collectedAmount        Decimal           @default(0) @map("collected_amount") @db.Decimal
-  donorCount             Int               @default(0) @map("donor_count")
-  percentageFunded       Float             @map("percentage_funded")
-  daysRemaining          Int               @map("days_remaining")
-  youtubeUrl             String?           @map("youtube_url")
-  youtubeUrls            String[]          @default([]) @map("youtube_urls")
-  location               String
-  endDate                DateTime          @map("end_date") @db.Date
-  verificationStatus     Boolean           @default(false) @map("verification_status")
-  verificationDate       DateTime          @map("verification_date") @db.Timestamp()
-  campaignStatus         CampaignStatus    @default(draft) @map("campaign_status")
-  status                 Status            @default(active)
-  organizerId            String            @map("organizer_id") @db.Uuid
-  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt              DateTime          @updatedAt @map("updated_at") @db.Timestamp()
-
-  // Relations
-  organizer        Profile          @relation("OrganizerCampaigns", fields: [organizerId], references: [id])
-  media            CampaignMedia[]  @relation("CampaignMedia")
-  updates          CampaignUpdate[] @relation("CampaignUpdates")
-  donations        Donation[]       @relation("CampaignDonations")
-  comments         Comment[]        @relation("CampaignComments")
-  savedBy          SavedCampaign[]  @relation("CampaignSaved")
-
-  @@map("campaigns")
-}
-
-model CampaignMedia {
-  id          String    @id @default(uuid()) @db.Uuid
-  campaignId  String    @map("campaign_id") @db.Uuid
-  mediaUrl    String    @map("media_url")
-  type        MediaType
-  isPrimary   Boolean   @default(false) @map("is_primary")
-  orderIndex  Int       @map("order_index")
-  status      Status    @default(active)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp()
-
-  // Relations
-  campaign    Campaign  @relation("CampaignMedia", fields: [campaignId], references: [id], onDelete: Cascade)
-
-  @@map("campaign_media")
-}
-
-model CampaignUpdate {
-  id          String    @id @default(uuid()) @db.Uuid
-  campaignId  String    @map("campaign_id") @db.Uuid
-  title       String
-  content     String    @db.Text
-  status      Status    @default(active)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp()
-
-  // Relations
-  campaign    Campaign  @relation("CampaignUpdates", fields: [campaignId], references: [id], onDelete: Cascade)
-
-  @@map("campaign_updates")
-}
-
-model Donation {
-  id                  String        @id @default(uuid()) @db.Uuid
-  campaignId          String        @map("campaign_id") @db.Uuid
-  donorId             String        @map("donor_id") @db.Uuid
-  amount              Decimal       @db.Decimal
-  predefinedAmount    Boolean       @default(true) @map("predefined_amount")
-  paymentMethod       PaymentMethod @map("payment_method")
-  paymentStatus       PaymentStatus @default(pending) @map("payment_status")
-  message             String?       @db.Text
-  isAnonymous         Boolean       @default(false) @map("is_anonymous")
-  notificationEnabled Boolean       @default(false) @map("notification_enabled")
-  status              Status        @default(active)
-  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamp()
-
-  // Relations
-  campaign    Campaign  @relation("CampaignDonations", fields: [campaignId], references: [id], onDelete: Cascade)
-  donor       Profile   @relation("DonorDonations", fields: [donorId], references: [id], onDelete: Cascade)
-
-  @@map("donations")
-}
-
-model Comment {
-  id          String    @id @default(uuid()) @db.Uuid
-  campaignId  String    @map("campaign_id") @db.Uuid
-  profileId   String    @map("profile_id") @db.Uuid
-  message     String    @db.Text
-  status      Status    @default(active)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp()
-
-  // Relations
-  campaign    Campaign  @relation("CampaignComments", fields: [campaignId], references: [id], onDelete: Cascade)
-  profile     Profile   @relation("ProfileComments", fields: [profileId], references: [id], onDelete: Cascade)
-
-  @@map("comments")
-}
-
-model SavedCampaign {
-  id          String    @id @default(uuid()) @db.Uuid
-  profileId   String    @map("profile_id") @db.Uuid
-  campaignId  String    @map("campaign_id") @db.Uuid
-  status      Status    @default(active)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamp()
-
-  // Relations
-  profile     Profile   @relation("ProfileSavedCampaigns", fields: [profileId], references: [id], onDelete: Cascade)
-  campaign    Campaign  @relation("CampaignSaved", fields: [campaignId], references: [id], onDelete: Cascade)
-
-  @@map("saved_campaigns")
-}
-
-model NotificationPreference {
-  id                String    @id @default(uuid()) @db.Uuid
-  userId            String    @unique @map("user_id") @db.Uuid
-  newsUpdates       Boolean   @default(false) @map("news_updates")
-  campaignUpdates   Boolean   @default(true) @map("campaign_updates")
-  status            Status    @default(active)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamp()
-
-  @@map("notification_preferences")
 }
