@@ -102,36 +102,59 @@ export function CampaignForm() {
         recipient,
       }));
 
-      // Create the campaign (status will be set to draft by default in the API)
-      const newCampaignId = await createCampaign({
-        ...formData,
-        recipient,
-        // Include media information
-        media: uploadedUrls.map((url, index) => ({
-          mediaUrl: url,
-          type: "image" as const,
-          isPrimary: index === 0,
-          orderIndex: index,
-        })),
-      });
-
-      if (!newCampaignId) {
-        toast({
-          title: "Error",
-          description: "No se pudo crear la campaña. Intenta nuevamente.",
-          variant: "destructive",
+      // If we already have a campaignId, update it instead of creating a new one
+      if (campaignId) {
+        const response = await fetch(`/api/campaign/${campaignId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            recipient,
+            media: uploadedUrls.map((url, index) => ({
+              mediaUrl: url,
+              type: "image" as const,
+              isPrimary: index === 0,
+              orderIndex: index,
+            })),
+          }),
         });
-        return;
+
+        if (!response.ok) {
+          throw new Error("Failed to update campaign");
+        }
+      } else {
+        // Only create a new campaign if we don't have one yet
+        const newCampaignId = await createCampaign({
+          ...formData,
+          recipient,
+          media: uploadedUrls.map((url, index) => ({
+            mediaUrl: url,
+            type: "image" as const,
+            isPrimary: index === 0,
+            orderIndex: index,
+          })),
+        });
+
+        if (!newCampaignId) {
+          toast({
+            title: "Error",
+            description: "No se pudo crear la campaña. Intenta nuevamente.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       // Move to step 3
       setCurrentStep(3);
       window.scrollTo(0, 0);
     } catch (error) {
-      console.error("Error creating campaign:", error);
+      console.error("Error handling recipient selection:", error);
       toast({
         title: "Error",
-        description: "Ocurrió un error al crear la campaña.",
+        description: "Ocurrió un error al procesar la selección.",
         variant: "destructive",
       });
     } finally {
@@ -142,6 +165,15 @@ export function CampaignForm() {
   const handlePublish = async () => {
     try {
       setIsSubmitting(true);
+
+      if (!campaignId) {
+        toast({
+          title: "Error",
+          description: "No se encontró la campaña a publicar.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Update campaign status to active and set verification status to true
       const response = await fetch(`/api/campaign/${campaignId}`, {
