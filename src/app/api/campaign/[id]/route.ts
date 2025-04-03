@@ -123,7 +123,6 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { campaignStatus, verificationStatus } = body;
 
     // Find the organizer profile by email
     const organizer = await db.profile.findUnique({
@@ -137,24 +136,105 @@ export async function PATCH(
       );
     }
 
-    // Update campaign status and verification status
-    const campaign = await db.campaign.update({
+    // Get the current campaign to check ownership
+    const existingCampaign = await db.campaign.findUnique({
       where: {
         id: params.id,
-        organizerId: organizer.id, // Ensure the user owns the campaign
-      },
-      data: {
-        ...(campaignStatus && { campaignStatus }),
-        ...(typeof verificationStatus === "boolean" && { verificationStatus }),
       },
     });
 
+    if (!existingCampaign) {
+      return NextResponse.json(
+        { error: "Campaign not found" },
+        { status: 404 }
+      );
+    }
+
+    // Ensure the user owns the campaign
+    if (existingCampaign.organizerId !== organizer.id) {
+      return NextResponse.json(
+        { error: "You don't have permission to update this campaign" },
+        { status: 403 }
+      );
+    }
+
+    // Prepare the update data, extracting all valid fields from the body
+    const {
+      title,
+      description,
+      beneficiariesDescription,
+      category,
+      goalAmount,
+      location,
+      endDate,
+      youtubeUrl,
+      youtubeUrls,
+      campaignStatus,
+      verificationStatus,
+      recipient,
+      media,
+    } = body;
+
+    // Build the data object dynamically with only the fields that were provided
+    const updateData: any = {};
+
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (beneficiariesDescription !== undefined)
+      updateData.beneficiariesDescription = beneficiariesDescription;
+    if (category !== undefined) updateData.category = category;
+    if (goalAmount !== undefined) updateData.goalAmount = goalAmount;
+    if (location !== undefined) updateData.location = location;
+    if (endDate !== undefined) updateData.endDate = new Date(endDate);
+    if (youtubeUrl !== undefined) updateData.youtubeUrl = youtubeUrl;
+    if (youtubeUrls !== undefined) updateData.youtubeUrls = youtubeUrls;
+    if (campaignStatus !== undefined)
+      updateData.campaignStatus = campaignStatus;
+    if (verificationStatus !== undefined)
+      updateData.verificationStatus = verificationStatus;
+
+    // Only set verification date if explicitly verifying the campaign
+    if (verificationStatus === true) {
+      updateData.verificationDate = new Date();
+    }
+
+    // Update campaign with all provided fields
+    const campaign = await db.campaign.update({
+      where: {
+        id: params.id,
+      },
+      data: updateData,
+    });
+
+    // If media was provided, update the media records
+    if (media && Array.isArray(media) && media.length > 0) {
+      // Delete existing media
+      await db.campaignMedia.deleteMany({
+        where: { campaignId: params.id },
+      });
+
+      // Create new media
+      await Promise.all(
+        media.map((item: any) =>
+          db.campaignMedia.create({
+            data: {
+              campaignId: params.id,
+              mediaUrl: item.mediaUrl,
+              type: item.type,
+              isPrimary: item.isPrimary,
+              orderIndex: item.orderIndex,
+            },
+          })
+        )
+      );
+    }
+
     return NextResponse.json(
-      { message: "Campaign status updated successfully", campaign },
+      { message: "Campaign updated successfully", campaign },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error updating campaign status:", error);
+    console.error("Error updating campaign:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

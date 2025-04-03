@@ -36,6 +36,7 @@ const campaignDraftSchema = z.object({
         orderIndex: z.number().int().min(0),
       })
     )
+    .min(1)
     .optional(),
 });
 
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
           youtubeUrl: validatedData.youtubeUrl || null,
           youtubeUrls: validatedData.youtubeUrls || [],
           verificationStatus: false,
-          verificationDate: new Date(),
+          verificationDate: null,
           campaignStatus: "draft",
           organizerId: organizer.id,
         },

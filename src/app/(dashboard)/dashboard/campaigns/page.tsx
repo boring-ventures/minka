@@ -25,7 +25,7 @@ interface Campaign {
   goal_amount: number;
   campaign_status: CampaignStatus;
   created_at: string;
-  verification_status: string;
+  verification_status: boolean;
   organizer_id: string;
   media: CampaignMedia[];
 }
@@ -41,6 +41,7 @@ interface FormattedCampaign {
   progress: number;
   status: CampaignStatus;
   description: string;
+  isVerified: boolean;
 }
 
 export default async function ManageCampaignsPage() {
@@ -101,6 +102,7 @@ export default async function ManageCampaignsPage() {
           : 0,
       status: campaign.campaign_status || "draft",
       description: campaign.description || "",
+      isVerified: campaign.verification_status || false,
     })
   );
 
@@ -144,6 +146,7 @@ export default async function ManageCampaignsPage() {
               goalAmount={campaign.goalAmount}
               progress={campaign.progress}
               status={campaign.status}
+              isVerified={campaign.isVerified}
             />
           ))}
         </div>

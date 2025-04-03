@@ -25,13 +25,25 @@ import { ImageEditor } from "./ImageEditor";
 import { YouTubeLinks } from "./YouTubeLinks";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Update the form sections (showing only the modified parts)
 export function CampaignForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { isCreating, campaignId, createCampaign, saveCampaignDraft } =
-    useCampaign();
+  const {
+    isCreating,
+    campaignId,
+    createCampaign,
+    saveCampaignDraft,
+    updateCampaign,
+  } = useCampaign();
   const {
     isUploading,
     progress,
@@ -75,6 +87,9 @@ export function CampaignForm() {
     null
   );
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   // Check step 1 validity
   useEffect(() => {
     // Basic validation for required fields in step 1
@@ -104,47 +119,19 @@ export function CampaignForm() {
 
       // If we already have a campaignId, update it instead of creating a new one
       if (campaignId) {
-        const response = await fetch(`/api/campaign/${campaignId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...formData,
-            recipient,
-            media: uploadedUrls.map((url, index) => ({
-              mediaUrl: url,
-              type: "image" as const,
-              isPrimary: index === 0,
-              orderIndex: index,
-            })),
-          }),
-        });
+        const success = await updateCampaign({ recipient }, campaignId);
 
-        if (!response.ok) {
-          throw new Error("Failed to update campaign");
+        if (!success) {
+          throw new Error("Failed to update campaign recipient");
         }
       } else {
-        // Only create a new campaign if we don't have one yet
-        const newCampaignId = await createCampaign({
-          ...formData,
-          recipient,
-          media: uploadedUrls.map((url, index) => ({
-            mediaUrl: url,
-            type: "image" as const,
-            isPrimary: index === 0,
-            orderIndex: index,
-          })),
+        // This should not happen if the workflow is correct, but just in case
+        toast({
+          title: "Error",
+          description: "No se encontró la campaña. Intenta nuevamente.",
+          variant: "destructive",
         });
-
-        if (!newCampaignId) {
-          toast({
-            title: "Error",
-            description: "No se pudo crear la campaña. Intenta nuevamente.",
-            variant: "destructive",
-          });
-          return;
-        }
+        return;
       }
 
       // Move to step 3
@@ -175,19 +162,16 @@ export function CampaignForm() {
         return;
       }
 
-      // Update campaign status to active and set verification status to true
-      const response = await fetch(`/api/campaign/${campaignId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      // Update campaign status to active but keep verificationStatus as false
+      const success = await updateCampaign(
+        {
           campaignStatus: "active",
-          verificationStatus: true,
-        }),
-      });
+          verificationStatus: false,
+        },
+        campaignId
+      );
 
-      if (!response.ok) {
+      if (!success) {
         throw new Error("Failed to update campaign status");
       }
 
@@ -221,23 +205,87 @@ export function CampaignForm() {
     setShowONGsModal(false);
   };
 
-  const nextStep = async () => {
-    if (currentStep === 1 && !isStep1Valid) {
-      toast({
-        title: "Campos incompletos",
-        description: "Por favor completa todos los campos requeridos.",
-        variant: "destructive",
-      });
-      return;
+  // Utility function to help with image URL issues
+  const ensureMediaIsUploaded = async (): Promise<boolean> => {
+    // If uploadedUrls is empty but we have mediaFiles, try to upload them now
+    if (uploadedUrls.length === 0 && mediaFiles.length > 0) {
+      console.log(
+        "Fixing media URLs - uploadedUrls is empty but we have mediaFiles"
+      );
+      try {
+        // Upload the files
+        const urls = await uploadFiles(mediaFiles);
+        if (urls.length > 0) {
+          console.log("Successfully uploaded media files:", urls);
+          return true;
+        } else {
+          console.error("Failed to upload media files");
+          return false;
+        }
+      } catch (error) {
+        console.error("Error uploading media files:", error);
+        return false;
+      }
     }
 
+    // If we already have uploaded URLs, we're good
+    return uploadedUrls.length > 0;
+  };
+
+  const nextStep = async () => {
     if (currentStep === 1) {
+      if (!validateForm()) {
+        // Show toast for validation errors
+        toast({
+          title: "Campos incompletos",
+          description:
+            "Por favor completa todos los campos requeridos marcados en rojo.",
+          variant: "destructive",
+        });
+        // Scroll to the first error
+        const firstErrorKey = Object.keys(formErrors)[0];
+        if (firstErrorKey) {
+          const element = document.getElementById(firstErrorKey);
+          if (element)
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
+      // Validate that we have uploaded URLs
+      if (!uploadedUrls.length) {
+        console.log(
+          "No uploaded URLs but we have media files - attempting to fix"
+        );
+
+        // Try to ensure media is uploaded
+        setIsSubmitting(true);
+        const mediaUploadFixed = await ensureMediaIsUploaded();
+
+        if (!mediaUploadFixed) {
+          console.error("Could not fix media upload issue");
+          toast({
+            title: "Error de imágenes",
+            description:
+              "Las imágenes no se han subido correctamente. Por favor, vuelve a intentarlo.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        console.log(
+          "Media upload fixed, proceeding with uploaded URLs:",
+          uploadedUrls
+        );
+      }
+
       try {
         setIsSubmitting(true);
-        // Save draft before proceeding to step 2
+        // Create or update draft campaign before proceeding to step 2
         const draftData = {
           ...formData,
-          // For drafts, also include media information
+          // Include media information
           media: uploadedUrls.map((url, index) => ({
             mediaUrl: url,
             type: "image" as const,
@@ -245,14 +293,42 @@ export function CampaignForm() {
             orderIndex: index,
           })),
         };
-        await saveCampaignDraft(draftData);
+
+        console.log("Saving draft with data:", {
+          formFields: Object.keys(formData),
+          mediaCount: uploadedUrls.length,
+          firstMediaUrl: uploadedUrls[0],
+        });
+
+        // Save the draft and get campaign ID
+        const newCampaignId = await saveCampaignDraft(draftData);
+
+        if (!newCampaignId) {
+          console.error(
+            "Failed to create or update campaign draft - no ID returned"
+          );
+          toast({
+            title: "Error",
+            description:
+              "No se pudo crear el borrador de la campaña. Intenta nuevamente.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log("Campaign draft saved with ID:", newCampaignId);
+
+        // Proceed to next step
         setCurrentStep(currentStep + 1);
         window.scrollTo(0, 0);
       } catch (error) {
         console.error("Error saving draft:", error);
         toast({
-          title: "Error",
-          description: "Ocurrió un error al guardar el borrador.",
+          title: "Error al guardar borrador",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Ocurrió un error al guardar el borrador.",
           variant: "destructive",
         });
       } finally {
@@ -360,12 +436,13 @@ export function CampaignForm() {
       // Start upload
       console.log("Starting file upload...");
       const result = await uploadFile(file);
+      console.log("Upload result:", result);
 
       if (!result.success) {
         throw new Error("Failed to upload file");
       }
 
-      console.log("File upload completed");
+      console.log("File upload completed, uploaded URLs now:", uploadedUrls);
       setUploadingFile(null);
 
       // Reset editing state
@@ -470,6 +547,46 @@ export function CampaignForm() {
     await handleSelectRecipient("organizacion");
   };
 
+  // Add validation function to check all required fields
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    // Validate title
+    if (!formData.title || formData.title.length < 3) {
+      errors.title = "El título debe tener al menos 3 caracteres";
+    }
+
+    // Validate description
+    if (!formData.description || formData.description.length < 10) {
+      errors.description = "La descripción debe tener al menos 10 caracteres";
+    }
+
+    // Validate category
+    if (!formData.category) {
+      errors.category = "Debes seleccionar una categoría";
+    }
+
+    // Validate story
+    if (!formData.story || formData.story.length < 10) {
+      errors.story = "La historia debe tener al menos 10 caracteres";
+    }
+
+    // Validate at least one image and ensure it's been uploaded properly
+    if (mediaPreviewUrls.length === 0 || uploadedUrls.length === 0) {
+      errors.media = "Debes subir al menos una imagen";
+    }
+
+    // Log validation information
+    console.log("Form validation:", {
+      mediaPreviewUrls: mediaPreviewUrls.length,
+      uploadedUrls: uploadedUrls.length,
+      errors,
+    });
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   return (
     <>
       <style jsx global>{`
@@ -484,6 +601,14 @@ export function CampaignForm() {
         select:focus {
           border-color: #478c5c !important;
           outline: none !important;
+        }
+        .error-input {
+          border-color: #e11d48 !important;
+        }
+        .error-text {
+          color: #e11d48;
+          font-size: 0.875rem;
+          margin-top: 0.25rem;
         }
       `}</style>
 
@@ -505,7 +630,7 @@ export function CampaignForm() {
               </div>
               <div className="bg-white rounded-xl border border-black p-8">
                 <div className="space-y-6">
-                  <div>
+                  <div id="title">
                     <label className="block text-lg font-medium mb-2">
                       Nombre de la campaña
                     </label>
@@ -513,20 +638,26 @@ export function CampaignForm() {
                       <input
                         type="text"
                         placeholder="Ingresa el nombre de tu campaña"
-                        className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4"
+                        className={`w-full rounded-lg border ${formErrors.title ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
                         value={formData.title}
-                        onChange={(e) =>
-                          setFormData({ ...formData, title: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setFormData({ ...formData, title: e.target.value });
+                          if (e.target.value.length >= 3) {
+                            setFormErrors({ ...formErrors, title: "" });
+                          }
+                        }}
                         maxLength={80}
                       />
                       <div className="text-sm text-gray-500 text-right mt-1">
                         {formData.title.length}/80
                       </div>
+                      {formErrors.title && (
+                        <div className="error-text">{formErrors.title}</div>
+                      )}
                     </div>
                   </div>
 
-                  <div>
+                  <div id="description">
                     <label className="block text-lg font-medium mb-2">
                       Detalle
                     </label>
@@ -534,19 +665,27 @@ export function CampaignForm() {
                       <textarea
                         placeholder="Ejemplo: Su conservación depende de nosotros"
                         rows={4}
-                        className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4"
+                        className={`w-full rounded-lg border ${formErrors.description ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
                         value={formData.description}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setFormData({
                             ...formData,
                             description: e.target.value,
-                          })
-                        }
+                          });
+                          if (e.target.value.length >= 10) {
+                            setFormErrors({ ...formErrors, description: "" });
+                          }
+                        }}
                         maxLength={150}
                       />
                       <div className="text-sm text-gray-500 text-right mt-1">
                         {formData.description.length}/150
                       </div>
+                      {formErrors.description && (
+                        <div className="error-text">
+                          {formErrors.description}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -568,21 +707,27 @@ export function CampaignForm() {
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-black p-8">
-                <label className="block text-lg font-medium mb-2">
+                <label className="block text-lg font-medium mb-2" id="category">
                   Categoría
                 </label>
                 <select
-                  className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4"
+                  className={`w-full rounded-lg border ${formErrors.category ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
                   value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, category: e.target.value });
+                    if (e.target.value) {
+                      setFormErrors({ ...formErrors, category: "" });
+                    }
+                  }}
                 >
                   <option value="">Selecciona una categoría</option>
                   <option value="medioambiente">Medioambiente</option>
                   <option value="educacion">Educación</option>
                   <option value="salud">Salud</option>
                 </select>
+                {formErrors.category && (
+                  <div className="error-text">{formErrors.category}</div>
+                )}
               </div>
             </div>
             <div className="mt-16 border-b border-[#478C5C]/20" />
@@ -602,18 +747,27 @@ export function CampaignForm() {
               </div>
               <div className="bg-white rounded-xl border border-black p-8">
                 <div className="space-y-4">
-                  <label className="block text-lg font-medium mb-2">
+                  <label
+                    className="block text-lg font-medium mb-2"
+                    id="goalAmount"
+                  >
                     Meta de recaudación
                   </label>
                   <input
                     type="number"
                     placeholder="Ingresa el monto a recaudar"
-                    className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4"
+                    className={`w-full rounded-lg border ${formErrors.goalAmount ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
                     value={formData.goalAmount}
-                    onChange={(e) =>
-                      setFormData({ ...formData, goalAmount: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, goalAmount: e.target.value });
+                      if (e.target.value) {
+                        setFormErrors({ ...formErrors, goalAmount: "" });
+                      }
+                    }}
                   />
+                  {formErrors.goalAmount && (
+                    <div className="error-text">{formErrors.goalAmount}</div>
+                  )}
                   <div className="flex items-center gap-2 bg-[#EDF2FF] border border-[#365AFF] rounded-lg p-2 mt-4">
                     <Image
                       src="/views/create-campaign/Form/info.svg"
@@ -645,9 +799,9 @@ export function CampaignForm() {
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-black p-8">
-                <div className="space-y-6">
+                <div className="space-y-6" id="media">
                   <div
-                    className="border-2 border-dashed border-gray-400 rounded-lg p-10 text-center bg-white"
+                    className={`border-2 border-dashed ${formErrors.media ? "border-red-500" : "border-gray-400"} rounded-lg p-10 text-center bg-white`}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <div className="flex flex-col items-center justify-center">
@@ -692,6 +846,9 @@ export function CampaignForm() {
                       </Button>
                     </div>
                   </div>
+                  {formErrors.media && (
+                    <div className="error-text">{formErrors.media}</div>
+                  )}
 
                   {/* Show upload progress */}
                   {uploadingFile && (
@@ -711,7 +868,7 @@ export function CampaignForm() {
                         {mediaPreviewUrls.map((url, index) => (
                           <div
                             key={index}
-                            className="relative rounded-lg overflow-hidden border border-gray-200"
+                            className={`relative rounded-lg overflow-hidden border ${index === 0 ? "border-[#2c6e49] ring-2 ring-[#2c6e49]" : "border-gray-200"}`}
                           >
                             <Image
                               src={url}
@@ -720,6 +877,11 @@ export function CampaignForm() {
                               height={150}
                               className="w-full h-32 object-cover"
                             />
+                            {index === 0 && (
+                              <div className="absolute top-2 left-2 bg-[#2c6e49] text-white text-xs px-2 py-1 rounded-full">
+                                Imagen principal
+                              </div>
+                            )}
                             <div className="absolute top-2 right-2 flex gap-1">
                               <button
                                 className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
@@ -837,8 +999,8 @@ export function CampaignForm() {
             <div className="mt-16 border-b border-[#478C5C]/20" />
           </div>
 
-          {/* Duration */}
-          <div className="py-12">
+          {/* Duration - REPLACED WITH DATE PICKER */}
+          <div className="py-12" id="endDate">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
               <div className="pt-4">
                 <h2 className="text-4xl md:text-5xl font-bold mb-6">
@@ -855,16 +1017,45 @@ export function CampaignForm() {
                   Fecha de finalización
                 </label>
                 <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="DD/MM/AAAA"
-                    className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 pl-10 h-14 px-4"
-                    value={formData.endDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endDate: e.target.value })
-                    }
-                  />
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="DD/MM/AAAA"
+                          className={`w-full rounded-lg border ${formErrors.endDate ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 pl-10 h-14 px-4 cursor-pointer`}
+                          value={formData.endDate ? formData.endDate : ""}
+                          readOnly
+                        />
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={
+                          formData.endDate
+                            ? new Date(formData.endDate)
+                            : undefined
+                        }
+                        onSelect={(date) => {
+                          if (date) {
+                            const formattedDate = format(date, "yyyy-MM-dd");
+                            setFormData({
+                              ...formData,
+                              endDate: formattedDate,
+                            });
+                            setFormErrors({ ...formErrors, endDate: "" });
+                          }
+                        }}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {formErrors.endDate && (
+                    <div className="error-text">{formErrors.endDate}</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -885,35 +1076,41 @@ export function CampaignForm() {
                 </p>
               </div>
               <div className="bg-white rounded-xl border border-black p-6">
-                <div className="relative">
+                <div className="relative" id="story">
                   <label className="block text-lg font-medium mb-2">
                     Presentación de la campaña
                   </label>
                   <textarea
                     rows={4}
                     placeholder="Ejemplo: Su conservación depende de nosotros"
-                    className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4"
+                    className={`w-full rounded-lg border ${formErrors.story ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
                     value={formData.story}
-                    onChange={(e) =>
-                      setFormData({ ...formData, story: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, story: e.target.value });
+                      if (e.target.value.length >= 10) {
+                        setFormErrors({ ...formErrors, story: "" });
+                      }
+                    }}
                     maxLength={600}
                   />
                   <div className="text-sm text-gray-500 text-right mt-1">
                     {formData.story.length}/600
                   </div>
+                  {formErrors.story && (
+                    <div className="error-text">{formErrors.story}</div>
+                  )}
                 </div>
               </div>
             </div>
             <div className="mt-16 border-b border-[#478C5C]/20" />
           </div>
 
-          {/* Add a "Siguiente" button to jump to step #2 */}
+          {/* Add a "Siguiente" button to jump to step #2 - BUTTON IS ALWAYS ENABLED NOW */}
           <div className="flex justify-end mt-8">
             <Button
               className="bg-[#478C5C] text-white"
               onClick={nextStep}
-              disabled={isSubmitting || !isStep1Valid}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
@@ -1540,7 +1737,7 @@ export function CampaignForm() {
         </div>
       )}
 
-      {/* Image Editor Modal */}
+      {/* Image Editor Modal - Updated to show loading indicator */}
       {imageToEdit && (
         <ImageEditor
           imageUrl={imageToEdit}
@@ -1549,6 +1746,7 @@ export function CampaignForm() {
             setImageToEdit(null);
             setEditingImageIndex(null);
           }}
+          isLoading={isUploading}
         />
       )}
     </>

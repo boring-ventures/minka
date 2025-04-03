@@ -22,6 +22,7 @@ interface CampaignCardProps {
   goalAmount: number;
   progress: number;
   status: CampaignStatus;
+  isVerified?: boolean;
 }
 
 export function CampaignCard({
@@ -34,6 +35,7 @@ export function CampaignCard({
   goalAmount,
   progress,
   status,
+  isVerified = false,
 }: CampaignCardProps) {
   const getStatusLabel = (status: CampaignStatus) => {
     switch (status) {
@@ -71,9 +73,9 @@ export function CampaignCard({
       </div>
 
       <div className="p-4">
-        {/* Status indicator with verified check for active campaigns */}
+        {/* Status indicator with verified check for verified campaigns */}
         <div className="flex items-center gap-2 mb-3">
-          {status === "active" && (
+          {isVerified && status === "active" && (
             <Image
               src="/icons/verified.svg"
               alt="Verified"

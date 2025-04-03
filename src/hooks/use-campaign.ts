@@ -15,6 +15,8 @@ export interface CampaignFormData {
   youtubeUrls?: string[];
   recipient?: string;
   beneficiariesDescription?: string;
+  campaignStatus?: "draft" | "active" | "completed" | "cancelled";
+  verificationStatus?: boolean;
   media?: Array<{
     mediaUrl: string;
     type: "image" | "video";
@@ -41,7 +43,7 @@ export function useCampaign() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Function to create a new campaign
+  // Function to create a new campaign (kept for backwards compatibility)
   const createCampaign = async (
     formData: CampaignFormData
   ): Promise<string | null> => {
@@ -108,15 +110,24 @@ export function useCampaign() {
 
   // Function to save a campaign draft
   const saveCampaignDraft = async (
-    formData: CampaignFormData,
-    existingCampaignId?: string
+    formData: CampaignFormData
   ): Promise<string | null> => {
     setIsSavingDraft(true);
 
     try {
+      // Perform validation checks
+      if (!formData.title || !formData.description || !formData.category) {
+        console.error("Missing required fields in campaign draft data");
+        throw new Error("Faltan campos requeridos en el formulario");
+      }
+
+      if (!formData.media || formData.media.length === 0) {
+        console.error("No media provided for campaign draft");
+        throw new Error("Debes subir al menos una imagen");
+      }
+
       // Format the data according to API requirements
-      const payload = {
-        campaignId: existingCampaignId,
+      const payload: any = {
         title: formData.title,
         description: formData.description,
         beneficiariesDescription:
@@ -133,6 +144,17 @@ export function useCampaign() {
         media: formData.media,
       };
 
+      // Only add campaignId to payload if it exists
+      if (campaignId) {
+        payload.campaignId = campaignId;
+      }
+
+      console.log("Sending draft payload:", {
+        hasMedia: !!payload.media,
+        mediaCount: payload.media?.length || 0,
+        hasId: !!payload.campaignId,
+      });
+
       const response = await fetch("/api/campaign/draft", {
         method: "POST",
         headers: {
@@ -144,6 +166,7 @@ export function useCampaign() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("API error response:", errorData);
         throw new Error(errorData.error || "Failed to save campaign draft");
       }
 
@@ -170,11 +193,59 @@ export function useCampaign() {
     }
   };
 
+  // Helper method to update a campaign
+  const updateCampaign = async (
+    campaignData: Partial<CampaignFormData>,
+    targetCampaignId: string = campaignId || ""
+  ): Promise<boolean> => {
+    if (!targetCampaignId) {
+      toast({
+        title: "Error",
+        description: "No se encontró ID de campaña para actualizar",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const response = await fetch(`/api/campaign/${targetCampaignId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(campaignData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update campaign");
+      }
+
+      toast({
+        title: "Actualizado",
+        description: "Campaña actualizada correctamente",
+      });
+      return true;
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Error al actualizar la campaña",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     isCreating,
     isSavingDraft,
     campaignId,
     createCampaign,
     saveCampaignDraft,
+    updateCampaign,
   };
 }

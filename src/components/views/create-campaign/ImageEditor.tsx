@@ -11,14 +11,21 @@ import ReactCrop, {
   makeAspectCrop,
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface ImageEditorProps {
   imageUrl: string;
   onSave: (editedUrl: string) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
-export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
+export function ImageEditor({
+  imageUrl,
+  onSave,
+  onCancel,
+  isLoading = false,
+}: ImageEditorProps) {
   const [imgSrc, setImgSrc] = useState(imageUrl);
   const imgRef = useRef<HTMLImageElement>(null);
   const [crop, setCrop] = useState<CropType>();
@@ -507,8 +514,16 @@ export function ImageEditor({ imageUrl, onSave, onCancel }: ImageEditorProps) {
           <Button
             onClick={handleSave}
             className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-12 rounded-full"
+            disabled={isLoading}
           >
-            Guardar
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <LoadingSpinner size="sm" />
+                <span>Guardando...</span>
+              </div>
+            ) : (
+              "Guardar"
+            )}
           </Button>
         </div>
       </div>
