@@ -32,8 +32,8 @@ export function CampaignCard({
   amountRaised = "Bs. 0,00",
   href,
 }: CampaignCardProps) {
-  // Generate the campaign URL - if href is provided use it, otherwise use /campaign
-  const campaignUrl = href || (id ? `/campaign?id=${id}` : "/campaign");
+  // Generate the campaign URL - if href is provided use it, otherwise use /campaign/id
+  const campaignUrl = href || (id ? `/campaign/${id}` : "/campaigns");
 
   return (
     <div className="bg-white rounded-xl overflow-hidden group relative transition-all duration-300 h-full">

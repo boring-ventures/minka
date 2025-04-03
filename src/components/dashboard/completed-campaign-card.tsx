@@ -58,7 +58,7 @@ export function CompletedCampaignCard({
           </div>
         </div>
         <Link
-          href={`/campaign/${id}/dashboard`}
+          href={`/campaign/${id}`}
           className="text-[#2c6e49] flex items-center hover:underline font-bold"
         >
           Administrar Campaña <Edit className="ml-2 h-3.5 w-3.5" />

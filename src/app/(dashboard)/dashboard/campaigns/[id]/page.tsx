@@ -199,7 +199,7 @@ export default function CampaignDetailPage() {
                   href={`/campaign/${params.id}`}
                   className="flex items-center text-[#2c6e49] gap-2 text-sm font-medium hover:underline"
                 >
-                  <Eye className="h-4 w-4" />
+                  <Eye size={16} />
                   <span>Ver campaña</span>
                 </Link>
                 <button

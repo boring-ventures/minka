@@ -13,6 +13,7 @@ interface CampaignProgressProps {
   campaignTitle?: string;
   campaignOrganizer?: string;
   campaignLocation?: string;
+  campaignId?: string;
 }
 
 export function CampaignProgress({
@@ -24,8 +25,14 @@ export function CampaignProgress({
   campaignTitle = "",
   campaignOrganizer = "",
   campaignLocation = "",
+  campaignId = "",
 }: CampaignProgressProps) {
-  const progress = (currentAmount / targetAmount) * 100;
+  const safeCurrentAmount = currentAmount || 0;
+  const safeTargetAmount = targetAmount || 1;
+  const progress =
+    safeTargetAmount > 0
+      ? Math.min((safeCurrentAmount / safeTargetAmount) * 100, 100)
+      : 0;
 
   return (
     <div
@@ -57,8 +64,8 @@ export function CampaignProgress({
 
       <div className="space-y-4 mb-4">
         <div className="flex justify-between text-sm">
-          <span>Recaudado Bs. {currentAmount.toLocaleString()}</span>
-          <span>{donorsCount} donadores</span>
+          <span>Recaudado Bs. {(currentAmount || 0).toLocaleString()}</span>
+          <span>{donorsCount || 0} donadores</span>
         </div>
         <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -68,7 +75,7 @@ export function CampaignProgress({
         </div>
         <div className="flex justify-between text-sm">
           <span>Objetivo de recaudación</span>
-          <span>Bs. {targetAmount.toLocaleString()}</span>
+          <span>Bs. {(targetAmount || 0).toLocaleString()}</span>
         </div>
       </div>
 
@@ -80,7 +87,7 @@ export function CampaignProgress({
           href={{
             pathname: "/donate",
             query: {
-              campaignId: "1", // This would be the actual campaign ID
+              campaignId: campaignId || "1",
               title: campaignTitle,
               organizer: campaignOrganizer,
               location: campaignLocation,
