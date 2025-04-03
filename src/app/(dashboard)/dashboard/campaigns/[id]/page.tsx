@@ -41,6 +41,8 @@ export default function CampaignDetailPage() {
             `
             *,
             organizer:profiles(*),
+            media:campaign_media(*)
+          `
           )
           .eq("id", params.id)
           .single();
@@ -491,23 +493,66 @@ export default function CampaignDetailPage() {
         <div className="bg-white w-full min-h-[500px]">
           <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
             {activeTab === "editar" && (
-              <>
-                <h2 className="text-2xl font-bold mb-2">Editar campaña</h2>
-                <p className="text-gray-600 mb-6">
-                  Modifica los detalles de tu campaña para mejorar su alcance e
-                  impacto. Actualiza la información, imágenes o metas según sea
-                  necesario.
-                </p>
-                <div className="border-t border-gray-200 pt-6">
-                  <EditCampaignTab campaign={campaign} />
+              <div className="space-y-12 max-w-6xl mx-auto">
+                <div className="py-8">
+                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                    Editar campaña
+                  </h2>
+                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                    Modifica los detalles de tu campaña para mejorar su alcance
+                    e impacto. Actualiza la información, imágenes o metas según
+                    sea necesario.
+                  </p>
+                  <div className="border-b border-[#478C5C]/20 my-8"></div>
                 </div>
-              </>
+                <EditCampaignTab campaign={campaign} />
+              </div>
             )}
             {activeTab === "anuncios" && <AdsTab campaign={campaign} />}
-            {activeTab === "comentarios" && <CommentsTab campaign={campaign} />}
-            {activeTab === "donaciones" && <DonationsTab campaign={campaign} />}
+            {activeTab === "comentarios" && (
+              <div className="space-y-12 max-w-6xl mx-auto">
+                <div className="py-8">
+                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                    Comentarios
+                  </h2>
+                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                    Revisa y responde a los comentarios de tus donadores para
+                    mantener una comunicación activa.
+                  </p>
+                  <div className="border-b border-[#478C5C]/20 my-8"></div>
+                </div>
+                <CommentsTab campaign={campaign} />
+              </div>
+            )}
+            {activeTab === "donaciones" && (
+              <div className="space-y-12 max-w-6xl mx-auto">
+                <div className="py-8">
+                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                    Donaciones
+                  </h2>
+                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                    Monitorea las donaciones recibidas y agradece a tus
+                    donadores por su apoyo.
+                  </p>
+                  <div className="border-b border-[#478C5C]/20 my-8"></div>
+                </div>
+                <DonationsTab campaign={campaign} />
+              </div>
+            )}
             {activeTab === "transferir" && (
-              <TransferFundsTab campaign={campaign} />
+              <div className="space-y-12 max-w-6xl mx-auto">
+                <div className="py-8">
+                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                    Transferir fondos
+                  </h2>
+                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                    Transfiere los fondos recolectados a la cuenta designada
+                    para el proyecto.
+                  </p>
+                  <div className="border-b border-[#478C5C]/20 my-8"></div>
+                </div>
+                <TransferFundsTab campaign={campaign} />
+              </div>
             )}
           </div>
         </div>
