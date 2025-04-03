@@ -4,6 +4,10 @@ import { StickyProgressWrapper } from "@/components/views/campaign/StickyProgres
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
+import {
+  CampaignUpdates,
+  CampaignUpdateType,
+} from "@/components/views/campaign/CampaignUpdates";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Clock, Award } from "lucide-react";
 import Link from "next/link";
@@ -109,6 +113,25 @@ const campaignData = {
       date: "5 días",
       comment:
         "Como bióloga, sé lo importante que es preservar estos ecosistemas. Gracias por liderar esta campaña.",
+    },
+  ],
+  updates: [
+    {
+      id: "update-1",
+      title: "¡Primer objetivo alcanzado!",
+      message:
+        "Gracias a todos por su apoyo, hemos alcanzado el 30% de nuestra meta. Con estos fondos ya podremos comenzar el programa de educación ambiental en las comunidades cercanas al parque.",
+      createdAt: "2023-12-15T12:00:00Z",
+      imageUrl: "/campaign/amboro-update1.jpg",
+    },
+    {
+      id: "update-2",
+      title: "Iniciamos patrullajes en el sector norte",
+      message:
+        "Hemos comenzado los patrullajes en el sector norte del parque. Los guardaparques están utilizando el nuevo equipo adquirido gracias a sus donaciones.",
+      createdAt: "2023-12-20T10:30:00Z",
+      youtubeUrl: "https://www.youtube.com/watch?v=example",
+      imageUrl: "/campaign/amboro-update2.jpg",
     },
   ],
 };
@@ -317,6 +340,14 @@ export default function CampaignPage() {
               description={campaignData.description}
               beneficiaries={campaignData.beneficiaries}
             />
+
+            {/* Campaign Updates */}
+            {campaignData.updates && campaignData.updates.length > 0 && (
+              <div className="mt-12">
+                <CampaignUpdates updates={campaignData.updates} />
+              </div>
+            )}
+
             <div className="mt-12">
               <CustomDonorComments comments={campaignData.comments} />
             </div>

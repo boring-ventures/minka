@@ -1,74 +1,86 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { PlusCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  PlusCircle,
+  Trash2,
+  Upload,
+  X,
+  Image as ImageIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-
-interface CampaignUpdate {
-  id: string;
-  campaign_id: string;
-  title: string;
-  message: string;
-  youtube_url?: string;
-  created_at: string;
-}
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useCampaign, CampaignUpdate } from "@/hooks/use-campaign";
+import { ImageEditor } from "@/components/views/create-campaign/ImageEditor";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 interface AdsTabProps {
   campaign: Record<string, any>;
 }
 
 export function AdsTab({ campaign }: AdsTabProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [showSaveBar, setShowSaveBar] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [updates, setUpdates] = useState<CampaignUpdate[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [updateToDelete, setUpdateToDelete] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const initialFormState = {
     title: "",
     message: "",
     youtube_url: "",
+    image_url: "",
   };
   const [formData, setFormData] = useState(initialFormState);
-  const [updates, setUpdates] = useState<CampaignUpdate[]>(() => {
-    // Provide dummy data in development mode
-    if (process.env.NODE_ENV === "development") {
-      return [
-        {
-          id: "1",
-          campaign_id: campaign.id,
-          title: "¡Hemos alcanzado el 40% de nuestra meta!",
-          message:
-            "¡Hemos alcanzado el 40% de nuestra meta! Gracias a todos por su apoyo continuo.",
-          created_at: new Date(
-            Date.now() - 3 * 24 * 60 * 60 * 1000
-          ).toISOString(), // 3 days ago
-        },
-        {
-          id: "2",
-          campaign_id: campaign.id,
-          title: "Jornada de limpieza en el Parque Amboró",
-          message:
-            "Acabamos de organizar una jornada de limpieza en el Parque Amboró. ¡Gracias a los 25 voluntarios que participaron!",
-          created_at: new Date(
-            Date.now() - 7 * 24 * 60 * 60 * 1000
-          ).toISOString(), // 7 days ago
-        },
-      ];
-    }
-    return [];
-  });
+
+  const {
+    isLoadingUpdates,
+    isPublishingUpdate,
+    getCampaignUpdates,
+    publishCampaignUpdate,
+    deleteCampaignUpdate,
+  } = useCampaign();
+
+  useEffect(() => {
+    fetchUpdates();
+  }, [campaign.id]);
 
   useEffect(() => {
     // Check if form has any changes
     const formChanged =
       formData.title.trim() !== "" ||
       formData.message.trim() !== "" ||
-      formData.youtube_url.trim() !== "";
+      formData.youtube_url.trim() !== "" ||
+      uploadedImage !== null;
 
     setHasChanges(formChanged);
     setShowSaveBar(formChanged);
-  }, [formData]);
+  }, [formData, uploadedImage]);
+
+  const fetchUpdates = async () => {
+    const updatesData = await getCampaignUpdates(campaign.id);
+    if (updatesData) {
+      console.log("Fetched updates:", updatesData);
+      setUpdates(updatesData);
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -94,48 +106,32 @@ export function AdsTab({ campaign }: AdsTabProps) {
       return;
     }
 
-    setIsLoading(true);
+    // If there's an uploaded image but no image URL, upload it first
+    let imageUrl = "";
+    if (uploadedImage && !formData.image_url) {
+      imageUrl = await uploadImage();
+      if (!imageUrl) return;
+    } else {
+      imageUrl = formData.image_url;
+    }
 
-    try {
-      const supabase = createClientComponentClient();
+    const success = await publishCampaignUpdate(campaign.id, {
+      title: formData.title,
+      message: formData.message,
+      youtubeUrl: formData.youtube_url,
+      imageUrl: imageUrl,
+    });
 
-      const { data, error } = await supabase
-        .from("campaign_updates")
-        .insert({
-          campaign_id: campaign.id,
-          title: formData.title,
-          message: formData.message,
-          youtube_url: formData.youtube_url,
-          created_at: new Date().toISOString(),
-        })
-        .select();
-
-      if (error) throw error;
-
-      // Add the new update to the list
-      if (data) {
-        setUpdates([data[0], ...updates]);
-      }
-
+    if (success) {
       // Clear the form
       setFormData(initialFormState);
       setShowSaveBar(false);
       setHasChanges(false);
+      setUploadedImage(null);
+      setImageFile(null);
 
-      toast({
-        title: "Anuncio publicado",
-        description: "Tu actualización ha sido publicada correctamente.",
-      });
-    } catch (error) {
-      console.error("Error publishing update:", error);
-      toast({
-        title: "Error",
-        description:
-          "No se pudo publicar la actualización. Intenta nuevamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      // Refresh updates list
+      fetchUpdates();
     }
   };
 
@@ -143,6 +139,161 @@ export function AdsTab({ campaign }: AdsTabProps) {
     setFormData(initialFormState);
     setShowSaveBar(false);
     setHasChanges(false);
+    setUploadedImage(null);
+    setImageFile(null);
+  };
+
+  const confirmDeleteUpdate = async () => {
+    if (!updateToDelete) return;
+
+    const success = await deleteCampaignUpdate(campaign.id, updateToDelete);
+
+    if (success) {
+      // Refresh updates list
+      fetchUpdates();
+    }
+
+    setIsDeleteDialogOpen(false);
+    setUpdateToDelete(null);
+  };
+
+  const openDeleteDialog = (updateId: string) => {
+    setUpdateToDelete(updateId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    const fileSize = file.size / 1024 / 1024; // Convert to MB
+
+    if (fileSize > 2) {
+      toast({
+        title: "Archivo demasiado grande",
+        description: "El tamaño máximo permitido es de 2 MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Formato no soportado",
+        description: "Solo se permiten archivos de imagen",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create a temporary URL for the selected image
+    const objectUrl = URL.createObjectURL(file);
+    setUploadedImage(objectUrl);
+    setImageFile(file);
+
+    // Show the image editor
+    setShowImageEditor(true);
+  };
+
+  const handleSaveEditedImage = (editedUrl: string) => {
+    // Set the edited image
+    setUploadedImage(editedUrl);
+    setShowImageEditor(false);
+  };
+
+  const handleCancelImageEdit = () => {
+    setUploadedImage(null);
+    setImageFile(null);
+    setShowImageEditor(false);
+  };
+
+  const uploadImage = async (): Promise<string> => {
+    if (!uploadedImage) return "";
+
+    setIsUploadingImage(true);
+    try {
+      // Convert data URL to Blob
+      const dataURLtoBlob = (dataURL: string): Blob => {
+        const arr = dataURL.split(",");
+        if (arr.length < 2) return new Blob();
+
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+
+        return new Blob([u8arr], { type: mime });
+      };
+
+      // Convert to blob and create a File object
+      const blob = dataURLtoBlob(uploadedImage);
+      const file = new File([blob], `update_image_${Date.now()}.jpg`, {
+        type: "image/jpeg",
+      });
+
+      // Upload to Supabase Storage
+      const supabase = createClientComponentClient();
+      const STORAGE_BUCKET =
+        process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "minka";
+      const fileExt = "jpg";
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `campaign-images/${fileName}`;
+
+      console.log(
+        "Uploading to bucket:",
+        STORAGE_BUCKET,
+        "with path:",
+        filePath
+      );
+
+      const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        throw error;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(filePath);
+
+      console.log("Upload successful, public URL:", urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error al subir imagen",
+        description:
+          "No se pudo cargar la imagen. Intenta nuevamente o usa otra imagen.",
+        variant: "destructive",
+      });
+      return "";
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleClickUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removeUploadedImage = () => {
+    setUploadedImage(null);
+    setImageFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -201,30 +352,66 @@ export function AdsTab({ campaign }: AdsTabProps) {
 
         <div className="border-t border-gray-200 pt-6 mt-6">
           <h3 className="text-lg font-medium mb-4">
-            Añade fotos o videos a tu anuncio (opcional)
+            Añade una foto a tu anuncio (opcional)
           </h3>
           <p className="text-sm text-gray-500 mb-4">
             Esto ayudará a entender mejor tu anuncio
           </p>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <div className="flex flex-col items-center justify-center">
-              <PlusCircle className="h-10 w-10 text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500 mb-2">
-                Arrastra o carga tus fotos aquí
-              </p>
-              <p className="text-xs text-gray-400 mb-4">
-                Deben ser archivos JPG o PNG, no mayor a 2 MB.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-white border-gray-300"
-              >
-                Seleccionar
-              </Button>
+          {!uploadedImage ? (
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="flex flex-col items-center justify-center">
+                <PlusCircle className="h-10 w-10 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500 mb-2">
+                  Arrastra o carga tu foto aquí
+                </p>
+                <p className="text-xs text-gray-400 mb-4">
+                  Debe ser un archivo JPG o PNG, no mayor a 2 MB.
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-white border-gray-300"
+                  onClick={handleClickUpload}
+                >
+                  Seleccionar foto
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="relative border rounded-lg overflow-hidden">
+              <img
+                src={uploadedImage}
+                alt="Preview"
+                className="w-full h-auto max-h-[300px] object-contain"
+              />
+              <div className="absolute top-2 right-2 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white rounded-full h-8 w-8 p-0 shadow-lg"
+                  onClick={() => setShowImageEditor(true)}
+                >
+                  <ImageIcon size={16} className="text-gray-600" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white rounded-full h-8 w-8 p-0 shadow-lg"
+                  onClick={removeUploadedImage}
+                >
+                  <X size={16} className="text-gray-600" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
@@ -275,26 +462,60 @@ export function AdsTab({ campaign }: AdsTabProps) {
       <div className="space-y-6 pt-6">
         <h3 className="font-medium text-gray-900">Anuncios recientes</h3>
 
-        {updates.length > 0 ? (
+        {isLoadingUpdates ? (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : updates.length > 0 ? (
           <div className="divide-y divide-gray-200">
             {updates.map((update) => (
               <div key={update.id} className="py-4">
                 <div className="flex space-x-3">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center text-[#2c6e49] font-bold">
-                      {campaign.title?.charAt(0) || "C"}
-                    </div>
+                    {update.imageUrl ? (
+                      <div className="h-16 w-16 rounded-md relative overflow-hidden">
+                        <img
+                          src={update.imageUrl}
+                          alt={update.title}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center text-[#2c6e49] font-bold">
+                        {campaign.title?.charAt(0) || "C"}
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {update.title}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm font-medium text-gray-900">
+                        {update.title}
+                      </p>
+                      <button
+                        onClick={() => openDeleteDialog(update.id)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                     <p className="text-xs text-gray-500">
-                      {new Date(update.created_at).toLocaleDateString()}
+                      {new Date(update.createdAt).toLocaleDateString()}
                     </p>
                     <div className="mt-2 text-sm text-gray-700">
                       <p>{update.message}</p>
                     </div>
+                    {update.youtubeUrl && (
+                      <div className="mt-2">
+                        <a
+                          href={update.youtubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#2c6e49] text-sm hover:underline"
+                        >
+                          Ver video
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -327,12 +548,53 @@ export function AdsTab({ campaign }: AdsTabProps) {
           <Button
             type="button"
             className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
-            disabled={isLoading || !hasChanges}
+            disabled={isPublishingUpdate || isUploadingImage || !hasChanges}
             onClick={handleSubmit}
           >
-            {isLoading ? "Publicando..." : "Guardar cambios"}
+            {isPublishingUpdate || isUploadingImage ? (
+              <div className="flex items-center gap-2">
+                <LoadingSpinner size="sm" />
+                <span>Publicando...</span>
+              </div>
+            ) : (
+              "Publicar anuncio"
+            )}
           </Button>
         </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente el anuncio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUpdate}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Image Editor Modal */}
+      {showImageEditor && uploadedImage && (
+        <ImageEditor
+          imageUrl={uploadedImage}
+          onSave={handleSaveEditedImage}
+          onCancel={handleCancelImageEdit}
+          isLoading={isUploadingImage}
+        />
       )}
     </div>
   );

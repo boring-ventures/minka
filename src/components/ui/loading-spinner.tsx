@@ -50,7 +50,6 @@ export function LoadingSpinner({
               position: "relative",
             }}
           ></div>
-
         </div>
 
         {/* Minka Icon in center */}

@@ -1,510 +1,277 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { MessageSquare, Check, X, SendHorizontal } from "lucide-react";
+import { MessageSquare, Check, X, SendHorizontal, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useCampaign, CampaignComment } from "@/hooks/use-campaign";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface CommentsTabProps {
   campaign: Record<string, any>;
 }
 
-type Comment = {
-  id: string;
-  user_name: string;
-  user_id: string;
-  created_at: string;
-  content: string;
-  is_hidden: boolean;
-  reply?: string;
-  reply_at?: string;
-};
-
 export function CommentsTab({ campaign }: CommentsTabProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [replyData, setReplyData] = useState<Record<string, string>>({});
-  const [replying, setReplying] = useState<Record<string, boolean>>({});
-  const [hasChanges, setHasChanges] = useState(false);
-  const [showSaveBar, setShowSaveBar] = useState(false);
+  const [comments, setComments] = useState<CampaignComment[]>([]);
+  const [totalComments, setTotalComments] = useState(0);
+  const [hasMoreComments, setHasMoreComments] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [limit] = useState(20);
+  const [newComment, setNewComment] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+
+  const {
+    isLoadingComments,
+    isPostingComment,
+    getCampaignComments,
+    postCampaignComment,
+    deleteCampaignComment,
+  } = useCampaign();
 
   useEffect(() => {
     fetchComments();
   }, [campaign.id]);
 
-  useEffect(() => {
-    // Check if there are pending replies
-    const hasPendingReplies =
-      Object.values(replying).some((value) => value) &&
-      Object.values(replyData).some((value) => value?.trim().length > 0);
-    setHasChanges(hasPendingReplies);
-    setShowSaveBar(hasPendingReplies);
-  }, [replying, replyData]);
+  const fetchComments = async (reset: boolean = true) => {
+    const currentOffset = reset ? 0 : offset;
 
-  const fetchComments = async () => {
-    setIsLoading(true);
-    try {
-      const supabase = createClientComponentClient();
-
-      const { data, error } = await supabase
-        .from("campaign_comments")
-        .select("*, user_profiles(*)")
-        .eq("campaign_id", campaign.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const formattedComments = data.map((comment) => ({
-          id: comment.id,
-          user_name: comment.user_profiles?.name || "Usuario anónimo",
-          user_id: comment.user_id,
-          created_at: comment.created_at,
-          content: comment.content,
-          is_hidden: comment.is_hidden || false,
-          reply: comment.reply,
-          reply_at: comment.reply_at,
-        }));
-
-        setComments(formattedComments);
-      } else if (process.env.NODE_ENV === "development") {
-        // Add dummy comments for development
-        setComments([
-          {
-            id: "1",
-            user_name: "María Rodríguez",
-            user_id: "user1",
-            created_at: new Date(
-              Date.now() - 2 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            content:
-              "¡Excelente iniciativa! ¿Tienen planeadas más actividades de voluntariado próximamente?",
-            is_hidden: false,
-            reply:
-              "¡Gracias por tu apoyo, María! Sí, estamos organizando una jornada de reforestación para el próximo mes. Publicaremos más detalles pronto.",
-            reply_at: new Date(
-              Date.now() - 1 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-          },
-          {
-            id: "2",
-            user_name: "Carlos Mendoza",
-            user_id: "user2",
-            created_at: new Date(
-              Date.now() - 5 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            content:
-              "Estuve visitando el parque hace poco y es impresionante la biodiversidad. ¡Hay que protegerlo!",
-            is_hidden: false,
-          },
-          {
-            id: "3",
-            user_name: "Usuario anónimo",
-            user_id: "user3",
-            created_at: new Date(
-              Date.now() - 6 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            content:
-              "Comentario inapropiado que ha sido ocultado por el administrador.",
-            is_hidden: true,
-          },
-        ]);
-      }
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-
-      if (process.env.NODE_ENV === "development") {
-        // Add dummy comments for development even on error
-        setComments([
-          {
-            id: "1",
-            user_name: "María Rodríguez",
-            user_id: "user1",
-            created_at: new Date(
-              Date.now() - 2 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            content:
-              "¡Excelente iniciativa! ¿Tienen planeadas más actividades de voluntariado próximamente?",
-            is_hidden: false,
-            reply:
-              "¡Gracias por tu apoyo, María! Sí, estamos organizando una jornada de reforestación para el próximo mes. Publicaremos más detalles pronto.",
-            reply_at: new Date(
-              Date.now() - 1 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-          },
-          {
-            id: "2",
-            user_name: "Carlos Mendoza",
-            user_id: "user2",
-            created_at: new Date(
-              Date.now() - 5 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            content:
-              "Estuve visitando el parque hace poco y es impresionante la biodiversidad. ¡Hay que protegerlo!",
-            is_hidden: false,
-          },
-          {
-            id: "3",
-            user_name: "Usuario anónimo",
-            user_id: "user3",
-            created_at: new Date(
-              Date.now() - 6 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            content:
-              "Comentario inapropiado que ha sido ocultado por el administrador.",
-            is_hidden: true,
-          },
-        ]);
-      } else {
-        toast({
-          title: "Error",
-          description:
-            "No se pudieron cargar los comentarios. Intenta nuevamente.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleReplyChange = (commentId: string, value: string) => {
-    setReplyData({
-      ...replyData,
-      [commentId]: value,
-    });
-  };
-
-  const toggleReplyMode = (commentId: string) => {
-    setReplying({
-      ...replying,
-      [commentId]: !replying[commentId],
-    });
-    if (!replying[commentId]) {
-      setReplyData({
-        ...replyData,
-        [commentId]: "",
-      });
-    }
-  };
-
-  const submitReply = async (commentId: string) => {
-    if (!replyData[commentId]?.trim()) return;
-
-    const updatingReplying = { ...replying };
-    updatingReplying[commentId] = false;
-    setReplying(updatingReplying);
-
-    try {
-      const supabase = createClientComponentClient();
-
-      const { error } = await supabase
-        .from("campaign_comments")
-        .update({
-          reply: replyData[commentId],
-          reply_at: new Date().toISOString(),
-        })
-        .eq("id", commentId);
-
-      if (error) throw error;
-
-      // Update the comment in the local state
-      const updatedComments = comments.map((comment) => {
-        if (comment.id === commentId) {
-          return {
-            ...comment,
-            reply: replyData[commentId],
-            reply_at: new Date().toISOString(),
-          };
-        }
-        return comment;
-      });
-
-      setComments(updatedComments);
-      setHasChanges(false);
-      setShowSaveBar(false);
-
-      toast({
-        title: "Respuesta enviada",
-        description: "Tu respuesta ha sido publicada correctamente.",
-      });
-    } catch (error) {
-      console.error("Error replying to comment:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo enviar la respuesta. Intenta nuevamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const saveAllChanges = async () => {
-    // Find all comments with pending replies
-    const commentsToUpdate = Object.entries(replying)
-      .filter(([id, isReplying]) => isReplying && replyData[id]?.trim())
-      .map(([id]) => id);
-
-    if (commentsToUpdate.length === 0) return;
-
-    let hasErrors = false;
-
-    // Update each comment
-    for (const commentId of commentsToUpdate) {
-      try {
-        await submitReply(commentId);
-      } catch (error) {
-        console.error(`Error saving reply for comment ${commentId}:`, error);
-        hasErrors = true;
-      }
-    }
-
-    if (!hasErrors) {
-      setHasChanges(false);
-      setShowSaveBar(false);
-      toast({
-        title: "Cambios guardados",
-        description: "Todas las respuestas han sido publicadas correctamente.",
-      });
-    }
-  };
-
-  const handleCancel = () => {
-    const resetReplying: Record<string, boolean> = {};
-    Object.keys(replying).forEach((id) => {
-      resetReplying[id] = false;
-    });
-    setReplying(resetReplying);
-    setReplyData({});
-    setHasChanges(false);
-    setShowSaveBar(false);
-  };
-
-  const toggleCommentVisibility = async (
-    commentId: string,
-    currentState: boolean
-  ) => {
-    try {
-      const supabase = createClientComponentClient();
-
-      const { error } = await supabase
-        .from("campaign_comments")
-        .update({
-          is_hidden: !currentState,
-        })
-        .eq("id", commentId);
-
-      if (error) throw error;
-
-      // Update the comment in the local state
-      const updatedComments = comments.map((comment) => {
-        if (comment.id === commentId) {
-          return {
-            ...comment,
-            is_hidden: !currentState,
-          };
-        }
-        return comment;
-      });
-
-      setComments(updatedComments);
-
-      toast({
-        title: currentState ? "Comentario oculto" : "Comentario visible",
-        description: currentState
-          ? "El comentario ha sido ocultado de la vista pública."
-          : "El comentario ahora es visible para todos.",
-      });
-    } catch (error) {
-      console.error("Error toggling comment visibility:", error);
-      toast({
-        title: "Error",
-        description:
-          "No se pudo cambiar la visibilidad del comentario. Intenta nuevamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <LoadingSpinner size="md" />
-      </div>
+    const commentsData = await getCampaignComments(
+      campaign.id,
+      limit,
+      currentOffset
     );
-  }
+
+    if (commentsData) {
+      if (reset) {
+        setComments(commentsData.comments);
+      } else {
+        setComments([...comments, ...commentsData.comments]);
+      }
+
+      setTotalComments(commentsData.total);
+      setHasMoreComments(commentsData.hasMore);
+
+      if (!reset) {
+        setOffset(currentOffset + limit);
+      } else {
+        setOffset(limit);
+      }
+    }
+  };
+
+  const loadMoreComments = () => {
+    fetchComments(false);
+  };
+
+  const handleSubmitComment = async () => {
+    if (!newComment.trim()) {
+      toast({
+        title: "Error",
+        description: "El comentario no puede estar vacío",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const commentData = await postCampaignComment(campaign.id, newComment);
+
+    if (commentData) {
+      // Add the new comment to the top of the list
+      setComments([commentData, ...comments]);
+      setTotalComments(totalComments + 1);
+      setNewComment("");
+    }
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+
+    const success = await deleteCampaignComment(campaign.id, commentToDelete);
+
+    if (success) {
+      // Remove the comment from the list
+      setComments(comments.filter((comment) => comment.id !== commentToDelete));
+      setTotalComments(totalComments - 1);
+    }
+
+    setIsDeleteDialogOpen(false);
+    setCommentToDelete(null);
+  };
+
+  const openDeleteDialog = (commentId: string) => {
+    setCommentToDelete(commentId);
+    setIsDeleteDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2">Comentarios</h2>
         <p className="text-gray-600 mb-6">
-          Gestiona y responde a los comentarios de los donadores y seguidores de
-          tu campaña. Puedes ocultar comentarios inapropiados.
+          Gestiona los comentarios de tu campaña y responde a los donadores.
         </p>
       </div>
 
-      {comments.length > 0 ? (
-        <div className="space-y-4">
-          {comments.map((comment) => (
-            <div
-              key={comment.id}
-              className={`bg-white border ${comment.is_hidden ? "border-gray-200 bg-gray-50" : "border-gray-200"} rounded-lg p-4 space-y-4`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex items-start space-x-3">
+      {/* Comment stats */}
+      <div className="bg-gray-50 p-4 rounded-lg flex space-x-4">
+        <div className="flex items-center space-x-2">
+          <MessageSquare className="h-5 w-5 text-gray-500" />
+          <div>
+            <p className="text-sm font-medium text-gray-700">
+              Total de comentarios
+            </p>
+            <p className="text-2xl font-bold text-gray-900">{totalComments}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Add new comment */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex space-x-3">
+          <div className="flex-shrink-0">
+            <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+              <MessageSquare className="h-5 w-5 text-[#2c6e49]" />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="relative">
+              <textarea
+                rows={3}
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#2c6e49] sm:text-sm sm:leading-6"
+                placeholder="Escribe un comentario"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button
+                className="inline-flex items-center px-4 bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
+                disabled={isPostingComment || !newComment.trim()}
+                onClick={handleSubmitComment}
+              >
+                {isPostingComment ? (
+                  <LoadingSpinner size="sm" className="mr-2" />
+                ) : (
+                  <SendHorizontal className="h-4 w-4 mr-2" />
+                )}
+                Comentar
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Comment list */}
+      <div className="space-y-4">
+        <h3 className="font-medium text-gray-900">
+          {totalComments > 0
+            ? `Comentarios (${totalComments})`
+            : "No hay comentarios"}
+        </h3>
+
+        {isLoadingComments && comments.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : comments.length > 0 ? (
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                className="bg-white border border-gray-200 rounded-lg p-4"
+              >
+                <div className="flex space-x-3">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center text-[#2c6e49] font-bold">
-                      {comment.user_name?.charAt(0) || "U"}
+                    <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center font-bold text-[#2c6e49]">
+                      {comment.profile.name?.charAt(0) || "?"}
                     </div>
                   </div>
-                  <div>
-                    <div className="flex items-center">
-                      <p className="font-medium text-gray-900">
-                        {comment.user_name}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm font-medium text-gray-900">
+                        {comment.profile.name}
                       </p>
-                      {comment.is_hidden && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                          Oculto
-                        </span>
-                      )}
+                      <button
+                        onClick={() => openDeleteDialog(comment.id)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(comment.created_at).toLocaleDateString()} a las{" "}
-                      {new Date(comment.created_at).toLocaleTimeString()}
+                    <p className="text-xs text-gray-500">
+                      {new Date(comment.createdAt).toLocaleDateString()}
                     </p>
-                    <p className="mt-2 text-gray-700">{comment.content}</p>
+                    <div className="mt-2 text-sm text-gray-700">
+                      <p>{comment.content}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleCommentVisibility(comment.id, comment.is_hidden)
-                    }
-                    className={`rounded-full p-1 ${
-                      comment.is_hidden
-                        ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                    title={
-                      comment.is_hidden
-                        ? "Mostrar comentario"
-                        : "Ocultar comentario"
-                    }
-                  >
-                    {comment.is_hidden ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <X className="h-4 w-4" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleReplyMode(comment.id)}
-                    className="bg-gray-100 rounded-full p-1 text-gray-600 hover:bg-gray-200"
-                    title="Responder"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
+            ))}
 
-              {/* Reply section */}
-              {comment.reply && !replying[comment.id] && (
-                <div className="pl-12 mt-4 border-l-2 border-gray-100">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="h-8 w-8 rounded-full bg-[#e8f0e9] flex items-center justify-center text-[#2c6e49] font-bold">
-                        {campaign.title?.charAt(0) || "O"}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Organizador</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {comment.reply_at &&
-                          new Date(comment.reply_at).toLocaleDateString()}
-                      </p>
-                      <p className="mt-2 text-gray-700">{comment.reply}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {hasMoreComments && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="outline"
+                  className="border-gray-300"
+                  onClick={loadMoreComments}
+                  disabled={isLoadingComments}
+                >
+                  {isLoadingComments ? (
+                    <LoadingSpinner size="sm" className="mr-2" />
+                  ) : null}
+                  Cargar más comentarios
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-10 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No hay comentarios aún
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto">
+              Tu campaña no tiene comentarios por el momento.
+            </p>
+          </div>
+        )}
+      </div>
 
-              {/* Reply form */}
-              {replying[comment.id] && (
-                <div className="border rounded-md mt-3">
-                  <textarea
-                    value={replyData[comment.id] || ""}
-                    onChange={(e) =>
-                      handleReplyChange(comment.id, e.target.value)
-                    }
-                    placeholder="Escribe tu respuesta..."
-                    className="w-full p-3 rounded-t-md border-b text-sm"
-                    rows={3}
-                  />
-                  <div className="flex justify-end p-2 bg-gray-50 rounded-b-md">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => toggleReplyMode(comment.id)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white flex items-center gap-1"
-                      onClick={() => submitReply(comment.id)}
-                      disabled={!replyData[comment.id]?.trim()}
-                    >
-                      <SendHorizontal className="h-3 w-3" />
-                      Responder
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-10 bg-gray-50 rounded-lg">
-          <MessageSquare className="h-10 w-10 mx-auto text-gray-400" />
-          <h3 className="text-lg font-medium text-gray-900 mt-4">
-            No hay comentarios aún
-          </h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto mt-2">
-            Cuando los seguidores de tu campaña dejen comentarios, aparecerán
-            aquí.
-          </p>
-        </div>
-      )}
-
-      {/* Save Changes Bar */}
-      {showSaveBar && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 py-4 px-6 border-t border-gray-200 z-50 flex justify-between items-center">
-          <Button
-            type="button"
-            variant="outline"
-            className="border-gray-300 bg-white"
-            onClick={handleCancel}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
-            disabled={!hasChanges}
-            onClick={saveAllChanges}
-          >
-            Guardar cambios
-          </Button>
-        </div>
-      )}
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente el comentario.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteComment}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -87,6 +87,8 @@ model CampaignUpdate {
   campaignId String   @map("campaign_id") @db.Uuid
   title      String
   content    String
+  youtubeUrl String?  @map("youtube_url")
+  imageUrl   String?  @map("image_url")
   status     Status   @default(active)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
