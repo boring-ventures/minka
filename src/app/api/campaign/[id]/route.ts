@@ -110,7 +110,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -164,6 +165,7 @@ export async function PATCH(
       description,
       beneficiariesDescription,
       category,
+      categoryId,
       goalAmount,
       location,
       endDate,
@@ -173,6 +175,7 @@ export async function PATCH(
       verificationStatus,
       recipient,
       media,
+      presentation,
     } = body;
 
     // Build the data object dynamically with only the fields that were provided
@@ -183,6 +186,7 @@ export async function PATCH(
     if (beneficiariesDescription !== undefined)
       updateData.beneficiariesDescription = beneficiariesDescription;
     if (category !== undefined) updateData.category = category;
+    if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (goalAmount !== undefined) updateData.goalAmount = goalAmount;
     if (location !== undefined) updateData.location = location;
     if (endDate !== undefined) updateData.endDate = new Date(endDate);
@@ -192,6 +196,7 @@ export async function PATCH(
       updateData.campaignStatus = campaignStatus;
     if (verificationStatus !== undefined)
       updateData.verificationStatus = verificationStatus;
+    if (presentation !== undefined) updateData.presentation = presentation;
 
     // Only set verification date if explicitly verifying the campaign
     if (verificationStatus === true) {

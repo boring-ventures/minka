@@ -42,8 +42,9 @@ const campaignDraftSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Use createRouteHandlerClient for better cookie handling
-    const supabase = createRouteHandlerClient({ cookies });
+    // Use createRouteHandlerClient with awaited cookies
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
     // Get session using supabase client
     const {
@@ -135,6 +136,7 @@ export async function POST(req: NextRequest) {
                 type: item.type,
                 isPrimary: item.isPrimary,
                 orderIndex: item.orderIndex,
+                status: "active",
               },
             })
           )
@@ -182,6 +184,7 @@ export async function POST(req: NextRequest) {
                 type: item.type,
                 isPrimary: item.isPrimary,
                 orderIndex: item.orderIndex,
+                status: "active",
               },
             })
           )

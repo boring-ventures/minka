@@ -135,19 +135,42 @@ export default async function ManageCampaignsPage() {
       {displayActiveCampaigns.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayActiveCampaigns.map((campaign: FormattedCampaign) => (
-            <CampaignCard
-              key={campaign.id}
-              id={campaign.id}
-              title={campaign.title}
-              imageUrl={campaign.imageUrl}
-              category={campaign.category}
-              location={campaign.location}
-              raisedAmount={campaign.raisedAmount}
-              goalAmount={campaign.goalAmount}
-              progress={campaign.progress}
-              status={campaign.status}
-              isVerified={campaign.isVerified}
-            />
+            <div key={campaign.id} className="relative">
+              <CampaignCard
+                id={campaign.id}
+                title={campaign.title}
+                imageUrl={campaign.imageUrl}
+                category={campaign.category}
+                location={campaign.location}
+                raisedAmount={campaign.raisedAmount}
+                goalAmount={campaign.goalAmount}
+                progress={campaign.progress}
+                status={campaign.status}
+                isVerified={campaign.isVerified}
+              />
+              <div className="absolute top-2 right-2">
+                <Link
+                  href={`/dashboard/campaigns/${campaign.id}`}
+                  className="bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-[#2c6e49]"
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       ) : (
@@ -182,12 +205,36 @@ export default async function ManageCampaignsPage() {
             {displayCompletedCampaigns.map(
               (campaign: FormattedCampaign, index: number) => (
                 <div key={campaign.id} className="space-y-6">
-                  <CompletedCampaignCard
-                    id={campaign.id}
-                    title={campaign.title}
-                    imageUrl={campaign.imageUrl}
-                    description={campaign.description}
-                  />
+                  <div className="relative">
+                    <CompletedCampaignCard
+                      id={campaign.id}
+                      title={campaign.title}
+                      imageUrl={campaign.imageUrl}
+                      description={campaign.description}
+                    />
+                    <div className="absolute top-4 right-4">
+                      <Link
+                        href={`/dashboard/campaigns/${campaign.id}`}
+                        className="bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-[#2c6e49]"
+                        >
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
                   {index < displayCompletedCampaigns.length - 1 && (
                     <div className="h-px bg-gray-200" />
                   )}

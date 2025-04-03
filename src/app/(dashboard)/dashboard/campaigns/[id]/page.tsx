@@ -34,10 +34,14 @@ export default function CampaignDetailPage() {
           return;
         }
 
-        // Fetch campaign details
+        // Fetch campaign details with media
         const { data: campaignData, error } = await supabase
           .from("campaigns")
-          .select("*, categories(name)")
+          .select(
+            `
+            *,
+            organizer:profiles(*),
+          )
           .eq("id", params.id)
           .single();
 
@@ -52,12 +56,17 @@ export default function CampaignDetailPage() {
                 "Una campaña para proteger la biodiversidad del parque nacional Amboró, uno de los tesoros naturales de Bolivia.",
               location: "Bolivia, Santa Cruz",
               image_url: "/amboro-main.jpg",
-              current_amount: 4000,
+              collected_amount: 4000,
               goal_amount: 10000,
               donor_count: 250,
               days_remaining: 4,
-              categories: { name: "Medio ambiente" },
+              category: "medioambiente",
               organizer_id: session.session.user.id,
+              media: [],
+              youtube_url: "",
+              end_date: "2024-12-31",
+              beneficiaries_description:
+                "Comunidades locales y vida silvestre del parque Amboró",
             });
             setLoading(false);
             return;
@@ -83,7 +92,23 @@ export default function CampaignDetailPage() {
           }
         }
 
-        setCampaign(campaignData);
+        // Find the primary image from campaign media
+        const primaryMedia = campaignData.media?.find(
+          (media: any) =>
+            media.is_primary && media.media_url && media.media_url.trim() !== ""
+        );
+
+        // Merge campaign data with the primary image URL
+        const enhancedCampaignData = {
+          ...campaignData,
+          image_url:
+            primaryMedia?.media_url && primaryMedia.media_url.trim() !== ""
+              ? primaryMedia.media_url
+              : "/amboro-main.jpg",
+          category_id: campaignData.categories?.id || "",
+        };
+
+        setCampaign(enhancedCampaignData);
       } catch (error) {
         // Suppress errors in development mode with dummy data
         if (process.env.NODE_ENV === "development") {
@@ -99,12 +124,17 @@ export default function CampaignDetailPage() {
               "Una campaña para proteger la biodiversidad del parque nacional Amboró, uno de los tesoros naturales de Bolivia.",
             location: "Bolivia, Santa Cruz",
             image_url: "/amboro-main.jpg",
-            current_amount: 4000,
+            collected_amount: 4000,
             goal_amount: 10000,
             donor_count: 250,
             days_remaining: 4,
-            categories: { name: "Medio ambiente" },
+            category: "medioambiente",
             organizer_id: session?.session?.user?.id || "dummy-id",
+            media: [],
+            youtube_url: "",
+            end_date: "2024-12-31",
+            beneficiaries_description:
+              "Comunidades locales y vida silvestre del parque Amboró",
           });
         } else {
           console.error("Error:", error);
@@ -153,7 +183,7 @@ export default function CampaignDetailPage() {
             <div className="relative w-full md:w-[350px] h-56">
               <Image
                 src={campaign.image_url || "/amboro-main.jpg"}
-                alt={campaign.title}
+                alt={campaign.title || "Campaign image"}
                 fill
                 className="object-cover rounded-lg"
               />
@@ -164,7 +194,7 @@ export default function CampaignDetailPage() {
               {/* Action Buttons */}
               <div className="flex space-x-5 mb-5">
                 <Link
-                  href={`/campaigns/${params.id}`}
+                  href={`/campaign/${params.id}`}
                   className="flex items-center text-[#2c6e49] gap-2 text-sm font-medium hover:underline"
                 >
                   <Eye className="h-4 w-4" />
@@ -174,7 +204,7 @@ export default function CampaignDetailPage() {
                   className="flex items-center text-[#2c6e49] gap-2 text-sm font-medium hover:underline"
                   onClick={() => {
                     // Create the URL to share
-                    const shareUrl = `${window.location.origin}/campaigns/${params.id}`;
+                    const shareUrl = `${window.location.origin}/campaign/${params.id}`;
 
                     // Try to use the Web Share API if available
                     if (navigator.share) {
@@ -273,7 +303,7 @@ export default function CampaignDetailPage() {
               <div className="flex flex-wrap items-center">
                 <div className="text-sm">
                   <p className="font-medium text-gray-800">
-                    Bs. {campaign.current_amount?.toLocaleString() || "0"}{" "}
+                    Bs. {campaign.collected_amount?.toLocaleString() || "0"}{" "}
                     recaudados
                   </p>
                 </div>
