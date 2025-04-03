@@ -192,6 +192,20 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
     }).format(amount);
   };
 
+  // Format the amount with the donation's specific currency
+  const formatDonationAmount = (donation: CampaignDonation) => {
+    return new Intl.NumberFormat("es-BO", {
+      style: "currency",
+      currency: getCurrency(donation),
+      minimumFractionDigits: 0,
+    }).format(donation.amount);
+  };
+
+  // Add a helper to ensure we have a currency value
+  const getCurrency = (donation: CampaignDonation) => {
+    return donation.currency || "BOB"; // Default to BOB if currency field is missing
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -328,10 +342,7 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {formatCurrency(donation.amount)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {donation.currency || "BOB"}
+                      {formatDonationAmount(donation)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

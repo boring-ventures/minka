@@ -102,6 +102,7 @@ model Donation {
   campaignId          String        @map("campaign_id") @db.Uuid
   donorId             String        @map("donor_id") @db.Uuid
   amount              Decimal       @db.Decimal
+  currency            String        @default("BOB")
   predefinedAmount    Boolean       @default(true) @map("predefined_amount")
   paymentMethod       PaymentMethod @map("payment_method")
   paymentStatus       PaymentStatus @default(pending) @map("payment_status")
