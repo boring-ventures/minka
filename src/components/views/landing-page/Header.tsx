@@ -88,15 +88,17 @@ export function Header() {
     <>
       {/* Desktop Header */}
       <header
-        className={`hidden md:flex fixed top-0 left-0 right-0 w-full z-50 transition-colors duration-300 ${
-          isScrolled ? "bg-[#2c6e49] shadow-md" : "bg-transparent"
+        className={`hidden md:flex fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${
+          isScrolled
+            ? "bg-[#2c6e49] shadow-md h-20"
+            : "bg-gradient-to-r from-white to-[#f5f7e9] h-28"
         }`}
       >
-        <div className="container mx-auto py-6 px-4 flex justify-between items-center">
+        <div className="container mx-auto h-full px-4 flex items-center">
           <Link
             href="/"
             onClick={handleLogoClick}
-            className="flex items-center"
+            className="flex items-center mr-12"
           >
             <Image
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-2S5vgSiFRwu8gClKBuwTXkOi5H46aN.svg"
@@ -121,7 +123,7 @@ export function Header() {
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 ml-auto">
             {user ? (
               <Link href="/dashboard" className="flex items-center gap-2">
                 <User
@@ -166,12 +168,12 @@ export function Header() {
       </header>
 
       {/* Mobile Header */}
-      <header className="md:hidden flex justify-between items-center bg-[#2c6e49] px-4 py-3 sticky top-0 z-50">
+      <header className="md:hidden flex justify-between items-center bg-gradient-to-r from-white to-[#f5f7e9] px-4 py-3 sticky top-0 z-50">
         <button
           type="button"
           onClick={toggleMenu}
           aria-label="Toggle menu"
-          className="text-white p-1"
+          className="text-[#2c6e49] p-1"
         >
           <Menu size={24} />
         </button>
@@ -181,7 +183,7 @@ export function Header() {
             alt="MINKA Logo"
             width={100}
             height={32}
-            className="h-8 w-auto brightness-0 invert"
+            className="h-8 w-auto"
           />
         </Link>
       </header>

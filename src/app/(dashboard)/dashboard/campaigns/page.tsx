@@ -148,7 +148,7 @@ export default async function ManageCampaignsPage() {
                 status={campaign.status}
                 isVerified={campaign.isVerified}
               />
-              <div className="absolute top-2 right-2">
+              <div className="absolute top-2 right-2 z-10">
                 <Link
                   href={`/dashboard/campaigns/${campaign.id}`}
                   className="bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"

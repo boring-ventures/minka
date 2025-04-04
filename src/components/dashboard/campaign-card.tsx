@@ -58,22 +58,21 @@ export function CampaignCard({
   const imageSrc = imageUrl || "/amboro-main.jpg";
 
   return (
-    <div className="rounded-lg overflow-hidden bg-white border border-gray-100 hover:shadow-md transition-all">
-      <div className="relative">
-        {/* Campaign Image */}
-        <div className="h-40 relative">
-          <Image
-            src={imageSrc}
-            alt={title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 384px"
-          />
-        </div>
+    <div className="rounded-lg overflow-hidden bg-white border border-gray-100 hover:shadow-md transition-all h-[450px] grid grid-rows-[160px_1fr_50px]">
+      {/* Image Section - Fixed height */}
+      <div className="relative w-full h-full">
+        <Image
+          src={imageSrc}
+          alt={title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 384px"
+        />
       </div>
 
-      <div className="p-4">
-        {/* Status indicator with verified check for verified campaigns */}
+      {/* Content Section - Scrollable if needed */}
+      <div className="p-4 overflow-hidden">
+        {/* Status indicator with verified check */}
         <div className="flex items-center gap-2 mb-3">
           {isVerified && status === "active" && (
             <Image
@@ -92,16 +91,16 @@ export function CampaignCard({
         </div>
 
         {/* Campaign Title */}
-        <h3 className="text-lg font-medium text-[#2c6e49] mb-2">
+        <h3 className="text-lg font-medium text-[#2c6e49] mb-2 line-clamp-2">
           <Link href={`/campaigns/${id}`} className="hover:underline">
             {title}
           </Link>
         </h3>
 
-        {/* Category and Location */}
-        <div className="flex text-sm text-gray-600 mb-4">
-          <span className="mr-4">{category}</span>
-          <span>{location}</span>
+        {/* Category and Location with truncation */}
+        <div className="flex text-sm text-gray-600 mb-4 overflow-hidden">
+          <span className="mr-4 truncate max-w-[50%]">{category}</span>
+          <span className="truncate max-w-[50%]">{location}</span>
         </div>
 
         {/* Amount Raised */}
@@ -121,22 +120,22 @@ export function CampaignCard({
         </div>
 
         {/* Progress Percentage */}
-        <div className="text-right text-sm text-gray-500 mb-4">{progress}%</div>
+        <div className="text-right text-sm text-gray-500">{progress}%</div>
+      </div>
 
-        {/* Admin Button - now borderless and at the start of the line */}
-        <div className="flex justify-start">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
-            asChild
-          >
-            <Link href={`/dashboard/campaigns/${id}`}>
-              Administrar Campaña
-              <Edit className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
+      {/* Button Section - Fixed at bottom with fixed height */}
+      <div className="p-4 pt-2 border-t border-gray-100">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
+          asChild
+        >
+          <Link href={`/dashboard/campaigns/${id}`}>
+            Administrar Campaña
+            <Edit className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </div>
     </div>
   );

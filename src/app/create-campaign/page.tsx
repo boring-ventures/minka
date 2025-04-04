@@ -36,7 +36,12 @@ export default function CreateCampaignPage() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
       <Header />
-      <div className="w-full h-[400px] relative">
+
+      {/* Spacer div to account for the fixed header height */}
+      <div className="h-28 md:h-28"></div>
+
+      {/* Page header with increased height */}
+      <div className="w-full h-[500px] relative border-t border-[#2c6e49]/10">
         <Image
           src="/page-header.svg"
           alt="Page Header"
@@ -48,6 +53,7 @@ export default function CreateCampaignPage() {
           <h1 className="text-[90px] font-bold text-white">Crea tu campaña</h1>
         </div>
       </div>
+
       <main className="overflow-x-hidden">
         <CreateCampaignHeader />
         <div className="container mx-auto px-4 py-16">
