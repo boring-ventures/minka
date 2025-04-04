@@ -9,13 +9,15 @@ import { Footer } from "@/components/views/landing-page/Footer";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#ECF1DC]">
       <Header />
       <main className="flex-grow pt-20 md:pt-24">
         <HeroSection />
         <CausesSection />
         <TrustSection />
-        <StartCampaignSection />
+        <div className="bg-gradient-to-r from-white to-[#ECF1DC]">
+          <StartCampaignSection />
+        </div>
         <TestimonialsSection />
         <PartnersSection />
       </main>

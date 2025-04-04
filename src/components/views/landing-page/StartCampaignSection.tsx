@@ -113,13 +113,13 @@ export function StartCampaignSection() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <section ref={sectionRef} className="relative w-full h-[400vh]">
       {/* Content container - sticky positioned to follow scroll */}
-      <div className="sticky top-0 left-0 w-full h-screen flex items-center justify-center overflow-hidden bg-[#f5f7e9]">
+      <div className="sticky top-0 left-0 w-full h-screen flex items-center justify-center overflow-hidden">
         {/* Background SVG */}
         <div className="absolute bottom-0 left-0 right-0 z-0">
           <Image

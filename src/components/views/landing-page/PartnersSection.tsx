@@ -87,7 +87,7 @@ export function PartnersSection() {
   }, [isMobile]);
 
   return (
-    <section className="bg-[#f5f7e9] py-24 border-t border-gray-200">
+    <section className="py-24 border-t border-gray-200">
       <div className="container mx-auto px-4">
         <h2 className="text-6xl md:text-7xl font-bold text-[#333333] mb-16 animate-slide-up text-center">
           Nuestros aliados
