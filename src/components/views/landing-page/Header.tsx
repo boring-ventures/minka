@@ -10,10 +10,27 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
   const [profileName, setProfileName] = useState<string>("");
   const supabase = createClientComponentClient();
+
+  // Add scroll event listener
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    // Initial check
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   // Fetch user profile data from Supabase
   useEffect(() => {
@@ -70,55 +87,81 @@ export function Header() {
   return (
     <>
       {/* Desktop Header */}
-      <header className="hidden md:flex container mx-auto py-6 px-4 justify-between items-center">
-        <Link href="/" onClick={handleLogoClick} className="flex items-center">
-          <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-2S5vgSiFRwu8gClKBuwTXkOi5H46aN.svg"
-            alt="MINKA Logo"
-            width={120}
-            height={40}
-            className="h-12 w-auto"
-          />
-        </Link>
-        <nav className="flex items-center space-x-8">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-[#2c6e49] hover:text-[#1e4d33] font-medium text-lg"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-4">
-          {user ? (
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <User className="h-5 w-5 text-[#2c6e49]" />
-              <span className="text-[#2c6e49] font-medium">
-                {profileName || "Usuario"}
-              </span>
-            </Link>
-          ) : (
-            <>
-              <Link href="/sign-in">
-                <Button
-                  variant="ghost"
-                  className="text-[#2c6e49] hover:text-[#1e4d33] text-lg"
-                >
-                  Ingresar
-                </Button>
+      <header
+        className={`hidden md:flex fixed top-0 left-0 right-0 w-full z-50 transition-colors duration-300 ${
+          isScrolled ? "bg-[#2c6e49] shadow-md" : "bg-transparent"
+        }`}
+      >
+        <div className="container mx-auto py-6 px-4 flex justify-between items-center">
+          <Link
+            href="/"
+            onClick={handleLogoClick}
+            className="flex items-center"
+          >
+            <Image
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-2S5vgSiFRwu8gClKBuwTXkOi5H46aN.svg"
+              alt="MINKA Logo"
+              width={120}
+              height={40}
+              className={`h-12 w-auto transition-all duration-300 ${isScrolled ? "brightness-0 invert" : ""}`}
+            />
+          </Link>
+          <nav className="flex items-center space-x-8">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-medium text-lg transition-colors ${
+                  isScrolled
+                    ? "text-white hover:text-gray-200"
+                    : "text-[#2c6e49] hover:text-[#1e4d33]"
+                }`}
+              >
+                {item.label}
               </Link>
-              <Link href="/sign-up">
-                <Button
-                  variant="outline"
-                  className="rounded-full border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg px-6 py-2"
+            ))}
+          </nav>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <User
+                  className={`h-5 w-5 ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
+                />
+                <span
+                  className={`font-medium ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
                 >
-                  Registrarse
-                </Button>
+                  {profileName || "Usuario"}
+                </span>
               </Link>
-            </>
-          )}
+            ) : (
+              <>
+                <Link href="/sign-in">
+                  <Button
+                    variant="ghost"
+                    className={`text-lg ${
+                      isScrolled
+                        ? "text-white hover:text-gray-200"
+                        : "text-[#2c6e49] hover:text-[#1e4d33]"
+                    }`}
+                  >
+                    Ingresar
+                  </Button>
+                </Link>
+                <Link href="/sign-up">
+                  <Button
+                    variant="outline"
+                    className={`rounded-full text-lg px-6 py-2 ${
+                      isScrolled
+                        ? "border-white text-white hover:bg-white hover:text-[#2c6e49]"
+                        : "border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
+                    }`}
+                  >
+                    Registrarse
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -138,7 +181,7 @@ export function Header() {
             alt="MINKA Logo"
             width={100}
             height={32}
-            className="h-8 w-auto"
+            className="h-8 w-auto brightness-0 invert"
           />
         </Link>
       </header>

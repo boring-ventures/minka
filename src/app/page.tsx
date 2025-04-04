@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow pt-20 md:pt-24">
         <HeroSection />
         <CausesSection />
         <TrustSection />

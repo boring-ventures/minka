@@ -8,11 +8,11 @@ import Link from "next/link";
 export function HeroSection() {
   return (
     <section className="container mx-auto px-4 py-20 md:py-28">
-      <div className="max-w-4xl mx-auto text-center mb-16">
-        <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold text-[#333333] mb-8">
+      <div className="max-w-[95vw] lg:max-w-5xl mx-auto text-center mb-16">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-[#333333] mb-8 leading-tight">
           Impulsa sueños, transforma vidas
         </h1>
-        <p className="text-2xl md:text-3xl text-[#555555] mb-10">
+        <p className="text-xl sm:text-2xl md:text-3xl text-[#555555] mb-10">
           Conectamos a quienes anhelan recibir ayuda, con aquellos que quieren
           hacer sueños realidad, a través de una plataforma segura que facilita
           las donaciones.
