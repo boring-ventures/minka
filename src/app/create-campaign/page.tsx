@@ -38,10 +38,10 @@ export default function CreateCampaignPage() {
       <Header />
 
       {/* Spacer div to account for the fixed header height */}
-      <div className="h-28 md:h-28"></div>
+      <div className="h-20 md:h-28"></div>
 
       {/* Page header with increased height */}
-      <div className="w-full h-[500px] relative border-t border-[#2c6e49]/10">
+      <div className="w-full h-[300px] md:h-[500px] relative border-t border-[#2c6e49]/5">
         <Image
           src="/page-header.svg"
           alt="Page Header"
@@ -49,14 +49,25 @@ export default function CreateCampaignPage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <h1 className="text-[90px] font-bold text-white">Crea tu campaña</h1>
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[90px] font-bold text-white text-center">
+            Crea tu campaña
+          </h1>
+        </div>
+      </div>
+
+      {/* Page subtitle - matching the section title style in landing page */}
+      <div className="w-full py-10 md:py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-5xl md:text-7xl font-bold text-center text-[#333333] mb-6 leading-tight">
+            Cuenta tu historia e inspira
+          </h2>
         </div>
       </div>
 
       <main className="overflow-x-hidden">
         <CreateCampaignHeader />
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto py-8 md:py-16">
           <CampaignFormProvider>
             <CampaignForm />
           </CampaignFormProvider>
