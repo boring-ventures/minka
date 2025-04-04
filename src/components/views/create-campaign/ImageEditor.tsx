@@ -11,7 +11,7 @@ import ReactCrop, {
   makeAspectCrop,
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 
 interface ImageEditorProps {
   imageUrl: string;
@@ -518,7 +518,7 @@ export function ImageEditor({
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
-                <LoadingSpinner size="sm" />
+                <InlineSpinner className="text-white" />
                 <span>Guardando...</span>
               </div>
             ) : (

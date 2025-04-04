@@ -170,6 +170,7 @@ enum CampaignCategory {
   igualdad
   medioambiente
   salud
+  otros
 }
 
 enum CampaignStatus {

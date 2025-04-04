@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
+
+// Remove the local InlineSpinner component since we're importing it
 
 interface UploadProgressProps {
   progress: number;
@@ -34,7 +36,7 @@ export function UploadProgress({ progress, fileName }: UploadProgressProps) {
       </div>
       {progress < 100 && (
         <div className="flex items-center justify-center mt-2">
-          <LoadingSpinner size="sm" />
+          <InlineSpinner className="text-[#478C5C]" />
         </div>
       )}
     </div>

@@ -32,6 +32,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { InlineSpinner } from "@/components/ui/inline-spinner";
 
 // Update the form sections (showing only the modified parts)
 export function CampaignForm() {
@@ -598,7 +607,8 @@ export function CampaignForm() {
         }
         input:focus,
         textarea:focus,
-        select:focus {
+        select:focus,
+        [data-state="open"] > .ui-select-trigger {
           border-color: #478c5c !important;
           outline: none !important;
         }
@@ -609,6 +619,33 @@ export function CampaignForm() {
           color: #e11d48;
           font-size: 0.875rem;
           margin-top: 0.25rem;
+        }
+
+        /* Custom select styling */
+        [data-radix-select-trigger] {
+          height: 56px !important;
+          border-radius: 0.5rem !important;
+          border-width: 1px !important;
+          font-size: 1rem !important;
+        }
+
+        [data-radix-select-content] {
+          background-color: white !important;
+          border-color: #e5e7eb !important;
+          border-radius: 0.5rem !important;
+          box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        }
+
+        [data-radix-select-item] {
+          font-size: 1rem !important;
+          padding: 0.5rem 1rem !important;
+        }
+
+        [data-radix-select-item][data-highlighted] {
+          background-color: #f0f7f1 !important;
+          color: #2c6e49 !important;
         }
       `}</style>
 
@@ -710,21 +747,36 @@ export function CampaignForm() {
                 <label className="block text-lg font-medium mb-2" id="category">
                   Categoría
                 </label>
-                <select
-                  className={`w-full rounded-lg border ${formErrors.category ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
+                <Select
                   value={formData.category}
-                  onChange={(e) => {
-                    setFormData({ ...formData, category: e.target.value });
-                    if (e.target.value) {
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, category: value });
+                    if (value) {
                       setFormErrors({ ...formErrors, category: "" });
                     }
                   }}
                 >
-                  <option value="">Selecciona una categoría</option>
-                  <option value="medioambiente">Medioambiente</option>
-                  <option value="educacion">Educación</option>
-                  <option value="salud">Salud</option>
-                </select>
+                  <SelectTrigger
+                    className={`ui-select-trigger w-full rounded-lg border ${formErrors.category ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4 text-base`}
+                  >
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectGroup>
+                      <SelectItem value="cultura_arte">
+                        Cultura y arte
+                      </SelectItem>
+                      <SelectItem value="educacion">Educación</SelectItem>
+                      <SelectItem value="emergencia">Emergencias</SelectItem>
+                      <SelectItem value="igualdad">Igualdad</SelectItem>
+                      <SelectItem value="medioambiente">
+                        Medioambiente
+                      </SelectItem>
+                      <SelectItem value="salud">Salud</SelectItem>
+                      <SelectItem value="otros">Otros</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
                 {formErrors.category && (
                   <div className="error-text">{formErrors.category}</div>
                 )}
@@ -837,7 +889,7 @@ export function CampaignForm() {
                       >
                         {isUploading ? (
                           <div className="flex items-center gap-2">
-                            <LoadingSpinner size="sm" />
+                            <InlineSpinner className="text-white" />
                             <span>Subiendo...</span>
                           </div>
                         ) : (
@@ -1114,7 +1166,7 @@ export function CampaignForm() {
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
-                  <LoadingSpinner size="sm" />
+                  <InlineSpinner className="text-white" />
                   <span>Procesando...</span>
                 </div>
               ) : (
@@ -1159,7 +1211,7 @@ export function CampaignForm() {
                 {/* Display loading state here if submitting */}
                 {isSubmitting && (
                   <div className="mt-6 p-4 bg-green-50 rounded-lg flex items-center gap-2">
-                    <LoadingSpinner size="sm" />
+                    <InlineSpinner className="text-green-800" />
                     <span className="text-base text-green-800">
                       Creando tu campaña...
                     </span>
@@ -1372,7 +1424,7 @@ export function CampaignForm() {
                       >
                         {isSubmitting ? (
                           <div className="flex items-center gap-2">
-                            <LoadingSpinner size="sm" />
+                            <InlineSpinner className="text-gray-600" />
                             <span>Publicando...</span>
                           </div>
                         ) : (
@@ -1665,7 +1717,7 @@ export function CampaignForm() {
                 >
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">
-                      <LoadingSpinner size="sm" />
+                      <InlineSpinner className="text-white" />
                       <span>Procesando...</span>
                     </div>
                   ) : (
@@ -1724,7 +1776,7 @@ export function CampaignForm() {
                 >
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">
-                      <LoadingSpinner size="sm" />
+                      <InlineSpinner className="text-white" />
                       <span>Procesando...</span>
                     </div>
                   ) : (
