@@ -38,41 +38,38 @@ export function CreateCampaignHeader() {
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          {/* Mobile view - Vertical steps */}
-          <div className="md:hidden">
-            <div className="relative flex flex-col space-y-8 px-4">
-              {/* Vertical connecting line */}
+        <div className="max-w-6xl mx-auto">
+          {/* Mobile view - Vertical steps with text to the right */}
+          <div className="md:hidden py-6">
+            <div className="relative flex flex-col space-y-0 max-w-[320px] mx-auto">
+              {/* Vertical connecting line - single continuous line */}
               <div
                 className="absolute w-[2px] bg-[#478C5C]"
                 style={{
-                  left: "30px",
-                  top: "30px",
-                  bottom: "30px",
+                  left: "45px",
+                  top: "45px",
+                  bottom: "45px",
                   transform: "translateX(-50%)",
                 }}
               ></div>
 
-              {/* Steps */}
               {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className="w-[60px] h-[60px] rounded-full bg-white border-2 border-[#478C5C] flex items-center justify-center z-10 relative">
+                <div key={step.id} className="flex items-center py-4">
+                  {/* Step circle with icon */}
+                  <div className="w-[90px] h-[90px] rounded-full border-[2px] border-[#478C5C] flex items-center justify-center bg-white z-10">
                     <Image
                       src={step.icon}
                       alt={step.label}
-                      width={32}
-                      height={32}
+                      width={50}
+                      height={50}
                     />
                   </div>
-                  <div className="ml-4">
-                    <span className="text-base font-medium text-gray-700">
+
+                  {/* Step label to the right */}
+                  <div className="ml-6">
+                    <span className="text-lg font-bold text-gray-700">
                       {step.label}
                     </span>
-                    {index === 0 && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Estás en este paso actualmente
-                      </p>
-                    )}
                   </div>
                 </div>
               ))}
@@ -80,37 +77,39 @@ export function CreateCampaignHeader() {
           </div>
 
           {/* Desktop view - Horizontal steps */}
-          <div className="hidden md:block">
-            <div className="relative flex items-center justify-between">
+          <div className="hidden md:block py-8">
+            <div className="relative flex items-center justify-between max-w-5xl mx-auto px-8">
               {/* Connecting line */}
               <div
                 className="absolute h-[2px] bg-[#478C5C]"
                 style={{
-                  left: "calc(60px)",
-                  right: "calc(60px)",
-                  top: "30px",
+                  left: "140px",
+                  right: "140px",
+                  top: "40px",
                 }}
               ></div>
 
-              {/* Steps */}
-              {steps.map((step) => (
-                <div
-                  key={step.id}
-                  className="flex flex-col items-center justify-start"
-                >
-                  <div className="w-[60px] h-[60px] rounded-full bg-white border-2 border-[#478C5C] flex items-center justify-center mb-4 z-10 relative">
-                    <Image
-                      src={step.icon}
-                      alt={step.label}
-                      width={32}
-                      height={32}
-                    />
+              {/* Steps with more spacing */}
+              <div className="w-full flex justify-between">
+                {steps.map((step) => (
+                  <div
+                    key={step.id}
+                    className="flex flex-col items-center justify-start"
+                  >
+                    <div className="w-[80px] h-[80px] rounded-full bg-white border-[2px] border-[#478C5C] flex items-center justify-center mb-4 z-10 relative">
+                      <Image
+                        src={step.icon}
+                        alt={step.label}
+                        width={45}
+                        height={45}
+                      />
+                    </div>
+                    <span className="text-base font-bold text-gray-700 text-center">
+                      {step.label}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-gray-700 text-center">
-                    {step.label}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
