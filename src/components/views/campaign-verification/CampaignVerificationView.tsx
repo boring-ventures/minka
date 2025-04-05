@@ -48,8 +48,18 @@ export function CampaignVerificationView() {
   const [verificationStep, setVerificationStep] = useState(1);
 
   // Form states
-  const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
-  const [idDocumentUrl, setIdDocumentUrl] = useState<string | null>(null);
+  const [idDocumentFrontFile, setIdDocumentFrontFile] = useState<File | null>(
+    null
+  );
+  const [idDocumentFrontUrl, setIdDocumentFrontUrl] = useState<string | null>(
+    null
+  );
+  const [idDocumentBackFile, setIdDocumentBackFile] = useState<File | null>(
+    null
+  );
+  const [idDocumentBackUrl, setIdDocumentBackUrl] = useState<string | null>(
+    null
+  );
   const [supportingDocs, setSupportingDocs] = useState<File[]>([]);
   const [supportingDocsUrls, setSupportingDocsUrls] = useState<string[]>([]);
   const [campaignStory, setCampaignStory] = useState<string>("");
@@ -58,6 +68,9 @@ export function CampaignVerificationView() {
     email: "",
     phone: "",
   });
+
+  // Add state for image queue
+  const [pendingImageQueue, setPendingImageQueue] = useState<File[]>([]);
 
   // UI states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,6 +84,9 @@ export function CampaignVerificationView() {
     null
   );
   const [isIdDocumentEditing, setIsIdDocumentEditing] = useState(false);
+  const [editingIdDocumentSide, setEditingIdDocumentSide] = useState<
+    "front" | "back" | null
+  >(null);
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null);
   const [isImageEditorLoading, setIsImageEditorLoading] = useState(false);
   const [editingImageType, setEditingImageType] = useState<
@@ -139,9 +155,10 @@ export function CampaignVerificationView() {
     return file.type.startsWith("image/") ? "image" : "document";
   };
 
-  // Update handleIdDocumentUpload to use this function
+  // Update handleIdDocumentUpload to handle front and back sides
   const handleIdDocumentUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
+    side: "front" | "back"
   ) => {
     if (!event.target.files || event.target.files.length === 0) return;
 
@@ -154,18 +171,28 @@ export function CampaignVerificationView() {
         const objectUrl = URL.createObjectURL(file);
         setEditingImageUrl(objectUrl);
         setEditingImageType("id");
+        setEditingIdDocumentSide(side);
         setIsIdDocumentEditing(true);
       } else {
         // For non-image files (like PDFs), upload directly
-        setIdDocumentFile(file);
+        if (side === "front") {
+          setIdDocumentFrontFile(file);
+        } else {
+          setIdDocumentBackFile(file);
+        }
 
         // Upload ID document using the hook
         const result = await hookUploadFile(file, (p) => setProgress(p));
         if (result.success) {
-          setIdDocumentUrl(result.url);
+          if (side === "front") {
+            setIdDocumentFrontUrl(result.url);
+          } else {
+            setIdDocumentBackUrl(result.url);
+          }
+
           toast({
             title: "Documento subido",
-            description: "El documento se ha subido correctamente.",
+            description: `El ${side === "front" ? "anverso" : "reverso"} del documento se ha subido correctamente.`,
           });
         } else {
           throw new Error("No se pudo subir el documento");
@@ -194,22 +221,34 @@ export function CampaignVerificationView() {
       const response = await fetch(editedImageUrl);
       const blob = await response.blob();
 
-      // Create a File object from the Blob
-      const file = new File([blob], "id-document.jpg", { type: "image/jpeg" });
+      // Create a File object from the Blob with appropriate name
+      const side = editingIdDocumentSide;
+      const fileName =
+        side === "front" ? "id-document-front.jpg" : "id-document-back.jpg";
+      const file = new File([blob], fileName, { type: "image/jpeg" });
 
       // Set the file in state and upload it
-      setIdDocumentFile(file);
+      if (side === "front") {
+        setIdDocumentFrontFile(file);
+      } else {
+        setIdDocumentBackFile(file);
+      }
+
       setCurrentUploadingFile(file);
       setProgress(0);
 
       const result = await hookUploadFile(file, (p) => setProgress(p));
 
       if (result.success) {
-        setIdDocumentUrl(result.url);
+        if (side === "front") {
+          setIdDocumentFrontUrl(result.url);
+        } else {
+          setIdDocumentBackUrl(result.url);
+        }
 
         toast({
           title: "Imagen guardada",
-          description: "La imagen se ha guardado y subido correctamente.",
+          description: `El ${side === "front" ? "anverso" : "reverso"} de la identificación se ha guardado correctamente.`,
         });
       } else {
         throw new Error("No se pudo subir la imagen editada");
@@ -219,6 +258,7 @@ export function CampaignVerificationView() {
       setIsIdDocumentEditing(false);
       setEditingImageUrl(null);
       setEditingImageType(null);
+      setEditingIdDocumentSide(null);
     } catch (error) {
       console.error("Error saving edited ID document image:", error);
       toast({
@@ -237,6 +277,7 @@ export function CampaignVerificationView() {
     setIsIdDocumentEditing(false);
     setEditingImageUrl(null);
     setEditingImageType(null);
+    setEditingIdDocumentSide(null);
   };
 
   const handleSupportingDocsUpload = async (
@@ -256,8 +297,11 @@ export function CampaignVerificationView() {
       (file) => !file.type.startsWith("image/")
     );
 
-    // Add all files to supportingDocs state
-    setSupportingDocs((prev) => [...prev, ...filesList]);
+    // FIXED: Only add non-image files to state immediately
+    // Image files will be added after editing
+    if (nonImageFiles.length > 0) {
+      setSupportingDocs((prev) => [...prev, ...nonImageFiles]);
+    }
 
     // Handle non-image files (like PDFs)
     if (nonImageFiles.length > 0) {
@@ -300,22 +344,43 @@ export function CampaignVerificationView() {
       }
     }
 
-    // If there are images, open the image editor for the first one
+    // If there are images, add them to the queue and process the first one
     if (imageFiles.length > 0) {
-      // Convert first image to data URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setEditingImageType("support");
-          setEditingImageUrl(e.target.result as string);
-          setIsImageEditorOpen(true);
-        }
-      };
-      reader.readAsDataURL(imageFiles[0]);
+      // Add all images to the queue
+      setPendingImageQueue((prev) => [...prev, ...imageFiles]);
+
+      // If we're not already editing an image, start processing the first one
+      if (!isImageEditorOpen && !isIdDocumentEditing) {
+        processNextImageInQueue();
+      }
     }
 
     // Reset the input
     event.target.value = "";
+  };
+
+  // New function to process the next image in the queue
+  const processNextImageInQueue = () => {
+    setPendingImageQueue((prev) => {
+      // Get the first image from the queue
+      const [nextImage, ...remainingImages] = prev;
+
+      if (nextImage) {
+        // Process this image
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            setEditingImageType("support");
+            setEditingImageUrl(e.target.result as string);
+            setIsImageEditorOpen(true);
+          }
+        };
+        reader.readAsDataURL(nextImage);
+      }
+
+      // Return the remaining images
+      return remainingImages;
+    });
   };
 
   // Update save handlers for supporting doc edits
@@ -330,10 +395,13 @@ export function CampaignVerificationView() {
         type: "image/jpeg",
       });
 
-      // Add the file to supporting docs and upload it
-      setSupportingDocs([...supportingDocs, file]);
+      // Add the file to supporting docs
+      setSupportingDocs((prev) => [...prev, file]);
+
+      // Start upload process
       setCurrentUploadingFile(file);
       setProgress(0);
+      setIsSubmitting(true);
 
       const result = await hookUploadFile(file, (p) => setProgress(p));
 
@@ -353,6 +421,12 @@ export function CampaignVerificationView() {
       setEditingImageUrl(null);
       setIsImageEditorOpen(false);
       setEditingImageType(null);
+
+      // Check if there are more images in the queue
+      if (pendingImageQueue.length > 0) {
+        // Process the next image
+        setTimeout(processNextImageInQueue, 300);
+      }
     } catch (error) {
       console.error("Error saving edited supporting document image:", error);
       toast({
@@ -363,6 +437,7 @@ export function CampaignVerificationView() {
       });
     } finally {
       setCurrentUploadingFile(null);
+      setIsSubmitting(false);
     }
   };
 
@@ -372,6 +447,12 @@ export function CampaignVerificationView() {
     setEditingImageUrl(null);
     setIsImageEditorOpen(false);
     setEditingImageType(null);
+
+    // Check if there are more images in the queue
+    if (pendingImageQueue.length > 0) {
+      // Process the next image
+      setTimeout(processNextImageInQueue, 300);
+    }
   };
 
   const removeSupportingDoc = (index: number) => {
@@ -379,8 +460,35 @@ export function CampaignVerificationView() {
     setSupportingDocsUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Submit verification request
+  // Update submit verification request to include both front and back URLs
   const handleSubmitVerification = async () => {
+    if (!campaignId) {
+      toast({
+        title: "Error",
+        description: "No se encontró la campaña para verificar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if both sides of ID are uploaded
+    if (!idDocumentFrontUrl || !idDocumentBackUrl) {
+      toast({
+        title: "Documentos incompletos",
+        description:
+          "Por favor, sube ambos lados de tu documento de identidad.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Move to step 3 instead of submitting
+    setVerificationStep(3);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Separate function for sending verification from step 3
+  const handleSendFinalVerification = async () => {
     if (!campaignId) {
       toast({
         title: "Error",
@@ -395,7 +503,8 @@ export function CampaignVerificationView() {
 
       const verificationData = {
         campaignId,
-        idDocumentUrl,
+        idDocumentFrontUrl,
+        idDocumentBackUrl,
         supportingDocsUrls,
         campaignStory: campaignStory || undefined,
         referenceContactName: referenceContact.name || undefined,
@@ -433,11 +542,8 @@ export function CampaignVerificationView() {
         throw new Error(errorMessage);
       }
 
-      // Show verification submitted state
-      setVerificationSubmitted(true);
-
-      // Move to step 3 instead of showing modal
-      setVerificationStep(3);
+      // Show the success modal
+      setShowSubmitModal(true);
 
       // Clear localStorage
       localStorage.removeItem("verificationCampaignId");
@@ -455,11 +561,6 @@ export function CampaignVerificationView() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Separate function for sending verification from step 3
-  const handleSendFinalVerification = async () => {
-    setShowSubmitModal(true);
   };
 
   // Handle reference contact form submission
@@ -902,145 +1003,296 @@ export function CampaignVerificationView() {
             </div>
 
             {/* ID Document Upload */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-8">
               <div>
                 <h3 className="text-2xl font-medium mb-4">
                   Documento de Identidad
                 </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Adjunta la foto de tu Documento de Identidad para validar tu
-                  información personal como responsable de la campaña.
+                <p className="text-lg text-gray-600 leading-relaxed mb-2">
+                  Adjunta la foto del anverso y reverso de tu Documento de
+                  Identidad para validar tu información personal como
+                  responsable de la campaña.
+                </p>
+                <p className="text-md text-gray-500 italic">
+                  Asegúrate de que ambos lados sean legibles y que todos los
+                  datos sean visibles.
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl border border-black p-8">
-                {idDocumentFile ? (
-                  <div className="w-full">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-700 font-medium">
-                        {idDocumentFile.name}
-                      </span>
-                      <div className="flex gap-2">
-                        {getImageType(idDocumentFile) === "image" && (
-                          <button
-                            onClick={() => {
-                              const objectUrl =
-                                URL.createObjectURL(idDocumentFile);
-                              setEditingImageUrl(objectUrl);
-                              setIsIdDocumentEditing(true);
-                            }}
-                            className="text-blue-500 hover:text-blue-700"
-                            title="Editar imagen"
-                          >
-                            <FileText size={18} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setIdDocumentFile(null)}
-                          className="text-red-500 hover:text-red-700"
-                          title="Eliminar documento"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
-                      <CheckCircle2 size={16} className="mr-2" />
-                      <span className="text-sm">
-                        Documento cargado correctamente
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="border-2 border-dashed border-gray-400 rounded-lg p-10 text-center bg-white"
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      e.currentTarget.classList.add("border-[#2c6e49]");
-                    }}
-                    onDragLeave={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      e.currentTarget.classList.remove("border-[#2c6e49]");
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      e.currentTarget.classList.remove("border-[#2c6e49]");
+              <div className="space-y-8">
+                {/* Anverso (Front) Upload */}
+                <div className="bg-white rounded-xl border border-black p-6">
+                  <h4 className="font-medium text-lg mb-4">
+                    Anverso de la Identificación
+                  </h4>
 
-                      if (
-                        e.dataTransfer.files &&
-                        e.dataTransfer.files.length > 0
-                      ) {
-                        // Create a synthetic event object to pass to the handler
-                        const fileList = e.dataTransfer.files;
-                        const event = {
-                          target: {
-                            files: fileList,
-                          },
-                        } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-                        handleIdDocumentUpload(event);
-                      }
-                    }}
-                  >
-                    <div className="flex flex-col items-center justify-center">
-                      <Image
-                        src="/icons/add_ad.svg"
-                        alt="Add media"
-                        width={42}
-                        height={42}
-                        className="mb-4"
-                      />
-                      <p className="text-sm text-gray-500 mb-4">
-                        Arrastra o carga la foto de tu CI aquí
-                      </p>
-                      <p className="text-xs text-gray-400 mb-4">
-                        Archivos JPG, PNG, PDF (máx. 10 MB)
-                      </p>
-                      <div>
-                        <input
-                          id="id-document-upload"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleIdDocumentUpload}
-                          className="hidden"
-                        />
-                        <Button
-                          onClick={() =>
-                            document
-                              .getElementById("id-document-upload")
-                              ?.click()
-                          }
-                          className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full cursor-pointer"
-                          type="button"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? (
-                            <div className="flex items-center gap-2">
-                              <InlineSpinner className="text-white" />
-                              <span>Subiendo...</span>
-                            </div>
-                          ) : (
-                            "Seleccionar"
+                  {idDocumentFrontFile ? (
+                    <div className="w-full">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-700 font-medium">
+                          {idDocumentFrontFile.name}
+                        </span>
+                        <div className="flex gap-2">
+                          {getImageType(idDocumentFrontFile) === "image" && (
+                            <button
+                              onClick={() => {
+                                const objectUrl =
+                                  URL.createObjectURL(idDocumentFrontFile);
+                                setEditingImageUrl(objectUrl);
+                                setEditingIdDocumentSide("front");
+                                setIsIdDocumentEditing(true);
+                              }}
+                              className="text-blue-500 hover:text-blue-700"
+                              title="Editar imagen"
+                            >
+                              <FileText size={18} />
+                            </button>
                           )}
-                        </Button>
+                          <button
+                            onClick={() => setIdDocumentFrontFile(null)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Eliminar documento"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
+                        <CheckCircle2 size={16} className="mr-2" />
+                        <span className="text-sm">
+                          Anverso cargado correctamente
+                        </span>
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div
+                      className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-white"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.classList.add("border-[#2c6e49]");
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.classList.remove("border-[#2c6e49]");
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.classList.remove("border-[#2c6e49]");
 
-                {/* In the ID Document Upload UI section, add the progress indicator: */}
-                {currentUploadingFile &&
-                  currentUploadingFile === idDocumentFile && (
-                    <div className="mt-4">
-                      <UploadProgress
-                        progress={progress}
-                        fileName={currentUploadingFile.name}
-                      />
+                        if (
+                          e.dataTransfer.files &&
+                          e.dataTransfer.files.length > 0
+                        ) {
+                          // Create a synthetic event object to pass to the handler
+                          const fileList = e.dataTransfer.files;
+                          const event = {
+                            target: {
+                              files: fileList,
+                            },
+                          } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+                          handleIdDocumentUpload(event, "front");
+                        }
+                      }}
+                    >
+                      <div className="flex flex-col items-center justify-center">
+                        <Image
+                          src="/icons/add_ad.svg"
+                          alt="Add front ID"
+                          width={42}
+                          height={42}
+                          className="mb-4"
+                        />
+                        <p className="text-sm text-gray-500 mb-2">
+                          Arrastra o carga el anverso de tu CI aquí
+                        </p>
+                        <p className="text-xs text-gray-400 mb-4">
+                          Archivos JPG, PNG, PDF (máx. 10 MB)
+                        </p>
+                        <div>
+                          <input
+                            id="id-document-front-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleIdDocumentUpload(e, "front")}
+                            className="hidden"
+                          />
+                          <Button
+                            onClick={() =>
+                              document
+                                .getElementById("id-document-front-upload")
+                                ?.click()
+                            }
+                            className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full cursor-pointer"
+                            type="button"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting &&
+                            currentUploadingFile === idDocumentFrontFile ? (
+                              <div className="flex items-center gap-2">
+                                <InlineSpinner className="text-white" />
+                                <span>Subiendo...</span>
+                              </div>
+                            ) : (
+                              "Seleccionar"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
+
+                  {/* Progress indicator for front side */}
+                  {currentUploadingFile &&
+                    currentUploadingFile === idDocumentFrontFile && (
+                      <div className="mt-4">
+                        <UploadProgress
+                          progress={progress}
+                          fileName={currentUploadingFile.name}
+                        />
+                      </div>
+                    )}
+                </div>
+
+                {/* Reverso (Back) Upload */}
+                <div className="bg-white rounded-xl border border-black p-6">
+                  <h4 className="font-medium text-lg mb-4">
+                    Reverso de la Identificación
+                  </h4>
+
+                  {idDocumentBackFile ? (
+                    <div className="w-full">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-700 font-medium">
+                          {idDocumentBackFile.name}
+                        </span>
+                        <div className="flex gap-2">
+                          {getImageType(idDocumentBackFile) === "image" && (
+                            <button
+                              onClick={() => {
+                                const objectUrl =
+                                  URL.createObjectURL(idDocumentBackFile);
+                                setEditingImageUrl(objectUrl);
+                                setEditingIdDocumentSide("back");
+                                setIsIdDocumentEditing(true);
+                              }}
+                              className="text-blue-500 hover:text-blue-700"
+                              title="Editar imagen"
+                            >
+                              <FileText size={18} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setIdDocumentBackFile(null)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Eliminar documento"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
+                        <CheckCircle2 size={16} className="mr-2" />
+                        <span className="text-sm">
+                          Reverso cargado correctamente
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-white"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.classList.add("border-[#2c6e49]");
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.classList.remove("border-[#2c6e49]");
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.currentTarget.classList.remove("border-[#2c6e49]");
+
+                        if (
+                          e.dataTransfer.files &&
+                          e.dataTransfer.files.length > 0
+                        ) {
+                          // Create a synthetic event object to pass to the handler
+                          const fileList = e.dataTransfer.files;
+                          const event = {
+                            target: {
+                              files: fileList,
+                            },
+                          } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+                          handleIdDocumentUpload(event, "back");
+                        }
+                      }}
+                    >
+                      <div className="flex flex-col items-center justify-center">
+                        <Image
+                          src="/icons/add_ad.svg"
+                          alt="Add back ID"
+                          width={42}
+                          height={42}
+                          className="mb-4"
+                        />
+                        <p className="text-sm text-gray-500 mb-2">
+                          Arrastra o carga el reverso de tu CI aquí
+                        </p>
+                        <p className="text-xs text-gray-400 mb-4">
+                          Archivos JPG, PNG, PDF (máx. 10 MB)
+                        </p>
+                        <div>
+                          <input
+                            id="id-document-back-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleIdDocumentUpload(e, "back")}
+                            className="hidden"
+                          />
+                          <Button
+                            onClick={() =>
+                              document
+                                .getElementById("id-document-back-upload")
+                                ?.click()
+                            }
+                            className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full cursor-pointer"
+                            type="button"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting &&
+                            currentUploadingFile === idDocumentBackFile ? (
+                              <div className="flex items-center gap-2">
+                                <InlineSpinner className="text-white" />
+                                <span>Subiendo...</span>
+                              </div>
+                            ) : (
+                              "Seleccionar"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Progress indicator for back side */}
+                  {currentUploadingFile &&
+                    currentUploadingFile === idDocumentBackFile && (
+                      <div className="mt-4">
+                        <UploadProgress
+                          progress={progress}
+                          fileName={currentUploadingFile.name}
+                        />
+                      </div>
+                    )}
+                </div>
               </div>
             </div>
             <div className="mt-16 border-b border-[#478C5C]/20" />
@@ -1314,24 +1566,16 @@ export function CampaignVerificationView() {
               </div>
             </div>
 
-            {/* Final submission */}
+            {/* Final submission - Step 2 */}
             <div className="mt-12 max-w-3xl mx-auto">
               <div className="bg-white rounded-xl border border-black p-8">
                 <div className="flex flex-col items-center text-center">
-                  <Image
-                    src="/icons/verified.svg"
-                    alt="Verificación"
-                    width={64}
-                    height={64}
-                    className="mb-4"
-                  />
                   <p className="font-medium text-xl mb-4">
-                    Tu solicitud de verificación está lista para ser enviada
+                    Revisa tu información antes de continuar
                   </p>
                   <p className="text-gray-600 mb-8">
-                    Una vez enviada tu solicitud, la revisión de tu campaña y su
-                    documentación demorará entre 1 y 2 días. Mientras tanto, tu
-                    campaña seguirá activa y disponible para recibir apoyo.
+                    Asegúrate de haber completado todos los datos necesarios. En
+                    el siguiente paso podrás enviar tu solicitud.
                   </p>
                   <div className="flex flex-col w-full gap-3 mt-4">
                     <Button
@@ -1339,9 +1583,20 @@ export function CampaignVerificationView() {
                       onClick={handleSubmitVerification}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting
-                        ? "Enviando solicitud..."
-                        : "Enviar solicitud de verificación"}
+                      Siguiente
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        className="ml-2"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z"
+                          fill="currentColor"
+                        />
+                      </svg>
                     </Button>
                     <Button
                       variant="outline"
@@ -1363,75 +1618,83 @@ export function CampaignVerificationView() {
       {verificationStep === 3 && (
         <div className="py-12">
           <div className="max-w-6xl mx-auto">
-            <div className="bg-[#f5f7e9] rounded-xl border border-[#478C5C]/20 p-12 mt-8">
-              <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
-                <div className="w-24 h-24 mb-6">
-                  <Image
-                    src="/icons/handshake.svg"
-                    alt="Verificación exitosa"
-                    width={96}
-                    height={96}
-                  />
-                </div>
+            <div className="border-t border-[#478C5C]/20 pt-8 mb-8"></div>
+            <div className="flex flex-col lg:flex-row lg:items-start gap-12">
+              {/* Left side - Title and description */}
+              <div className="flex-1 text-left">
                 <h2 className="text-4xl md:text-5xl font-bold mb-6">
                   ¡Tu solicitud de verificación está lista!
                 </h2>
-                <p className="text-xl text-gray-600 mb-8">
+                <p className="text-xl text-gray-600">
                   Una vez enviada tu solicitud, la revisión de tu campaña y su
                   documentación demorará un par de días. Mientras tanto, tu
                   campaña seguirá activa y disponible para recibir apoyo.
                 </p>
+              </div>
 
-                <div className="text-center p-4 border-t border-b border-gray-200 my-4 w-full">
-                  <h3 className="text-green-700 font-semibold text-lg">
-                    Tu solicitud ha sido completada correctamente
-                  </h3>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 mt-8 w-full max-w-md mx-auto">
-                  <Button
-                    className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-3 px-8 w-full flex items-center justify-center"
-                    onClick={handleSendFinalVerification}
-                  >
-                    <span>Enviar solicitud</span>
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      className="ml-2"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z"
-                        fill="currentColor"
+              {/* Right side - Verification card */}
+              <div className="lg:w-2/5">
+                <div className="w-full p-8 bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex flex-col items-center justify-center mb-6">
+                    <div className="mb-4">
+                      <Image
+                        src="/icons/verified.svg"
+                        alt="Verificación completa"
+                        width={64}
+                        height={64}
                       />
-                    </svg>
-                  </Button>
+                    </div>
+                    <p className="text-lg font-medium text-center">
+                      Tu solicitud ha sido completada correctamente
+                    </p>
+                  </div>
 
-                  <Button
-                    variant="outline"
-                    className="border-[#478C5C] text-[#478C5C] rounded-full py-3 px-8 w-full flex items-center justify-center"
-                    onClick={() => setShowCancelModal(true)}
-                  >
-                    <span>Cancelar solicitud</span>
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      className="ml-2"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
+                  <div className="border-t border-gray-200 my-4"></div>
+
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-3 px-8 w-full flex items-center justify-center"
+                      onClick={handleSendFinalVerification}
+                      disabled={isSubmitting}
                     >
-                      <path
-                        d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  </Button>
+                      {isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <InlineSpinner className="text-white" />
+                          <span>Enviando solicitud...</span>
+                        </div>
+                      ) : (
+                        <>
+                          Enviar solicitud
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            className="ml-2"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="border-[#478C5C] text-[#478C5C] rounded-full py-3 px-8 w-full flex items-center justify-center"
+                      onClick={() => setVerificationStep(2)}
+                      disabled={isSubmitting}
+                    >
+                      Cancelar solicitud
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
+            <div className="border-b border-[#478C5C]/20 pt-8 mt-8"></div>
           </div>
         </div>
       )}
@@ -1666,13 +1929,8 @@ export function CampaignVerificationView() {
             {/* Main content area */}
             <div className="p-8">
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 mb-6">
-                  <Image
-                    src="/icons/handshake.svg"
-                    alt="Verificación exitosa"
-                    width={80}
-                    height={80}
-                  />
+                <div className="w-16 h-16 flex items-center justify-center bg-green-100 rounded-full mb-6">
+                  <CheckCircle2 size={32} className="text-[#478C5C]" />
                 </div>
                 <h2 className="text-3xl font-bold mb-4">
                   ¡Solicitud enviada con éxito!
