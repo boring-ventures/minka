@@ -86,7 +86,8 @@ export async function uploadMedia(file: File): Promise<UploadResponse> {
         uploadError.message.includes("JWT") ||
         uploadError.message.includes("token") ||
         uploadError.message.includes("session") ||
-        uploadError.status === 401
+        uploadError.message.includes("401") ||
+        uploadError.message.includes("unauthorized")
       ) {
         throw new Error(
           "Error de autenticación. Tu sesión ha expirado, por favor inicia sesión nuevamente."

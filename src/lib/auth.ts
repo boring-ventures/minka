@@ -13,20 +13,23 @@ export const getAuthSession = cache(async (): Promise<Session | null> => {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
+          async get(name: string) {
+            const cookies = await cookieStore;
+            return cookies.get(name)?.value;
           },
-          set(name: string, value: string, options: any) {
+          async set(name: string, value: string, options: any) {
             try {
-              cookieStore.set({ name, value, ...options });
+              const cookies = await cookieStore;
+              cookies.set({ name, value, ...options });
             } catch (error) {
               // Can't set cookies during SSR
               console.error("Error setting cookie:", error);
             }
           },
-          remove(name: string, options: any) {
+          async remove(name: string, options: any) {
             try {
-              void cookieStore.set({ name, value: "", ...options });
+              const cookies = await cookieStore;
+              cookies.set({ name, value: "", ...options });
             } catch (error) {
               // Can't remove cookies during SSR
               console.error("Error removing cookie:", error);

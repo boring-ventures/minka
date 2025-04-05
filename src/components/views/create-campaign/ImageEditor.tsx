@@ -119,7 +119,7 @@ export function ImageEditor({
       setHasModifiedCrop(false);
 
       // Set initial completedCrop to entire image dimensions
-      const initialCrop = {
+      const initialCrop: PixelCrop = {
         x: 0,
         y: 0,
         width,
