@@ -9,32 +9,46 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
 
   if (code) {
-    const supabase = createRouteHandlerClient({
-      cookies: () => cookies(),
-    });
-
-    // Exchange the code for a session
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (error) {
-      console.error("Error exchanging code for session:", error.message);
-      return NextResponse.redirect(
-        new URL(
-          `/sign-in?error=${encodeURIComponent(error.message)}`,
-          request.url
-        )
-      );
-    }
-
-    // Check if the user already has a profile
-    if (data.user) {
-      const existingProfile = await prisma.profile.findUnique({
-        where: { id: data.user.id },
+    try {
+      const supabase = createRouteHandlerClient({
+        cookies: () => cookies(),
       });
 
-      // If the user doesn't have a profile, create one
-      if (!existingProfile) {
-        try {
+      // Exchange the code for a session
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        console.error("Error exchanging code for session:", error.message);
+        return NextResponse.redirect(
+          new URL(
+            `/sign-in?error=${encodeURIComponent(error.message)}`,
+            request.url
+          )
+        );
+      }
+
+      if (!data.user) {
+        console.error("No user data returned after authentication");
+        return NextResponse.redirect(
+          new URL(`/sign-in?error=Authentication failed`, request.url)
+        );
+      }
+
+      console.log("Successfully authenticated user:", data.user.id);
+
+      // Check for returnUrl in the callback URL
+      const returnUrl = requestUrl.searchParams.get("returnUrl");
+
+      // Check if the user already has a profile
+      try {
+        const existingProfile = await prisma.profile.findUnique({
+          where: { id: data.user.id },
+        });
+
+        // If the user doesn't have a profile, create one
+        if (!existingProfile) {
+          console.log("Creating new profile for user:", data.user.id);
+
           // Get user metadata from Supabase
           const { data: userData } = await supabase.auth.getUser();
           const userMetadata = userData.user?.user_metadata;
@@ -61,13 +75,37 @@ export async function GET(request: NextRequest) {
               status: "active",
             },
           });
-        } catch (error) {
-          console.error("Error creating profile:", error);
-        }
-      }
-    }
-  }
 
-  // Redirect to the dashboard
-  return NextResponse.redirect(new URL("/dashboard", request.url));
+          console.log("Successfully created profile for user:", data.user.id);
+        } else {
+          console.log("Using existing profile for user:", data.user.id);
+        }
+      } catch (profileError) {
+        console.error("Error handling user profile:", profileError);
+        // Continue to redirect even if profile creation fails
+      }
+
+      // Redirect to returnUrl if provided, otherwise to dashboard
+      if (returnUrl) {
+        console.log(`Redirecting to returnUrl: ${returnUrl}`);
+        return NextResponse.redirect(new URL(returnUrl, request.url));
+      } else {
+        console.log("Redirecting to dashboard (no returnUrl)");
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    } catch (error) {
+      console.error("Unexpected error during authentication callback:", error);
+      return NextResponse.redirect(
+        new URL(
+          `/sign-in?error=${encodeURIComponent("Authentication failed")}`,
+          request.url
+        )
+      );
+    }
+  } else {
+    console.error("No code parameter provided in callback URL");
+    return NextResponse.redirect(
+      new URL(`/sign-in?error=Missing authentication code`, request.url)
+    );
+  }
 }

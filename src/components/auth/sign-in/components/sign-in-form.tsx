@@ -58,16 +58,9 @@ export function SignInForm() {
     try {
       setIsLoading(true);
       await signIn(data.email, data.password);
-      toast({
-        title: "Éxito",
-        description: "Has iniciado sesión correctamente.",
-      });
 
-      // Handle redirect after successful login
-      if (returnUrl) {
-        router.push(returnUrl);
-      }
-      // If no returnUrl, navigation is handled in the auth provider
+      // Note: Navigation is now handled in the auth provider
+      // No need to duplicate redirection logic here
     } catch (error) {
       console.error("Error during sign in:", error);
 

@@ -25,17 +25,25 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith("/sign-in") ||
     req.nextUrl.pathname.startsWith("/sign-up");
 
-  // Redirect authenticated users trying to access auth routes to dashboard
+  // If user is authenticated and trying to access auth routes, redirect to dashboard
   if (isAuthenticated && isAuthRoute) {
+    console.log("Authenticated user redirected from auth route to dashboard");
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  // Redirect unauthenticated users trying to access protected routes to sign-in
+  // If user is not authenticated and trying to access protected routes
   if (!isAuthenticated && isProtectedRoute) {
     // Store the original URL to redirect back after sign-in
-    const returnUrl = req.nextUrl.pathname;
+    const returnUrl = req.nextUrl.pathname + req.nextUrl.search;
+    console.log(
+      `Unauthenticated user redirected to sign-in. Return URL: ${returnUrl}`
+    );
+
     const signInUrl = new URL("/sign-in", req.url);
+
+    // Add the returnUrl as a query parameter
     signInUrl.searchParams.set("returnUrl", returnUrl);
+
     return NextResponse.redirect(signInUrl);
   }
 

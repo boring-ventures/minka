@@ -134,10 +134,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json();
+      
+      // Show success message
+      toast({
+        title: "Éxito",
+        description: "Has iniciado sesión correctamente.",
+      });
 
-      // The session will be updated via onAuthStateChange
-      // Note: Default navigation to dashboard is handled in the sign-in form component now
-      // so we don't redirect here anymore to allow for custom redirects
+      // Check for returnUrl in the URL (for redirecting back after sign-in)
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnUrl = urlParams.get('returnUrl');
+      
+      if (returnUrl) {
+        // Redirect to the originally requested URL
+        router.push(returnUrl);
+      } else {
+        // Default redirect to dashboard
+        router.push("/dashboard");
+      }
+
       return data;
     } catch (error) {
       console.error("Login error:", error);

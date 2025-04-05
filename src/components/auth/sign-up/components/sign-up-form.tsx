@@ -111,8 +111,7 @@ export function SignUpForm() {
         phone: data.phone,
       });
 
-      // Success toast is now in the auth provider
-      // Reset form on success
+      // Note: Success toast and redirection are now handled in the auth provider
       reset();
     } catch (error) {
       console.error("Error during sign up:", error);
@@ -139,7 +138,12 @@ export function SignUpForm() {
       ) {
         setError("documentId", { type: "manual", message: errorMessage });
       } else {
-        // General error is handled by the auth provider
+        // Display general error toast
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     } finally {
       setIsLoading(false);
