@@ -5,10 +5,10 @@ import { db } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
@@ -126,7 +126,7 @@ export async function GET(
 // Admin endpoint to manage donation status
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -142,7 +142,7 @@ export async function PATCH(
       );
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const body = await req.json();
     const { donationId, status } = body;
 

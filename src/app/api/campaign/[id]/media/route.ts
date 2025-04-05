@@ -37,7 +37,7 @@ const deleteMediaSchema = z.object({
 // GET: Fetch all media for a campaign
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -56,7 +56,7 @@ export async function GET(
     // Get the campaign media
     const media = await db.campaignMedia.findMany({
       where: {
-        campaignId: params.id,
+        campaignId: (await params).id,
         status: "active",
       },
       orderBy: {
@@ -77,7 +77,7 @@ export async function GET(
 // POST: Add new media to a campaign
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -108,7 +108,7 @@ export async function POST(
     // Check if the campaign exists and user has permission
     const campaign = await db.campaign.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
     });
 
@@ -133,7 +133,7 @@ export async function POST(
     // Check if this is the first media - if so, make it primary
     const existingMedia = await db.campaignMedia.findMany({
       where: {
-        campaignId: params.id,
+        campaignId: (await params).id,
       },
     });
 
@@ -144,7 +144,7 @@ export async function POST(
     if (isPrimary) {
       await db.campaignMedia.updateMany({
         where: {
-          campaignId: params.id,
+          campaignId: (await params).id,
         },
         data: {
           isPrimary: false,
@@ -158,7 +158,7 @@ export async function POST(
     // Create the new media
     const media = await db.campaignMedia.create({
       data: {
-        campaignId: params.id,
+        campaignId: (await params).id,
         mediaUrl: validatedData.mediaUrl,
         type: validatedData.type as MediaType,
         isPrimary: isPrimary,
@@ -190,7 +190,7 @@ export async function POST(
 // PUT: Update all media for a campaign (bulk operation)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -221,7 +221,7 @@ export async function PUT(
     // Check if the campaign exists and user has permission
     const campaign = await db.campaign.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
     });
 
@@ -246,15 +246,15 @@ export async function PUT(
     // Delete all existing media for this campaign
     await db.campaignMedia.deleteMany({
       where: {
-        campaignId: params.id,
+        campaignId: (await params).id,
       },
     });
 
     // Create all media from the provided array
-    const mediaPromises = validatedData.map((item, index) =>
+    const mediaPromises = validatedData.map(async (item, index) =>
       db.campaignMedia.create({
         data: {
-          campaignId: params.id,
+          campaignId: (await params).id,
           mediaUrl: item.mediaUrl,
           type: item.type as MediaType,
           isPrimary: item.isPrimary,
@@ -289,7 +289,7 @@ export async function PUT(
 // PATCH: Update media properties (like setting primary image)
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -320,7 +320,7 @@ export async function PATCH(
     // Check if the campaign exists and user has permission
     const campaign = await db.campaign.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
     });
 
@@ -348,7 +348,7 @@ export async function PATCH(
       // First, unset all primary flags
       await db.campaignMedia.updateMany({
         where: {
-          campaignId: params.id,
+          campaignId: (await params).id,
         },
         data: {
           isPrimary: false,
@@ -391,7 +391,7 @@ export async function PATCH(
 // DELETE: Remove a specific media from a campaign
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -422,7 +422,7 @@ export async function DELETE(
     // Check if the campaign exists and user has permission
     const campaign = await db.campaign.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
     });
 
@@ -476,7 +476,7 @@ export async function DELETE(
     if (isPrimary) {
       const nextMedia = await db.campaignMedia.findFirst({
         where: {
-          campaignId: params.id,
+          campaignId: (await params).id,
         },
         orderBy: {
           orderIndex: "asc",

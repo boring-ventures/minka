@@ -5,10 +5,10 @@ import { db } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
@@ -58,7 +58,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -74,7 +74,7 @@ export async function POST(
       );
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const body = await req.json();
 
     // Find the user profile by email
@@ -115,10 +115,10 @@ export async function POST(
 
     const newComment = await db.comment.create({
       data: {
-        content,
         campaignId,
         profileId: profile.id,
         status: "active",
+        content: content,
       },
       include: {
         profile: {
@@ -144,7 +144,7 @@ export async function POST(
 // DELETE a comment (only for campaign owner or comment author)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -160,7 +160,7 @@ export async function DELETE(
       );
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const { searchParams } = new URL(req.url);
     const commentId = searchParams.get("commentId");
 
