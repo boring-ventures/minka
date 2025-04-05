@@ -80,15 +80,33 @@ export default async function ManageCampaignsPage() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching campaigns:", error);
-    throw new Error("Failed to fetch campaigns");
+    console.error("Error fetching campaigns:", JSON.stringify(error));
+    return (
+      <div className="bg-gray-50 rounded-lg py-12 px-4 flex flex-col items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-6">
+          <Info className="h-6 w-6 text-red-500" />
+        </div>
+        <p className="text-gray-800 text-lg text-center mb-8">
+          Hubo un error al cargar tus campañas. Por favor, intenta nuevamente.
+        </p>
+        <Button
+          className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3 text-base flex items-center gap-2"
+          asChild
+        >
+          <Link href="/create-campaign">
+            <Plus size={18} />
+            Crear una campaña
+          </Link>
+        </Button>
+      </div>
+    );
   }
 
   // Format campaigns for display
-  const formattedCampaigns = campaigns?.map(
+  const formattedCampaigns = (campaigns || []).map(
     (campaign: Campaign): FormattedCampaign => ({
-      id: campaign.id,
-      title: campaign.title,
+      id: campaign.id || "",
+      title: campaign.title || "Sin título",
       imageUrl: campaign.media?.[0]?.media_url || "/amboro-main.jpg",
       category: campaign.category || "General",
       location: campaign.location || "Bolivia",
@@ -97,7 +115,7 @@ export default async function ManageCampaignsPage() {
       progress:
         campaign.goal_amount > 0
           ? Math.round(
-              (campaign.collected_amount / campaign.goal_amount) * 100
+              ((campaign.collected_amount || 0) / campaign.goal_amount) * 100
             ) || 0
           : 0,
       status: campaign.campaign_status || "draft",

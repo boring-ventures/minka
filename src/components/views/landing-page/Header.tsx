@@ -89,9 +89,7 @@ export function Header() {
       {/* Desktop Header */}
       <header
         className={`hidden md:flex fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${
-          isScrolled
-            ? "bg-[#2c6e49] shadow-md h-20"
-            : "bg-gradient-to-r from-white to-[#f5f7e9] h-28"
+          isScrolled ? "bg-[#2c6e49] shadow-md h-20" : "h-28"
         }`}
       >
         <div className="container mx-auto h-full px-4 flex items-center">
@@ -168,7 +166,7 @@ export function Header() {
       </header>
 
       {/* Mobile Header */}
-      <header className="md:hidden flex justify-between items-center bg-gradient-to-r from-white to-[#f5f7e9] px-4 py-3 sticky top-0 z-50">
+      <header className="md:hidden flex justify-between items-center px-4 py-3 sticky top-0 z-50">
         <button
           type="button"
           onClick={toggleMenu}

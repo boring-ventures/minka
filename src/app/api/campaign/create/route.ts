@@ -7,6 +7,7 @@ import { z } from "zod";
 const campaignCreateSchema = z.object({
   title: z.string().min(3).max(80),
   description: z.string().min(10).max(1000),
+  story: z.string().min(10).max(600),
   beneficiariesDescription: z.string().min(10).max(500),
   category: z.enum([
     "cultura_arte",
@@ -15,6 +16,7 @@ const campaignCreateSchema = z.object({
     "igualdad",
     "medioambiente",
     "salud",
+    "otros",
   ]),
   goalAmount: z.coerce.number().min(1),
   location: z.string().min(3).max(100),
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
       data: {
         title: validatedData.title,
         description: validatedData.description,
+        story: validatedData.story,
         beneficiariesDescription: validatedData.beneficiariesDescription,
         category: validatedData.category,
         goalAmount: validatedData.goalAmount,

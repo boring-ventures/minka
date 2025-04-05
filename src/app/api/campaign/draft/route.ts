@@ -8,6 +8,7 @@ const campaignDraftSchema = z.object({
   campaignId: z.string().uuid().optional(),
   title: z.string().min(3).max(80).optional(),
   description: z.string().min(10).max(1000).optional(),
+  story: z.string().min(10).max(600).optional(),
   beneficiariesDescription: z.string().min(10).max(500).optional(),
   category: z
     .enum([
@@ -17,6 +18,7 @@ const campaignDraftSchema = z.object({
       "igualdad",
       "medioambiente",
       "salud",
+      "otros",
     ])
     .optional(),
   goalAmount: z.coerce.number().min(1).optional(),
@@ -108,6 +110,7 @@ export async function POST(req: NextRequest) {
         data: {
           title: validatedData.title,
           description: validatedData.description,
+          story: validatedData.story,
           beneficiariesDescription: validatedData.beneficiariesDescription,
           category: validatedData.category,
           goalAmount: validatedData.goalAmount,
@@ -146,12 +149,13 @@ export async function POST(req: NextRequest) {
       // Create a new draft campaign
       campaign = await db.campaign.create({
         data: {
-          title: validatedData.title || "Borrador de campaña",
-          description: validatedData.description || "",
+          title: validatedData.title || "Untitled Campaign",
+          description: validatedData.description || "Draft description",
+          story: validatedData.story || "",
           beneficiariesDescription:
             validatedData.beneficiariesDescription || "",
-          category: validatedData.category || "medioambiente",
-          goalAmount: validatedData.goalAmount || 1000,
+          category: validatedData.category || "otros",
+          goalAmount: validatedData.goalAmount || 0,
           collectedAmount: 0,
           percentageFunded: 0,
           daysRemaining: validatedData.endDate
@@ -160,7 +164,7 @@ export async function POST(req: NextRequest) {
                   (1000 * 60 * 60 * 24)
               )
             : 30,
-          location: validatedData.location || "",
+          location: validatedData.location || "Bolivia",
           endDate:
             validatedData.endDate ||
             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),

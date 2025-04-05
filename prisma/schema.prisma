@@ -39,6 +39,7 @@ model Campaign {
   id                       String           @id @default(uuid()) @db.Uuid
   title                    String
   description              String
+  story                    String           @db.VarChar(600)
   beneficiariesDescription String           @map("beneficiaries_description")
   category                 CampaignCategory
   goalAmount               Decimal          @map("goal_amount") @db.Decimal

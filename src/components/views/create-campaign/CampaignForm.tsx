@@ -40,6 +40,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 
 // Update the form sections (showing only the modified parts)
@@ -133,6 +145,10 @@ export function CampaignForm() {
         if (!success) {
           throw new Error("Failed to update campaign recipient");
         }
+
+        // Move to step 3 after successful selection and update
+        setCurrentStep(3);
+        window.scrollTo(0, 0);
       } else {
         // This should not happen if the workflow is correct, but just in case
         toast({
@@ -142,10 +158,6 @@ export function CampaignForm() {
         });
         return;
       }
-
-      // Move to step 3
-      setCurrentStep(3);
-      window.scrollTo(0, 0);
     } catch (error) {
       console.error("Error handling recipient selection:", error);
       toast({
@@ -346,7 +358,40 @@ export function CampaignForm() {
       return;
     }
 
-    // Skip this section - step 2 to 3 transition is now handled by recipient selection
+    if (currentStep === 2) {
+      try {
+        setIsSubmitting(true);
+
+        // Save beneficiaries description
+        if (campaignId) {
+          const success = await updateCampaign(
+            {
+              beneficiariesDescription: formData.beneficiariesDescription,
+            },
+            campaignId
+          );
+
+          if (!success) {
+            throw new Error("Failed to update beneficiaries description");
+          }
+        }
+
+        // Move to step 3
+        setCurrentStep(3);
+        window.scrollTo(0, 0);
+      } catch (error) {
+        console.error("Error saving beneficiaries description:", error);
+        toast({
+          title: "Error",
+          description:
+            "Ocurrió un error al guardar la descripción de los beneficiarios.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     setCurrentStep(currentStep + 1);
     window.scrollTo(0, 0);
@@ -1242,197 +1287,291 @@ export function CampaignForm() {
 
       {/* STEP #2 */}
       {currentStep === 2 && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-0 py-6 md:py-12">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 md:mb-8 text-center">
-              ¿A quién beneficiará esta campaña?
-            </h2>
-            <p className="text-lg md:text-xl text-gray-600 mb-10 text-center">
-              Selecciona entre las opciones a continuación para definir a quién
-              va dirigida la recaudación que realizarás.
-            </p>
+        <div className="max-w-6xl mx-auto space-y-24">
+          {/* Full-width header for "Destino de los fondos" */}
+          <div className="w-screen relative left-[50%] right-[50%] ml-[-50vw] mr-[-50vw] h-[400px] mt-16">
+            <Image
+              src="/page-header.svg"
+              alt="Page Header"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <h1 className="text-[80px] font-bold text-white">
+                Destino de los fondos
+              </h1>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div
-                className="bg-white rounded-xl border-2 border-[#2c6e49] p-6 flex flex-col items-center text-center cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => handleSelectRecipient("yo")}
-              >
-                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-[#f0f7f1] mb-4">
-                  <User size={40} className="text-[#2c6e49]" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">A mi</h3>
-                <p className="text-sm text-gray-600">
-                  Seré yo quien reciba los fondos directamente para satisfacer
-                  mis necesidades.
+          {/* Recipient section */}
+          <div className="py-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+              <div className="pt-4">
+                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                  Cuéntanos quién recibirá lo recaudado
+                </h2>
+                <p className="text-xl text-gray-600 leading-relaxed">
+                  Selecciona la persona o entidad encargada de recibir los
+                  fondos de tu campaña. Esto garantiza que el apoyo llegue a
+                  quien más lo necesita.
                 </p>
+                {/* Display loading state here if submitting */}
+                {isSubmitting && (
+                  <div className="mt-6 p-4 bg-green-50 rounded-lg flex items-center gap-2">
+                    <InlineSpinner className="text-green-800" />
+                    <span className="text-base text-green-800">
+                      Creando tu campaña...
+                    </span>
+                  </div>
+                )}
               </div>
+              <div className="space-y-4">
+                <label
+                  className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white"
+                  onClick={() => handleSelectRecipient("tu_mismo")}
+                >
+                  <div className="flex items-center space-x-4">
+                    <Image
+                      src="/views/create-campaign/yourself.svg"
+                      alt="Tú mismo"
+                      width={75}
+                      height={75}
+                    />
+                    <div>
+                      <div className="font-medium text-lg">Tú mismo</div>
+                      <div className="text-base text-gray-600">
+                        Recibes los fondos recaudados en tu campaña directamente
+                        en tu cuenta bancaria.
+                      </div>
+                    </div>
+                  </div>
+                </label>
 
-              <div
-                className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center text-center cursor-pointer hover:border-[#2c6e49] hover:shadow-lg transition-all"
-                onClick={() => setShowOtraPersonaModal(true)}
-              >
-                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-100 mb-4">
-                  <Users size={40} className="text-gray-500" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">A otra persona</h3>
-                <p className="text-sm text-gray-600">
-                  Recaudo fondos para ayudar a otra persona que lo necesita.
-                </p>
-              </div>
+                <label
+                  className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white"
+                  onClick={handleSelectOtraPersona}
+                >
+                  <div className="flex items-center space-x-4">
+                    <Image
+                      src="/views/create-campaign/other-person.svg"
+                      alt="Otra persona"
+                      width={75}
+                      height={75}
+                    />
+                    <div>
+                      <div className="font-medium text-lg">Otra persona</div>
+                      <div className="text-base text-gray-600">
+                        Designa a la persona que recibirá los fondos recaudados
+                        en tu campaña.
+                      </div>
+                    </div>
+                  </div>
+                </label>
 
-              <div
-                className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center text-center cursor-pointer hover:border-[#2c6e49] hover:shadow-lg transition-all"
-                onClick={() => setShowONGsModal(true)}
-              >
-                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-100 mb-4">
-                  <Building2 size={40} className="text-gray-500" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  A una organización
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Recaudo fondos para apoyar a una organización o causa
-                  específica.
-                </p>
+                <label
+                  className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white"
+                  onClick={handleSelectONG}
+                >
+                  <div className="flex items-center space-x-4">
+                    <Image
+                      src="/views/create-campaign/organization.svg"
+                      alt="Organización sin fines de lucro"
+                      width={75}
+                      height={75}
+                    />
+                    <div>
+                      <div className="font-medium text-lg">
+                        Organización sin fines de lucro
+                      </div>
+                      <div className="text-base text-gray-600">
+                        Elige la organización, previamente autenticada en Minka,
+                        que recibirá los fondos recaudados.
+                      </div>
+                    </div>
+                  </div>
+                </label>
               </div>
             </div>
+          </div>
 
-            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto rounded-full bg-white text-gray-600 border-gray-300 hover:bg-gray-50 px-8"
-                onClick={prevStep}
-                disabled={isSubmitting}
-              >
-                <ChevronLeft className="w-5 h-5 mr-2" />
-                Regresar
-              </Button>
-            </div>
+          {/* Just show a back button */}
+          <div className="flex justify-start mt-8">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={isSubmitting}
+            >
+              Volver al paso anterior
+            </Button>
           </div>
         </div>
       )}
 
       {/* STEP #3 */}
       {currentStep === 3 && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-0 py-6 md:py-12">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 md:mb-8 text-center">
-              ¡Revisión final!
-            </h2>
-            <p className="text-lg md:text-xl text-gray-600 mb-10 text-center">
-              Tu campaña está lista para ser publicada. Revisa todos los
-              detalles antes de continuar.
-            </p>
-
-            <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 mb-12">
-              <h3 className="text-2xl font-semibold mb-6 text-center">
-                {formData.title}
-              </h3>
-
-              {mediaPreviewUrls.length > 0 && (
-                <div className="mb-8">
-                  <div className="relative rounded-lg overflow-hidden">
-                    <Image
-                      src={mediaPreviewUrls[0]}
-                      alt={formData.title}
-                      width={800}
-                      height={400}
-                      className="w-full h-64 object-cover"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-6">
-                <div>
-                  <h4 className="font-medium text-gray-500 mb-1">
-                    Descripción
-                  </h4>
-                  <p>{formData.description}</p>
-                </div>
-
-                <div className="flex flex-wrap gap-4">
-                  <div>
-                    <h4 className="font-medium text-gray-500 mb-1">
-                      Categoría
-                    </h4>
-                    <p>{formData.category}</p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium text-gray-500 mb-1">Meta</h4>
-                    <p>${formData.goalAmount}</p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium text-gray-500 mb-1">
-                      Fecha de finalización
-                    </h4>
-                    <p>{formData.endDate}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-500 mb-1">Ubicación</h4>
-                  <p>{formData.location}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-gray-500 mb-1">
-                    Beneficiario
-                  </h4>
-                  <p>
-                    {formData.recipient === "yo"
-                      ? "Yo"
-                      : formData.recipient === "otra_persona"
-                        ? "Otra persona"
-                        : formData.recipient === "organizacion"
-                          ? "Una organización"
-                          : "No especificado"}
+        <div className="max-w-6xl mx-auto space-y-24">
+          {/* Preview Section - Full Width */}
+          <div className="bg-[#478C5C] w-screen relative left-[50%] right-[50%] ml-[-50vw] mr-[-50vw] pt-8">
+            <div className="max-w-6xl mx-auto px-4">
+              <div className="flex items-start justify-between gap-12 relative">
+                <div className="max-w-xl py-8">
+                  <h2 className="text-[42px] font-bold text-white">
+                    ¡Ya está todo listo!
+                  </h2>
+                  <h2 className="text-[42px] font-bold text-white mb-4">
+                    Revisa cómo quedó
+                  </h2>
+                  <p className="text-lg text-white/90 mb-6">
+                    Antes de publicar tu campaña, verifica que todo esté
+                    correcto. Puedes ver cómo lucirá en Minka.
                   </p>
+                  <Button
+                    variant="outline"
+                    className="bg-white text-[#478C5C] border-white hover:bg-white/90 flex items-center gap-2 px-8 py-2 rounded-full"
+                  >
+                    <span>Vista previa</span>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 5.25C4.5 5.25 1.5 12 1.5 12C1.5 12 4.5 18.75 12 18.75C19.5 18.75 22.5 12 22.5 12C22.5 12 19.5 5.25 12 5.25Z"
+                        stroke="#478C5C"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M12 15.75C14.0711 15.75 15.75 14.0711 15.75 12C15.75 9.92893 14.0711 8.25 12 8.25C9.92893 8.25 8.25 9.92893 8.25 12C8.25 14.0711 9.92893 15.75 12 15.75Z"
+                        stroke="#478C5C"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </Button>
                 </div>
-
-                {formData.beneficiariesDescription && (
-                  <div>
-                    <h4 className="font-medium text-gray-500 mb-1">
-                      Descripción de beneficiarios
-                    </h4>
-                    <p>{formData.beneficiariesDescription}</p>
-                  </div>
-                )}
-
-                <div>
-                  <h4 className="font-medium text-gray-500 mb-1">Historia</h4>
-                  <p className="whitespace-pre-line">{formData.story}</p>
+                <div className="flex-1 flex justify-end items-end">
+                  <Image
+                    src="/views/create-campaign/all-ready.svg"
+                    alt="Campaign Preview"
+                    width={502}
+                    height={350}
+                    className="w-full max-w-[502px]"
+                  />
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto rounded-full bg-white text-gray-600 border-gray-300 hover:bg-gray-50 px-8"
-                onClick={prevStep}
-                disabled={isSubmitting}
-              >
-                <ChevronLeft className="w-5 h-5 mr-2" />
-                Regresar
-              </Button>
-              <Button
-                className="w-full sm:w-auto rounded-full bg-[#2c6e49] hover:bg-[#1e4d33] px-8"
-                onClick={handlePublish}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <InlineSpinner className="text-white" />
-                    <span>Publicando...</span>
+          {/* Verification Section */}
+          <div className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="flex items-start justify-between gap-16">
+                <div className="max-w-md">
+                  <h2 className="text-4xl font-bold mb-4">
+                    Verifica tu campaña
+                  </h2>
+                  <p className="text-lg text-gray-600">
+                    La verificación asegura la transparencia de tu campaña, te
+                    ayuda a generar confianza en los donantes y a destacar.{" "}
+                    <span className="font-bold">
+                      ¡Te recomendamos no saltarte este paso!
+                    </span>
+                  </p>
+                </div>
+                <div className="flex-1">
+                  <div className="bg-white rounded-xl border border-black p-8">
+                    <div className="flex justify-center mb-4">
+                      <Image
+                        src="/views/create-campaign/verified.svg"
+                        alt="Verificación"
+                        width={64}
+                        height={64}
+                      />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2 text-center">
+                      Mejora tu campaña
+                    </h3>
+                    <p className="text-gray-600 mb-6 text-center">
+                      Puedes verificar tu campaña para destacarla y generar
+                      confianza, o publicarla directamente para empezar a
+                      recibir apoyo.
+                    </p>
+                    <div className="w-full h-px bg-gray-200 my-6"></div>
+                    <div className="space-y-3">
+                      <Link href="/campaign-verification" className="block">
+                        <Button className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-4 flex items-center justify-center gap-2">
+                          <span>Solicitar verificación</span>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M14 5L21 12M21 12L14 19M21 12H3"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        className="w-full border-[#478C5C]/20 text-gray-600 rounded-full py-4 flex items-center justify-center gap-1"
+                        onClick={handlePublish}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center gap-2">
+                            <InlineSpinner className="text-gray-600" />
+                            <span>Publicando...</span>
+                          </div>
+                        ) : (
+                          <span>Omitir y publicar</span>
+                        )}
+                        {!isSubmitting && (
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M9 6L15 12L9 18"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  "Publicar campaña"
-                )}
-              </Button>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Step navigation */}
+          <div className="flex justify-between mt-8">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={isSubmitting}
+            >
+              Volver
+            </Button>
           </div>
         </div>
       )}
