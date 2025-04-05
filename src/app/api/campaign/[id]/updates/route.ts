@@ -5,10 +5,10 @@ import { db } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const campaignId = (await params).id;
 
     // Get the updates for this campaign
     const updates = await db.campaignUpdate.findMany({
@@ -46,7 +46,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -62,7 +62,7 @@ export async function POST(
       );
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const body = await req.json();
 
     // Find the organizer profile by email
@@ -233,7 +233,7 @@ export async function POST(
 // DELETE an update
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -249,7 +249,7 @@ export async function DELETE(
       );
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const { searchParams } = new URL(req.url);
     const updateId = searchParams.get("updateId");
 

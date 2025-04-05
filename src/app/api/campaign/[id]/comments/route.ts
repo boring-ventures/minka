@@ -118,7 +118,7 @@ export async function POST(
         campaignId,
         profileId: profile.id,
         status: "active",
-        content: content,
+        message: content,
       },
       include: {
         profile: {

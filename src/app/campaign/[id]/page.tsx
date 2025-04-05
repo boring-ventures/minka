@@ -365,10 +365,10 @@ function formatCategory(category: string) {
 export default async function CampaignPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const supabase = createServerComponentClient({ cookies });
-
+  const id = (await params).id;
   // Fetch campaign data with all related information
   const { data: campaign, error } = await supabase
     .from("campaigns")
@@ -386,7 +386,7 @@ export default async function CampaignPage({
       )
       `
     )
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("campaign_status", "active")
     .single();
 
@@ -431,7 +431,7 @@ export default async function CampaignPage({
                   campaignTitle={formattedCampaign.title}
                   campaignOrganizer={formattedCampaign.organizer.name}
                   campaignLocation={formattedCampaign.organizer.location}
-                  campaignId={params.id}
+                  campaignId={id}
                 />
               </StickyProgressWrapper>
             </div>
@@ -489,7 +489,18 @@ export default async function CampaignPage({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {relatedCampaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
+                <CampaignCard
+                  key={campaign.id}
+                  id={campaign.id}
+                  title={campaign.title}
+                  image={campaign.image}
+                  category={campaign.category}
+                  location={campaign.location}
+                  progress={campaign.progress}
+                  description={campaign.description}
+                  donorCount={campaign.donorCount}
+                  amountRaised={campaign.amountRaised}
+                />
               ))}
             </div>
           </div>

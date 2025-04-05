@@ -10,11 +10,13 @@ export const metadata: Metadata = {
     "Verifica tu campaña en Minka para aumentar su credibilidad y atraer más apoyo para tu causa",
 };
 
-export default function CampaignVerificationPage({
+export default async function CampaignVerificationPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const id = (await params).id;
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
       <Header />
@@ -34,7 +36,7 @@ export default function CampaignVerificationPage({
       </div>
       <main className="overflow-x-hidden">
         <div className="container mx-auto px-4 py-16">
-          <CampaignVerificationView campaignId={params.id} />
+          <CampaignVerificationView campaignId={id} />
         </div>
       </main>
       <Footer />

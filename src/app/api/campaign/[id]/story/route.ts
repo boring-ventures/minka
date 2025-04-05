@@ -12,7 +12,7 @@ const storyUpdateSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -46,7 +46,7 @@ export async function PATCH(
     // Get the current campaign to check ownership
     const existingCampaign = await db.campaign.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
     });
 
@@ -68,7 +68,7 @@ export async function PATCH(
     // Update just the story field
     const campaign = await db.campaign.update({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
       data: {
         story: validatedData.story,
