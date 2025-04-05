@@ -27,8 +27,31 @@ import { ImageEditor } from "@/components/views/create-campaign/ImageEditor";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
 import { useUpload } from "@/hooks/use-upload";
 import { UploadProgress } from "@/components/views/create-campaign/UploadProgress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export function CampaignVerificationView() {
+// Define interface for Campaign
+interface Campaign {
+  id: string;
+  title: string;
+  image_url: string;
+  verification_status: string | null;
+  status: string;
+}
+
+// Define props for the component
+interface CampaignVerificationViewProps {
+  campaignId?: string;
+}
+
+export function CampaignVerificationView({
+  campaignId: initialCampaignId,
+}: CampaignVerificationViewProps = {}) {
   const router = useRouter();
   const { toast } = useToast();
   const {
@@ -40,9 +63,20 @@ export function CampaignVerificationView() {
     uploadFiles,
   } = useUpload();
 
+  // State for campaigns that can be verified
+  const [unverifiedCampaigns, setUnverifiedCampaigns] = useState<Campaign[]>(
+    []
+  );
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState<boolean>(false);
+
   // State for campaign that is being verified
-  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
+    initialCampaignId || null
+  );
   const [campaignTitle, setCampaignTitle] = useState<string>("");
+
+  // Flag to indicate if we should redirect to campaign ID URL
+  const [shouldRedirect, setShouldRedirect] = useState<boolean>(false);
 
   // Add state for verification steps
   const [verificationStep, setVerificationStep] = useState(1);
@@ -100,44 +134,134 @@ export function CampaignVerificationView() {
   );
   const [progress, setProgress] = useState(0);
 
-  // Get campaign ID from localStorage on mount
+  // Get campaign ID from props or fetch unverified campaigns on mount
   useEffect(() => {
-    const storedCampaignId =
-      typeof window !== "undefined"
-        ? localStorage.getItem("verificationCampaignId")
-        : null;
-
-    const storedCampaignTitle =
-      typeof window !== "undefined"
-        ? localStorage.getItem("verificationCampaignTitle")
-        : null;
-
-    if (storedCampaignId) {
-      setCampaignId(storedCampaignId);
-
-      // If we have a stored title, use it
-      if (storedCampaignTitle) {
-        setCampaignTitle(storedCampaignTitle);
-      } else {
-        // In a real app, you would fetch the campaign details here
-        // For now, we'll use a placeholder
-        setCampaignTitle("Campaña sin título");
+    const fetchCampaignData = async () => {
+      try {
+        if (initialCampaignId) {
+          // If we have a campaign ID from props, fetch that specific campaign
+          await loadCampaignById(initialCampaignId);
+        } else {
+          // Otherwise, fetch all unverified campaigns for selection
+          await fetchUnverifiedCampaigns();
+        }
+      } catch (error) {
+        console.error("Error initializing campaign verification:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la información de las campañas.",
+          variant: "destructive",
+        });
       }
-    } else {
-      // If no campaign ID is found, redirect to campaigns page
+    };
+
+    fetchCampaignData();
+  }, [initialCampaignId]);
+
+  // Redirect to campaign-specific URL if a campaign is selected from dropdown
+  useEffect(() => {
+    if (shouldRedirect && selectedCampaignId) {
+      router.push(`/campaign-verification/${selectedCampaignId}`);
+      setShouldRedirect(false);
+    }
+  }, [shouldRedirect, selectedCampaignId, router]);
+
+  // Function to fetch all unverified campaigns for the user
+  const fetchUnverifiedCampaigns = async () => {
+    setIsLoadingCampaigns(true);
+    try {
+      const response = await fetch("/api/campaign/unverified", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch campaigns");
+      }
+
+      const data = await response.json();
+
+      if (data.campaigns && Array.isArray(data.campaigns)) {
+        setUnverifiedCampaigns(data.campaigns);
+
+        // If there's no campaign ID provided and we have campaigns,
+        // preselect the first one
+        if (!initialCampaignId && data.campaigns.length > 0) {
+          setSelectedCampaignId(data.campaigns[0].id);
+          setCampaignTitle(data.campaigns[0].title);
+        } else if (data.campaigns.length === 0) {
+          toast({
+            title: "Sin campañas para verificar",
+            description: "No tienes campañas activas sin verificar.",
+            variant: "default",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching unverified campaigns:", error);
       toast({
         title: "Error",
-        description:
-          "No se encontró la campaña para verificar. Por favor, selecciona una campaña primero.",
+        description: "No se pudieron cargar tus campañas.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingCampaigns(false);
+    }
+  };
+
+  // Function to load a specific campaign by ID
+  const loadCampaignById = async (id: string) => {
+    try {
+      const response = await fetch(`/api/campaign/details?id=${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch campaign");
+      }
+
+      const data = await response.json();
+
+      if (data.campaign) {
+        setSelectedCampaignId(data.campaign.id);
+        setCampaignTitle(data.campaign.title);
+      } else {
+        throw new Error("Campaign data not found");
+      }
+    } catch (error) {
+      console.error("Error loading campaign by ID:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la campaña seleccionada.",
+        variant: "destructive",
+      });
+
+      // If loading specific campaign fails, redirect to campaign listing
       router.push("/dashboard/campaigns");
     }
-  }, [router, toast]);
+  };
+
+  // Function to handle campaign selection from dropdown
+  const handleCampaignChange = (campaignId: string) => {
+    const campaign = unverifiedCampaigns.find((c) => c.id === campaignId);
+    if (campaign) {
+      setSelectedCampaignId(campaignId);
+      setCampaignTitle(campaign.title);
+      setShouldRedirect(true);
+    }
+  };
 
   // Start verification process - move to step 2
   const startVerification = () => {
-    if (!campaignId) {
+    if (!selectedCampaignId) {
       toast({
         title: "Error",
         description: "No se encontró la campaña para verificar.",
@@ -462,7 +586,7 @@ export function CampaignVerificationView() {
 
   // Update submit verification request to include both front and back URLs
   const handleSubmitVerification = async () => {
-    if (!campaignId) {
+    if (!selectedCampaignId) {
       toast({
         title: "Error",
         description: "No se encontró la campaña para verificar.",
@@ -489,7 +613,7 @@ export function CampaignVerificationView() {
 
   // Separate function for sending verification from step 3
   const handleSendFinalVerification = async () => {
-    if (!campaignId) {
+    if (!selectedCampaignId) {
       toast({
         title: "Error",
         description: "No se encontró la campaña para verificar.",
@@ -502,7 +626,7 @@ export function CampaignVerificationView() {
       setIsSubmitting(true);
 
       const verificationData = {
-        campaignId,
+        campaignId: selectedCampaignId,
         idDocumentFrontUrl,
         idDocumentBackUrl,
         supportingDocsUrls,
@@ -544,10 +668,6 @@ export function CampaignVerificationView() {
 
       // Show the success modal
       setShowSubmitModal(true);
-
-      // Clear localStorage
-      localStorage.removeItem("verificationCampaignId");
-      localStorage.removeItem("verificationCampaignTitle");
     } catch (error) {
       console.error("Error submitting verification:", error);
       toast({
@@ -576,12 +696,8 @@ export function CampaignVerificationView() {
   const handleReturnToCampaign = () => {
     setShowSubmitModal(false);
 
-    // Clear localStorage
-    localStorage.removeItem("verificationCampaignId");
-    localStorage.removeItem("verificationCampaignTitle");
-
-    if (campaignId) {
-      router.push(`/campaign/${campaignId}`);
+    if (selectedCampaignId) {
+      router.push(`/campaign/${selectedCampaignId}`);
     } else {
       router.push("/dashboard/campaigns");
     }
@@ -663,26 +779,89 @@ export function CampaignVerificationView() {
       {/* Campaign Info Banner - Always displayed */}
       <div className="py-8">
         <div className="bg-[#f5f7e9] p-6 rounded-xl">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-xl font-medium text-[#478C5C]">
                 Campaña a verificar
               </h3>
-              <p className="text-lg font-bold">{campaignTitle}</p>
+              {isLoadingCampaigns ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <InlineSpinner className="text-[#478C5C]" />
+                  <p className="text-lg">Cargando campañas...</p>
+                </div>
+              ) : selectedCampaignId ? (
+                <p className="text-lg font-bold">{campaignTitle}</p>
+              ) : (
+                <p className="text-lg text-gray-500">
+                  Selecciona una campaña para verificar
+                </p>
+              )}
             </div>
-            <Button
-              variant="outline"
-              className="border-[#478C5C] text-[#478C5C]"
-              onClick={() => router.push("/dashboard/campaigns")}
-            >
-              Cambiar campaña
-            </Button>
+
+            {!initialCampaignId && unverifiedCampaigns.length > 0 ? (
+              <div className="w-full sm:w-auto">
+                <Select
+                  value={selectedCampaignId || ""}
+                  onValueChange={handleCampaignChange}
+                >
+                  <SelectTrigger className="w-full sm:w-[250px]">
+                    <SelectValue placeholder="Selecciona una campaña" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unverifiedCampaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        {campaign.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="border-[#478C5C] text-[#478C5C]"
+                onClick={() => router.push("/dashboard/campaigns")}
+              >
+                {initialCampaignId ? "Cambiar campaña" : "Ver mis campañas"}
+              </Button>
+            )}
           </div>
+
+          {/* Display a message if no campaigns to verify */}
+          {!isLoadingCampaigns &&
+            unverifiedCampaigns.length === 0 &&
+            !selectedCampaignId && (
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-amber-800">
+                  No tienes campañas activas sin verificar. Puedes crear una
+                  nueva campaña o ir a tu dashboard para ver tus campañas
+                  existentes.
+                </p>
+                <div className="mt-3 flex gap-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-[#478C5C] text-[#478C5C]"
+                    onClick={() => router.push("/create-campaign")}
+                  >
+                    <Plus className="mr-1 h-4 w-4" /> Nueva campaña
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-[#478C5C] text-[#478C5C]"
+                    onClick={() => router.push("/dashboard/campaigns")}
+                  >
+                    Ver mis campañas
+                  </Button>
+                </div>
+              </div>
+            )}
         </div>
       </div>
 
       {/* Benefits Section - Step 1 */}
-      {verificationStep === 1 && (
+      {verificationStep === 1 && selectedCampaignId && (
         <div className="py-12">
           <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">Beneficios</h2>
@@ -767,6 +946,7 @@ export function CampaignVerificationView() {
                   <Button
                     className="bg-[#478C5C] hover:bg-[#356945] text-white rounded-full px-8 py-3 text-base font-medium"
                     onClick={startVerification}
+                    disabled={!selectedCampaignId}
                   >
                     Solicitar verificación
                   </Button>
@@ -962,6 +1142,7 @@ export function CampaignVerificationView() {
                   <Button
                     className="bg-[#478C5C] hover:bg-[#356945] text-white rounded-full px-8 py-3 text-base font-medium"
                     onClick={startVerification}
+                    disabled={!selectedCampaignId}
                   >
                     Solicitar verificación
                   </Button>

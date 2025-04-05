@@ -46,11 +46,8 @@ export function CampaignCard({
     e.stopPropagation();
     e.preventDefault();
 
-    // Store campaign ID in localStorage for verification page
-    localStorage.setItem("verificationCampaignId", id);
-
-    // Navigate to verification page
-    router.push("/campaign-verification");
+    // Navigate to the campaign verification page with campaign ID
+    router.push(`/campaign-verification/${id}`);
   };
 
   // Format status display text
