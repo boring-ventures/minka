@@ -75,13 +75,13 @@ export function CausesSection() {
         ))}
       </div>
 
-      <div className="flex justify-center">
-        <Link href="/campaigns">
+      <div className="flex justify-center mt-12">
+        <Link href="/campaign">
           <Button
-            className="bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-xl shadow-none border-0 rounded-full"
+            className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white text-xl shadow-none border-0 rounded-full"
             size="lg"
           >
-            Ver campañas <ArrowRight className="ml-2 h-5 w-5" />
+            Ver más campañas <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </Link>
       </div>

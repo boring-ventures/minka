@@ -1,33 +1,36 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
-  MapPin,
-  Calendar,
-  User,
-  Users,
-  Building2,
   X,
-  ChevronDown,
-  ChevronLeft,
-  Upload,
   Check,
-  Link as LinkIcon,
+  Clock,
+  User,
+  MapPin,
   Clock8,
   Share2,
   Bookmark,
+  Award,
+  Calendar,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Upload,
+  Users,
+  Building2,
+  Link as LinkIcon,
+  Play,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import { useCampaign, CampaignFormData } from "@/hooks/use-campaign";
 import { useUpload } from "@/hooks/use-upload";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UploadProgress } from "./UploadProgress";
 import { ImageEditor } from "./ImageEditor";
 import { YouTubeLinks } from "./YouTubeLinks";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
@@ -56,6 +59,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
+import Link from "next/link";
 
 // Campaign Preview component
 const CampaignPreview = ({
@@ -75,180 +79,256 @@ const CampaignPreview = ({
   };
 
   // Convert any available media URLs to a consistent format for display
-  const mediaUrls =
-    campaign.media?.map((m) => m.mediaUrl) || uploadedUrls || [];
+  const mediaUrls: string[] =
+    campaign.media?.map((m: { mediaUrl: string }) => m.mediaUrl) ||
+    uploadedUrls ||
+    [];
+
+  // Prepare images in the format expected by CampaignGallery
+  const galleryImages = mediaUrls.map((url: string, index: number) => ({
+    url,
+    type: url.includes("video") ? ("video" as const) : ("image" as const),
+    id: `preview-img-${index}`,
+  }));
+
+  // Add a default image if none provided
+  if (galleryImages.length === 0) {
+    galleryImages.push({
+      url: "/landing-page/dummies/Card/Imagen.png",
+      type: "image" as const,
+      id: "default-img",
+    });
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-start justify-center z-50 overflow-y-auto pt-10">
-      <div className="bg-[#f5f7e9] max-w-6xl w-full mx-4 relative shadow-lg rounded-md overflow-hidden">
-        <div className="flex justify-between p-5 border-b border-gray-200">
-          <h2 className="text-xl font-medium text-[#478C5C]">Vista previa</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X size={24} />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black/40 z-50 overflow-y-auto flex items-start justify-center pt-8">
+      <div className="bg-[#fbfbf6] max-w-6xl w-full relative rounded-lg shadow-xl overflow-y-auto max-h-[90vh]">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md z-10"
+        >
+          <X className="h-5 w-5 text-gray-700" />
+        </button>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(100vh-120px)]">
-          <h1 className="text-3xl font-bold mb-2">{campaign.title}</h1>
-          <p className="text-gray-700 mb-6">{campaign.story}</p>
+        <div className="p-4 sm:p-6 md:p-8">
+          <h2 className="text-xl font-medium text-[#2c6e49] mb-4">
+            Vista previa
+          </h2>
 
-          {/* Main image */}
-          <div className="relative rounded-lg overflow-hidden mb-6 h-[300px] w-full">
-            {mediaUrls.length > 0 ? (
-              <Image
-                src={mediaUrls[0]}
-                alt={campaign.title}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="bg-gray-200 h-full w-full flex items-center justify-center">
-                <span className="text-gray-400">No image uploaded</span>
-              </div>
-            )}
-            <div className="absolute bottom-4 right-4">
-              <div className="bg-white rounded-full p-2">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M20 6L9 17L4 12"
-                    stroke="#12A347"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
+          {/* Campaign Header & Gallery - Grid layout from the campaign/[id] page */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-8">
+              <h1 className="text-2xl md:text-3xl font-bold mb-4 text-[#333333]">
+                {campaign.title ||
+                  "Protejamos juntos el parque Nacional Amboró"}
+              </h1>
 
-          {/* Thumbnail images */}
-          {mediaUrls.length > 1 && (
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {mediaUrls.slice(0, 3).map((url, i) => (
-                <div
-                  key={i}
-                  className="relative h-[120px] rounded-lg overflow-hidden"
-                >
+              {/* Gallery Section */}
+              <div className="space-y-4">
+                <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-gray-200">
                   <Image
-                    src={url}
-                    alt={`Thumbnail ${i + 1}`}
+                    src={galleryImages[0].url}
+                    alt={`${campaign.title} - Imagen principal`}
                     fill
                     className="object-cover"
                   />
-                  {i === 2 && mediaUrls.length > 3 && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="text-white text-lg font-bold">
-                        +{mediaUrls.length - 3}
-                      </span>
-                    </div>
-                  )}
+                  {/* Verification badge */}
+                  <div className="absolute bottom-3 right-3 bg-white rounded-full p-1.5 shadow-md">
+                    <Check className="h-5 w-5 text-[#2c6e49]" />
+                  </div>
                 </div>
-              ))}
+
+                {galleryImages.length > 1 && (
+                  <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                    {galleryImages.slice(0, 4).map((image, index) => (
+                      <div
+                        key={image.id}
+                        className={`relative aspect-[16/9] overflow-hidden rounded-lg border-2 ${
+                          index === 0
+                            ? "border-[#2c6e49]"
+                            : "border-transparent"
+                        }`}
+                      >
+                        <Image
+                          src={image.url}
+                          alt={`${campaign.title} - Imagen ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        {image.type === "video" && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <div className="bg-white/80 rounded-full p-1">
+                              <Play className="h-5 w-5 text-[#2c6e49]" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Campaign Details Section - Similar to the campaign/[id] page */}
+              <div className="mt-8 space-y-6">
+                {/* Organizer Header */}
+                <div className="flex items-center gap-3 py-4 border-b border-gray-200">
+                  <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+                    <span className="text-sm font-medium text-[#2c6e49]">
+                      A
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-[#2c6e49]">
+                      Andrés Martínez Saucedo
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Gestor de campaña | Santa Cruz de la Sierra, Bolivia
+                    </p>
+                  </div>
+                </div>
+
+                {/* Verification Badge */}
+                <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/landing-page/step-2.png"
+                      alt="Verified"
+                      width={28}
+                      height={28}
+                      className="text-[#2c6e49]"
+                    />
+                    <span className="text-[#2c6e49] text-lg font-medium">
+                      Campaña verificada por Minka
+                    </span>
+                  </div>
+                  <a href="#" className="text-[#2c6e49] underline text-sm">
+                    Más información
+                  </a>
+                </div>
+
+                {/* Campaign Description */}
+                <div className="space-y-3 py-4 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-[#2c6e49]">
+                    Descripción de la campaña
+                  </h2>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {campaign.description ||
+                      "El Parque Nacional Amboró es uno de los lugares más biodiversos del mundo, hogar de especies únicas y ecosistemas vitales. Su conservación depende de todos nosotros."}
+                  </p>
+                </div>
+
+                {/* Campaign Story */}
+                <div className="space-y-3 py-4 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-[#2c6e49]">
+                    Presentación de la campaña
+                  </h2>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {campaign.story ||
+                      "El Parque Nacional Amboró es un tesoro natural incomparable, reconocido como uno de los lugares más biodiversos del planeta. En sus exuberantes paisajes, alberga especies únicas de flora y fauna que dependen de este ecosistema para sobrevivir..."}
+                  </p>
+                </div>
+
+                {/* Beneficiaries */}
+                {campaign.beneficiariesDescription && (
+                  <div className="space-y-3 py-4 border-b border-gray-200">
+                    <h2 className="text-xl font-semibold text-[#2c6e49]">
+                      Beneficiarios
+                    </h2>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {campaign.beneficiariesDescription}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* Campaign info card */}
-          <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
-            <h3 className="text-xl font-bold mb-3">Avances de la campaña</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Cada aporte cuenta ¡Sé parte del cambio!
-            </p>
+            {/* Campaign Progress */}
+            <div className="lg:col-span-4">
+              <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+                <h2 className="text-lg font-semibold text-[#2c6e49] mb-1">
+                  Avances de la campaña
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Cada aporte cuenta. ¡Sé parte del cambio!
+                </p>
 
-            <div className="flex items-center gap-2 mb-2">
-              <div className="bg-green-100 p-1 rounded-full">
-                <Check className="h-4 w-4 text-green-600" />
-              </div>
-              <span className="text-sm text-gray-600">Campaña verificada</span>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-1">
+                    <Check className="h-4 w-4 text-[#2c6e49]" />
+                    <span className="text-sm">Campaña verificada</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">Creada hace 6 días</span>
+                  </div>
+                </div>
 
-              <div className="ml-auto flex items-center gap-2">
-                <Clock8 className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-gray-600">
-                  Creada hace 8 días
-                </span>
-              </div>
-            </div>
+                {/* Separator */}
+                <hr className="h-px w-full bg-gray-200 my-4" />
 
-            <div className="mt-4">
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">
-                  Recaudado:{" "}
-                  {formatCurrency(
-                    campaign.goalAmount
-                      ? parseFloat(campaign.goalAmount.toString()) * 0.8
-                      : 0
-                  )}
-                </span>
-                <span className="text-sm text-gray-600">250 donadores</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-green-600 h-2 rounded-full"
-                  style={{ width: "80%" }}
-                ></div>
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-sm text-gray-600">80%</span>
-                <span className="text-sm text-gray-600">
-                  Objetivo de recaudación:{" "}
-                  {formatCurrency(campaign.goalAmount || 0)}
-                </span>
-              </div>
-            </div>
+                <div className="space-y-3 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span>Recaudado Bs. 1.200,00</span>
+                    <span>250 donadores</span>
+                  </div>
+                  <div className="h-2 w-full bg-[#e8f0e9] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#2c6e49] rounded-full"
+                      style={{ width: "80%" }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#2c6e49]">80%</span>
+                    <span>
+                      Objetivo: {formatCurrency(campaign.goalAmount || 4000)}
+                    </span>
+                  </div>
+                </div>
 
-            <div className="mt-6">
-              <Button className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-3 mb-3">
-                Donar ahora
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full border-gray-300 text-gray-600 rounded-full py-3 flex items-center justify-center gap-2"
-              >
-                <span>Compartir</span>
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </div>
+                {/* Separator */}
+                <hr className="h-px w-full bg-gray-200 my-4" />
 
-            <div className="flex items-center justify-center mt-4">
-              <Bookmark className="h-4 w-4 text-gray-500 mr-2" />
-              <span className="text-sm text-gray-600">Guardar campaña</span>
-            </div>
-          </div>
-
-          {/* Campaign description */}
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-4">
-              Descripción de la campaña
-            </h3>
-            <p className="text-gray-700 mb-4">{campaign.description}</p>
-            {campaign.location && (
-              <div className="flex items-center text-gray-600 mt-2">
-                <MapPin className="h-4 w-4 mr-2" />
-                <span>{campaign.location}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Campaign organizer */}
-          <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
-            <div className="flex items-center">
-              <div className="mr-4">
-                <div className="h-12 w-12 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center">
-                  <User className="h-6 w-6 text-gray-400" />
+                <div className="space-y-3">
+                  <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-4">
+                    Donar ahora
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full border-gray-200 hover:bg-gray-50 rounded-full py-4"
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Compartir
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full hover:bg-gray-50 rounded-full py-4"
+                  >
+                    <Bookmark className="mr-2 h-4 w-4" />
+                    Guardar campaña
+                  </Button>
                 </div>
               </div>
-              <div>
-                <h3 className="font-medium">Andrea Martínez Saucedo</h3>
-                <p className="text-sm text-gray-600">
-                  Gestor de campaña | Santa Cruz de la Sierra, Bolivia
+
+              {/* Campaign Updates */}
+              <div className="mt-6 bg-white p-5 rounded-lg border border-gray-200">
+                <h2 className="text-lg font-medium text-[#2c6e49] mb-4">
+                  Anuncios de la campaña
+                </h2>
+                <p className="text-gray-600 text-sm">
+                  Aún no hay anuncios en esta campaña. Los anuncios se mostrarán
+                  aquí cuando el organizador los publique.
+                </p>
+              </div>
+
+              {/* Comments */}
+              <div className="mt-6 bg-white p-5 rounded-lg border border-gray-200">
+                <h2 className="text-lg font-medium text-[#2c6e49] mb-4">
+                  Comentarios de donadores
+                </h2>
+                <p className="text-gray-600 text-sm">
+                  Aún no hay comentarios en esta campaña. Los donadores podrán
+                  dejar sus comentarios aquí.
                 </p>
               </div>
             </div>
@@ -318,6 +398,9 @@ export function CampaignForm() {
 
   // Add this new state for preview
   const [showPreview, setShowPreview] = useState(false);
+
+  // Add state for verification redirect
+  const [redirectToVerification, setRedirectToVerification] = useState(false);
 
   // Check step 1 validity
   useEffect(() => {
@@ -415,6 +498,48 @@ export function CampaignForm() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // New function to handle verification request
+  const handleRequestVerification = async () => {
+    try {
+      if (!campaignId) {
+        toast({
+          title: "Error",
+          description: "No se encontró la campaña para verificar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // First, publish the campaign if not already published
+      const publishSuccess = await updateCampaign(
+        {
+          campaignStatus: "active",
+        },
+        campaignId
+      );
+
+      if (!publishSuccess) {
+        throw new Error("Failed to publish campaign");
+      }
+
+      // Store the campaign ID in local storage so CampaignVerificationView can use it
+      localStorage.setItem("verificationCampaignId", campaignId);
+
+      // Set redirect flag to true
+      setRedirectToVerification(true);
+
+      // Redirect to verification page
+      router.push("/campaign-verification");
+    } catch (error) {
+      console.error("Error preparing for verification:", error);
+      toast({
+        title: "Error",
+        description: "Error al preparar la campaña para verificación",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1714,57 +1839,35 @@ export function CampaignForm() {
                     </p>
                     <div className="w-full h-px bg-gray-200 my-6"></div>
                     <div className="space-y-3">
-                      <Link href="/campaign-verification" className="block">
-                        <Button className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-4 flex items-center justify-center gap-2">
-                          <span>Solicitar verificación</span>
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M14 5L21 12M21 12L14 19M21 12H3"
-                              stroke="white"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </Button>
-                      </Link>
                       <Button
-                        variant="outline"
-                        className="w-full border-[#478C5C]/20 text-gray-600 rounded-full py-4 flex items-center justify-center gap-1"
-                        onClick={handlePublish}
+                        onClick={handleRequestVerification}
+                        className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-4 flex items-center justify-center gap-2"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? (
-                          <div className="flex items-center gap-2">
-                            <InlineSpinner className="text-gray-600" />
-                            <span>Publicando...</span>
-                          </div>
-                        ) : (
-                          <span>Omitir y publicar</span>
-                        )}
-                        {!isSubmitting && (
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M9 6L15 12L9 18"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
+                        <span>Solicitar verificación</span>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M14 5L21 12M21 12L14 19M21 12H3"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Button>
+                      <Button
+                        onClick={handlePublish}
+                        className="w-full border border-[#478C5C] text-[#478C5C] hover:bg-[#f0f7f1] rounded-full py-4"
+                        variant="outline"
+                        disabled={isSubmitting}
+                      >
+                        Publicar sin verificar
                       </Button>
                     </div>
                   </div>

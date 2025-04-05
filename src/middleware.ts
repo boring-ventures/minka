@@ -17,7 +17,7 @@ export async function middleware(req: NextRequest) {
   const isProtectedRoute =
     req.nextUrl.pathname.startsWith("/dashboard") ||
     req.nextUrl.pathname.startsWith("/profile") ||
-    req.nextUrl.pathname.startsWith("/campaigns/create") ||
+    req.nextUrl.pathname.startsWith("/campaign/create") ||
     req.nextUrl.pathname.startsWith("/create-campaign");
 
   // Define auth routes (sign-in, sign-up)
@@ -48,7 +48,7 @@ export const config = {
     // Protected routes
     "/dashboard/:path*",
     "/profile/:path*",
-    "/campaigns/create/:path*",
+    "/campaign/create/:path*",
     "/create-campaign",
     // Auth routes
     "/sign-in",

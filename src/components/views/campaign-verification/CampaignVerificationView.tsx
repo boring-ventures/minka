@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Upload,
@@ -21,33 +21,207 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 
 export function CampaignVerificationView() {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  // State for campaign that is being verified
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+
+  // Form states
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
+  const [idDocumentUrl, setIdDocumentUrl] = useState<string | null>(null);
   const [supportingDocs, setSupportingDocs] = useState<File[]>([]);
+  const [supportingDocsUrls, setSupportingDocsUrls] = useState<string[]>([]);
+  const [campaignStory, setCampaignStory] = useState<string>("");
+  const [referenceContact, setReferenceContact] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+
+  // UI states
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  const handleIdDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Get campaign ID from localStorage on mount
+  useEffect(() => {
+    const storedCampaignId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("verificationCampaignId")
+        : null;
+
+    if (storedCampaignId) {
+      setCampaignId(storedCampaignId);
+    }
+  }, []);
+
+  // Upload handlers
+  const handleIdDocumentUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (e.target.files && e.target.files[0]) {
-      setIdDocumentFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setIdDocumentFile(file);
+
+      // Upload ID document to server
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to upload ID document");
+        }
+
+        const data = await response.json();
+        setIdDocumentUrl(data.url);
+      } catch (error) {
+        console.error("Error uploading ID document:", error);
+        toast({
+          title: "Error al subir documento",
+          description:
+            "No se pudo subir el documento de identidad. Inténtalo de nuevo.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleSupportingDocsUpload = (
+  const handleSupportingDocsUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    if (e.target.files) {
-      setSupportingDocs((prev) => [
-        ...prev,
-        ...Array.from(e.target.files as FileList),
-      ]);
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setSupportingDocs((prev) => [...prev, ...newFiles]);
+
+      // Upload supporting docs to server
+      try {
+        const uploadedUrls = [];
+
+        for (const file of newFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+
+          const data = await response.json();
+          uploadedUrls.push(data.url);
+        }
+
+        setSupportingDocsUrls((prev) => [...prev, ...uploadedUrls]);
+      } catch (error) {
+        console.error("Error uploading supporting documents:", error);
+        toast({
+          title: "Error al subir documentos",
+          description:
+            "No se pudieron subir algunos documentos de soporte. Inténtalo de nuevo.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const removeSupportingDoc = (index: number) => {
     setSupportingDocs((prev) => prev.filter((_, i) => i !== index));
+    setSupportingDocsUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Submit verification request
+  const handleSubmitVerification = async () => {
+    if (!campaignId) {
+      toast({
+        title: "Error",
+        description: "No se encontró la campaña para verificar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const verificationData = {
+        campaignId,
+        idDocumentUrl,
+        supportingDocsUrls,
+        campaignStory: campaignStory || undefined,
+        referenceContactName: referenceContact.name || undefined,
+        referenceContactEmail: referenceContact.email || undefined,
+        referenceContactPhone: referenceContact.phone || undefined,
+      };
+
+      const response = await fetch("/api/campaign/verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(verificationData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "Failed to submit verification request"
+        );
+      }
+
+      // Show success modal
+      setShowSubmitModal(true);
+
+      // Clear localStorage
+      localStorage.removeItem("verificationCampaignId");
+    } catch (error) {
+      console.error("Error submitting verification:", error);
+      toast({
+        title: "Error",
+        description:
+          "No se pudo enviar la solicitud de verificación. Inténtalo de nuevo más tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle reference contact form submission
+  const handleReferenceSubmit = () => {
+    setShowReferenceModal(false);
+    toast({
+      title: "Contacto agregado",
+      description: "Se ha agregado el contacto de referencia correctamente.",
+    });
+  };
+
+  // Return to campaign after success
+  const handleReturnToCampaign = () => {
+    setShowSubmitModal(false);
+    if (campaignId) {
+      router.push(`/campaign/${campaignId}`);
+    } else {
+      router.push("/dashboard/campaigns");
+    }
+  };
+
+  const handleCancelVerification = () => {
+    setShowCancelModal(false);
+    router.push("/dashboard/campaigns");
   };
 
   const faqs = [
@@ -698,6 +872,8 @@ export function CampaignVerificationView() {
                       rows={4}
                       className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4"
                       maxLength={500}
+                      value={campaignStory}
+                      onChange={(e) => setCampaignStory(e.target.value)}
                     />
                     <div className="text-sm text-gray-500 text-right mt-1">
                       0/500
@@ -737,14 +913,18 @@ export function CampaignVerificationView() {
                 <div className="flex flex-col w-full gap-3 mt-4">
                   <Button
                     className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full py-3"
-                    onClick={() => setShowSubmitModal(true)}
+                    onClick={handleSubmitVerification}
+                    disabled={isSubmitting}
                   >
-                    Enviar solicitud
+                    {isSubmitting
+                      ? "Enviando solicitud..."
+                      : "Enviar solicitud"}
                   </Button>
                   <Button
                     variant="outline"
                     className="border-[#2c6e49] text-[#2c6e49] rounded-full py-3"
                     onClick={() => setShowCancelModal(true)}
+                    disabled={isSubmitting}
                   >
                     Cancelar solicitud
                   </Button>
@@ -860,6 +1040,13 @@ export function CampaignVerificationView() {
                     type="text"
                     placeholder="Ingresa el nombre de tu contacto"
                     className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-12 px-4"
+                    value={referenceContact.name}
+                    onChange={(e) =>
+                      setReferenceContact({
+                        ...referenceContact,
+                        name: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
@@ -872,6 +1059,13 @@ export function CampaignVerificationView() {
                       type="email"
                       placeholder="nombre@correo.com"
                       className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-12 px-4"
+                      value={referenceContact.email}
+                      onChange={(e) =>
+                        setReferenceContact({
+                          ...referenceContact,
+                          email: e.target.value,
+                        })
+                      }
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                       <Eye className="h-5 w-5 text-gray-400" />
@@ -901,6 +1095,13 @@ export function CampaignVerificationView() {
                       type="tel"
                       placeholder="Número de teléfono"
                       className="flex-1 h-12 rounded-l-none rounded-r-lg border border-black bg-white px-4 focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0"
+                      value={referenceContact.phone}
+                      onChange={(e) =>
+                        setReferenceContact({
+                          ...referenceContact,
+                          phone: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -931,7 +1132,10 @@ export function CampaignVerificationView() {
               </div>
 
               <div className="flex justify-center mt-6">
-                <Button className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8">
+                <Button
+                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
+                  onClick={handleReferenceSubmit}
+                >
                   Guardar
                 </Button>
               </div>
@@ -940,14 +1144,14 @@ export function CampaignVerificationView() {
         </div>
       )}
 
-      {/* Submit Request Modal */}
+      {/* Submit Success Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white max-w-xl w-full mx-4 relative shadow-lg">
             {/* Cream-colored top bar with close button */}
             <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative">
               <button
-                onClick={() => setShowSubmitModal(false)}
+                onClick={handleReturnToCampaign}
                 className="text-[#478C5C] hover:text-[#2c6e49]"
               >
                 <X size={24} />
@@ -977,7 +1181,7 @@ export function CampaignVerificationView() {
 
                 <Button
                   className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
-                  onClick={() => setShowSubmitModal(false)}
+                  onClick={handleReturnToCampaign}
                 >
                   Ver mi campaña
                 </Button>

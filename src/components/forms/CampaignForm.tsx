@@ -57,7 +57,7 @@ export function CampaignForm() {
       });
 
       // Redirect to campaign page
-      router.push(`/campaigns/${campaignId}`);
+      router.push(`/campaign/${campaignId}`);
     } catch (error) {
       console.error("Error creating campaign:", error);
       setError(

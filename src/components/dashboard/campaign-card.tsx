@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Edit } from "lucide-react";
+import { Edit, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export type CampaignStatus =
   | "active"
   | "pending_verification"
   | "in_revision"
   | "completed"
-  | "draft";
+  | "draft"
+  | "cancelled";
 
 interface CampaignCardProps {
   id: string;
@@ -37,22 +39,35 @@ export function CampaignCard({
   status,
   isVerified = false,
 }: CampaignCardProps) {
-  const getStatusLabel = (status: CampaignStatus) => {
-    switch (status) {
-      case "active":
-        return { label: "Activa", color: "text-green-600 bg-green-100" };
-      case "pending_verification":
-        return { label: "Sin Verificar", color: "text-blue-600 bg-blue-100" };
-      case "in_revision":
-        return { label: "En Revisión", color: "text-purple-600 bg-purple-100" };
-      case "completed":
-        return { label: "Finalizada", color: "text-red-600 bg-red-100" };
-      default:
-        return { label: "Borrador", color: "text-gray-600 bg-gray-100" };
-    }
+  const router = useRouter();
+
+  // Handle verify button click
+  const handleVerifyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Store campaign ID in localStorage for verification page
+    localStorage.setItem("verificationCampaignId", id);
+
+    // Navigate to verification page
+    router.push("/campaign-verification");
   };
 
-  const statusInfo = getStatusLabel(status);
+  // Format status display text
+  const getStatusDisplay = () => {
+    switch (status) {
+      case "active":
+        return "Activa";
+      case "completed":
+        return "Completada";
+      case "cancelled":
+        return "Cancelada";
+      case "draft":
+        return "Borrador";
+      default:
+        return "Desconocido";
+    }
+  };
 
   // Use imageUrl from props and fallback to placeholder if not available
   const imageSrc = imageUrl || "/amboro-main.jpg";
@@ -83,16 +98,16 @@ export function CampaignCard({
             />
           )}
           <span
-            className={`text-xs font-medium py-1 px-2 rounded-full ${statusInfo.color} flex items-center gap-1`}
+            className={`text-xs font-medium py-1 px-2 rounded-full ${status === "active" ? "text-green-600 bg-green-100" : status === "completed" ? "text-red-600 bg-red-100" : "text-gray-600 bg-gray-100"} flex items-center gap-1`}
           >
             <span className="text-lg inline-block leading-none">•</span>{" "}
-            {statusInfo.label}
+            {getStatusDisplay()}
           </span>
         </div>
 
         {/* Campaign Title */}
         <h3 className="text-lg font-medium text-[#2c6e49] mb-2 line-clamp-2">
-          <Link href={`/campaigns/${id}`} className="hover:underline">
+          <Link href={`/campaign/${id}`} className="hover:underline">
             {title}
           </Link>
         </h3>
@@ -137,6 +152,28 @@ export function CampaignCard({
           </Link>
         </Button>
       </div>
+
+      {/* Add a verification badge if verified */}
+      {isVerified && (
+        <div className="absolute top-2 right-2 bg-[#4caf50] text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+          <CheckCircle size={12} />
+          <span>Verificada</span>
+        </div>
+      )}
+
+      {/* Add verification action button if not verified and campaign is active */}
+      {!isVerified && status === "active" && (
+        <div className="mt-3 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs border-green-600 text-green-600 hover:bg-green-50"
+            onClick={handleVerifyClick}
+          >
+            Solicitar verificación
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

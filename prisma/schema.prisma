@@ -36,36 +36,58 @@ model Profile {
 }
 
 model Campaign {
-  id                       String           @id @default(uuid()) @db.Uuid
+  id                       String               @id @default(uuid()) @db.Uuid
   title                    String
   description              String
-  story                    String           @db.VarChar(600)
-  beneficiariesDescription String           @map("beneficiaries_description")
+  story                    String               @db.VarChar(600)
+  beneficiariesDescription String               @map("beneficiaries_description")
   category                 CampaignCategory
-  goalAmount               Decimal          @map("goal_amount") @db.Decimal
-  collectedAmount          Decimal          @default(0) @map("collected_amount") @db.Decimal
-  donorCount               Int              @default(0) @map("donor_count")
-  percentageFunded         Float            @map("percentage_funded")
-  daysRemaining            Int              @map("days_remaining")
-  youtubeUrl               String?          @map("youtube_url")
+  goalAmount               Decimal              @map("goal_amount") @db.Decimal
+  collectedAmount          Decimal              @default(0) @map("collected_amount") @db.Decimal
+  donorCount               Int                  @default(0) @map("donor_count")
+  percentageFunded         Float                @map("percentage_funded")
+  daysRemaining            Int                  @map("days_remaining")
+  youtubeUrl               String?              @map("youtube_url")
   location                 String
-  endDate                  DateTime         @map("end_date") @db.Date
-  verificationStatus       Boolean          @default(false) @map("verification_status")
-  verificationDate         DateTime?        @map("verification_date") @db.Timestamp(6)
-  campaignStatus           CampaignStatus   @default(draft) @map("campaign_status")
-  status                   Status           @default(active)
-  organizerId              String           @map("organizer_id") @db.Uuid
-  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
-  youtubeUrls              String[]         @default([]) @map("youtube_urls")
-  media                    CampaignMedia[]  @relation("CampaignMedia")
-  updates                  CampaignUpdate[] @relation("CampaignUpdates")
-  organizer                Profile          @relation("OrganizerCampaigns", fields: [organizerId], references: [id])
-  comments                 Comment[]        @relation("CampaignComments")
-  donations                Donation[]       @relation("CampaignDonations")
-  savedBy                  SavedCampaign[]  @relation("CampaignSaved")
+  endDate                  DateTime             @map("end_date") @db.Date
+  verificationStatus       Boolean              @default(false) @map("verification_status")
+  verificationDate         DateTime?            @map("verification_date") @db.Timestamp(6)
+  campaignStatus           CampaignStatus       @default(draft) @map("campaign_status")
+  status                   Status               @default(active)
+  organizerId              String               @map("organizer_id") @db.Uuid
+  createdAt                DateTime             @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                DateTime             @updatedAt @map("updated_at") @db.Timestamp(6)
+  youtubeUrls              String[]             @default([]) @map("youtube_urls")
+  media                    CampaignMedia[]      @relation("CampaignMedia")
+  updates                  CampaignUpdate[]     @relation("CampaignUpdates")
+  organizer                Profile              @relation("OrganizerCampaigns", fields: [organizerId], references: [id])
+  comments                 Comment[]            @relation("CampaignComments")
+  donations                Donation[]           @relation("CampaignDonations")
+  savedBy                  SavedCampaign[]      @relation("CampaignSaved")
+  verificationRequests     CampaignVerification? @relation("CampaignVerificationRequests")
 
   @@map("campaigns")
+}
+
+model CampaignVerification {
+  id                String              @id @default(uuid()) @db.Uuid
+  campaignId        String              @unique @map("campaign_id") @db.Uuid
+  requestDate       DateTime            @default(now()) @map("request_date") @db.Timestamp(6)
+  approvalDate      DateTime?           @map("approval_date") @db.Timestamp(6)
+  verificationStatus VerificationStatus @default(pending) @map("verification_status")
+  notes             String?
+  idDocumentUrl     String?             @map("id_document_url")
+  supportingDocsUrls String[]           @default([]) @map("supporting_docs_urls")
+  campaignStory     String?             @map("campaign_story") @db.Text
+  referenceContactName String?          @map("reference_contact_name")
+  referenceContactEmail String?         @map("reference_contact_email")
+  referenceContactPhone String?         @map("reference_contact_phone")
+  status            Status              @default(active)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamp(6)
+  campaign          Campaign            @relation("CampaignVerificationRequests", fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_verifications")
 }
 
 model CampaignMedia {
@@ -179,6 +201,12 @@ enum CampaignStatus {
   active
   completed
   cancelled
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
 }
 
 enum MediaType {

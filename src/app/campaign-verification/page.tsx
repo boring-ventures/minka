@@ -1,3 +1,5 @@
+"use client";
+
 import type { Metadata } from "next";
 import { CampaignVerificationView } from "@/components/views/campaign-verification/CampaignVerificationView";
 import { Header } from "@/components/views/landing-page/Header";

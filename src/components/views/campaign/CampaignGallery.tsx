@@ -6,9 +6,13 @@ import { Play } from "lucide-react";
 
 interface CampaignGalleryProps {
   images: { url: string; type: "image" | "video"; id: string }[];
+  campaignTitle?: string;
 }
 
-export function CampaignGallery({ images }: CampaignGalleryProps) {
+export function CampaignGallery({
+  images,
+  campaignTitle = "Campaign",
+}: CampaignGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0);
 
   return (
@@ -16,7 +20,7 @@ export function CampaignGallery({ images }: CampaignGalleryProps) {
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-gray-200">
         <Image
           src={images[selectedImage].url || "/placeholder.svg"}
-          alt="Campaign image"
+          alt={`${campaignTitle} - ${images[selectedImage].type === "video" ? "Video thumbnail" : "Main photo"} ${selectedImage + 1}`}
           fill
           className="object-cover"
         />
@@ -35,7 +39,7 @@ export function CampaignGallery({ images }: CampaignGalleryProps) {
           >
             <Image
               src={image.url || "/placeholder.svg"}
-              alt={`Campaign image ${index + 1}`}
+              alt={`${campaignTitle} - ${image.type === "video" ? "Video thumbnail" : "Photo"} ${index + 1}`}
               fill
               className="object-cover"
             />

@@ -407,90 +407,95 @@ export default async function CampaignPage({
   return (
     <>
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Campaign Gallery and Progress */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-16 pt-8">
-          <div className="lg:col-span-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-6 text-black">
-              {formattedCampaign.title}
-            </h1>
-            <CampaignGallery images={formattedCampaign.images} />
-          </div>
-          <div className="lg:col-span-4">
-            <StickyProgressWrapper>
-              <CampaignProgress
-                isVerified={formattedCampaign.progress.isVerified}
-                createdAt={formattedCampaign.progress.createdAt}
-                currentAmount={formattedCampaign.progress.currentAmount}
-                targetAmount={formattedCampaign.progress.targetAmount}
-                donorsCount={formattedCampaign.progress.donorsCount}
+      <div className="pt-24 bg-[#fbfbf6]">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Campaign Gallery and Progress */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-16 pt-8">
+            <div className="lg:col-span-8">
+              <h1 className="text-3xl md:text-4xl font-bold mb-6 text-black">
+                {formattedCampaign.title}
+              </h1>
+              <CampaignGallery
+                images={formattedCampaign.images}
                 campaignTitle={formattedCampaign.title}
-                campaignOrganizer={formattedCampaign.organizer.name}
-                campaignLocation={formattedCampaign.organizer.location}
-                campaignId={params.id}
               />
-            </StickyProgressWrapper>
-          </div>
-        </div>
-
-        {/* Campaign Details Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-16">
-          <div className="lg:col-span-8">
-            <CustomCampaignDetails
-              organizer={formattedCampaign.organizer}
-              description={formattedCampaign.description}
-              beneficiaries={formattedCampaign.beneficiaries}
-            />
-          </div>
-
-          <div className="lg:col-span-4 space-y-8">
-            {/* Updates Section */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 space-y-4">
-              <CampaignUpdates updates={formattedCampaign.updates} />
-              <div className="pt-4">
-                <p className="text-[#2c6e49] text-center hover:underline">
-                  <Link
-                    href="#all-updates"
-                    className="flex items-center justify-center gap-1"
-                  >
-                    Ver todos los anuncios
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </p>
-              </div>
             </div>
-
-            {/* Comments Section */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <CustomDonorComments comments={formattedCampaign.comments} />
-              <div className="pt-4">
-                <p className="text-[#2c6e49] text-center hover:underline">
-                  <Link
-                    href="#all-comments"
-                    className="flex items-center justify-center gap-1"
-                  >
-                    Ver todos los comentarios
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </p>
-              </div>
+            <div className="lg:col-span-4">
+              <StickyProgressWrapper>
+                <CampaignProgress
+                  isVerified={formattedCampaign.progress.isVerified}
+                  createdAt={formattedCampaign.progress.createdAt}
+                  currentAmount={formattedCampaign.progress.currentAmount}
+                  targetAmount={formattedCampaign.progress.targetAmount}
+                  donorsCount={formattedCampaign.progress.donorsCount}
+                  campaignTitle={formattedCampaign.title}
+                  campaignOrganizer={formattedCampaign.organizer.name}
+                  campaignLocation={formattedCampaign.organizer.location}
+                  campaignId={params.id}
+                />
+              </StickyProgressWrapper>
             </div>
           </div>
-        </div>
 
-        {/* Related Campaigns Section */}
-        <div className="pb-20">
-          <h2 className="text-2xl md:text-3xl font-bold mb-8">
-            Campañas similares
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {relatedCampaigns.map((campaign) => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
+          {/* Campaign Details Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-16">
+            <div className="lg:col-span-8">
+              <CustomCampaignDetails
+                organizer={formattedCampaign.organizer}
+                description={formattedCampaign.description}
+                beneficiaries={formattedCampaign.beneficiaries}
+              />
+            </div>
+
+            <div className="lg:col-span-4 space-y-8">
+              {/* Updates Section */}
+              <div className="bg-white p-6 rounded-xl border border-gray-200 space-y-4">
+                <CampaignUpdates updates={formattedCampaign.updates} />
+                <div className="pt-4">
+                  <p className="text-[#2c6e49] text-center hover:underline">
+                    <Link
+                      href="#all-updates"
+                      className="flex items-center justify-center gap-1"
+                    >
+                      Ver todos los anuncios
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </p>
+                </div>
+              </div>
+
+              {/* Comments Section */}
+              <div className="bg-white p-6 rounded-xl border border-gray-200">
+                <CustomDonorComments comments={formattedCampaign.comments} />
+                <div className="pt-4">
+                  <p className="text-[#2c6e49] text-center hover:underline">
+                    <Link
+                      href="#all-comments"
+                      className="flex items-center justify-center gap-1"
+                    >
+                      Ver todos los comentarios
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
-      <Footer />
+
+          {/* Related Campaigns Section */}
+          <div className="pb-20">
+            <h2 className="text-2xl md:text-3xl font-bold mb-8">
+              Campañas similares
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {relatedCampaigns.map((campaign) => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
     </>
   );
 }
