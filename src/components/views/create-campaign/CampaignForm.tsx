@@ -14,6 +14,9 @@ import {
   Upload,
   Check,
   Link as LinkIcon,
+  Clock8,
+  Share2,
+  Bookmark,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -53,6 +56,208 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
+
+// Campaign Preview component
+const CampaignPreview = ({
+  campaign,
+  onClose,
+  uploadedUrls = [],
+}: {
+  campaign: CampaignFormData & { media?: { mediaUrl: string }[] };
+  onClose: () => void;
+  uploadedUrls?: string[];
+}) => {
+  // Format currency helper
+  const formatCurrency = (amount: string | number) => {
+    if (!amount) return "Bs. 0.00";
+    const num = typeof amount === "string" ? parseFloat(amount) : amount;
+    return `Bs. ${num.toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Convert any available media URLs to a consistent format for display
+  const mediaUrls =
+    campaign.media?.map((m) => m.mediaUrl) || uploadedUrls || [];
+
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-start justify-center z-50 overflow-y-auto pt-10">
+      <div className="bg-[#f5f7e9] max-w-6xl w-full mx-4 relative shadow-lg rounded-md overflow-hidden">
+        <div className="flex justify-between p-5 border-b border-gray-200">
+          <h2 className="text-xl font-medium text-[#478C5C]">Vista previa</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+          <h1 className="text-3xl font-bold mb-2">{campaign.title}</h1>
+          <p className="text-gray-700 mb-6">{campaign.story}</p>
+
+          {/* Main image */}
+          <div className="relative rounded-lg overflow-hidden mb-6 h-[300px] w-full">
+            {mediaUrls.length > 0 ? (
+              <Image
+                src={mediaUrls[0]}
+                alt={campaign.title}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="bg-gray-200 h-full w-full flex items-center justify-center">
+                <span className="text-gray-400">No image uploaded</span>
+              </div>
+            )}
+            <div className="absolute bottom-4 right-4">
+              <div className="bg-white rounded-full p-2">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 6L9 17L4 12"
+                    stroke="#12A347"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Thumbnail images */}
+          {mediaUrls.length > 1 && (
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {mediaUrls.slice(0, 3).map((url, i) => (
+                <div
+                  key={i}
+                  className="relative h-[120px] rounded-lg overflow-hidden"
+                >
+                  <Image
+                    src={url}
+                    alt={`Thumbnail ${i + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                  {i === 2 && mediaUrls.length > 3 && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="text-white text-lg font-bold">
+                        +{mediaUrls.length - 3}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Campaign info card */}
+          <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
+            <h3 className="text-xl font-bold mb-3">Avances de la campaña</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Cada aporte cuenta ¡Sé parte del cambio!
+            </p>
+
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-green-100 p-1 rounded-full">
+                <Check className="h-4 w-4 text-green-600" />
+              </div>
+              <span className="text-sm text-gray-600">Campaña verificada</span>
+
+              <div className="ml-auto flex items-center gap-2">
+                <Clock8 className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-gray-600">
+                  Creada hace 8 días
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm font-medium">
+                  Recaudado:{" "}
+                  {formatCurrency(
+                    campaign.goalAmount
+                      ? parseFloat(campaign.goalAmount.toString()) * 0.8
+                      : 0
+                  )}
+                </span>
+                <span className="text-sm text-gray-600">250 donadores</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-green-600 h-2 rounded-full"
+                  style={{ width: "80%" }}
+                ></div>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-sm text-gray-600">80%</span>
+                <span className="text-sm text-gray-600">
+                  Objetivo de recaudación:{" "}
+                  {formatCurrency(campaign.goalAmount || 0)}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Button className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-3 mb-3">
+                Donar ahora
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full border-gray-300 text-gray-600 rounded-full py-3 flex items-center justify-center gap-2"
+              >
+                <span>Compartir</span>
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-center mt-4">
+              <Bookmark className="h-4 w-4 text-gray-500 mr-2" />
+              <span className="text-sm text-gray-600">Guardar campaña</span>
+            </div>
+          </div>
+
+          {/* Campaign description */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-4">
+              Descripción de la campaña
+            </h3>
+            <p className="text-gray-700 mb-4">{campaign.description}</p>
+            {campaign.location && (
+              <div className="flex items-center text-gray-600 mt-2">
+                <MapPin className="h-4 w-4 mr-2" />
+                <span>{campaign.location}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Campaign organizer */}
+          <div className="bg-white rounded-lg p-6 shadow-sm mb-8">
+            <div className="flex items-center">
+              <div className="mr-4">
+                <div className="h-12 w-12 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center">
+                  <User className="h-6 w-6 text-gray-400" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-medium">Andrea Martínez Saucedo</h3>
+                <p className="text-sm text-gray-600">
+                  Gestor de campaña | Santa Cruz de la Sierra, Bolivia
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Update the form sections (showing only the modified parts)
 export function CampaignForm() {
@@ -110,6 +315,9 @@ export function CampaignForm() {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Add this new state for preview
+  const [showPreview, setShowPreview] = useState(false);
 
   // Check step 1 validity
   useEffect(() => {
@@ -622,7 +830,8 @@ export function CampaignForm() {
 
     // Validate story
     if (!formData.story || formData.story.length < 10) {
-      errors.story = "La historia debe tener al menos 10 caracteres";
+      errors.story =
+        "La presentación de la campaña debe tener al menos 10 caracteres";
     }
 
     // Validate at least one image and ensure it's been uploaded properly
@@ -1175,7 +1384,7 @@ export function CampaignForm() {
               <div className="bg-white rounded-xl border border-black p-6 md:p-8">
                 <div className="relative" id="story">
                   <label className="block text-lg font-medium mb-2">
-                    Presentación de la campaña
+                    Presentación de la campaña (historia)
                   </label>
                   <textarea
                     rows={4}
@@ -1429,6 +1638,7 @@ export function CampaignForm() {
                   <Button
                     variant="outline"
                     className="bg-white text-[#478C5C] border-white hover:bg-white/90 flex items-center gap-2 px-8 py-2 rounded-full"
+                    onClick={() => setShowPreview(true)}
                   >
                     <span>Vista previa</span>
                     <svg
@@ -1907,6 +2117,19 @@ export function CampaignForm() {
             setEditingImageIndex(null);
           }}
           isLoading={isUploading}
+        />
+      )}
+
+      {/* Campaign Preview Modal */}
+      {showPreview && (
+        <CampaignPreview
+          campaign={{
+            ...formData,
+            // If we need to add any additional properties for preview
+            goalAmount: formData.goalAmount || "0",
+          }}
+          onClose={() => setShowPreview(false)}
+          uploadedUrls={uploadedUrls}
         />
       )}
     </>

@@ -7,6 +7,7 @@ import { z } from "zod";
 const campaignCreateSchema = z.object({
   title: z.string().min(3).max(80),
   description: z.string().min(10).max(1000),
+  // Story field corresponds to "Presentación de la campaña" in the form
   story: z.string().min(10).max(600),
   beneficiariesDescription: z.string().min(10).max(500),
   category: z.enum([

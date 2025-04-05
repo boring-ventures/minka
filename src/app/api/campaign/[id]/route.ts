@@ -184,7 +184,7 @@ export async function PATCH(
 
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (story !== undefined) updateData.story = story;
+    if (story !== undefined) updateData.story = story; // Story field = "Presentación de la campaña"
     if (beneficiariesDescription !== undefined)
       updateData.beneficiariesDescription = beneficiariesDescription;
     if (category !== undefined) updateData.category = category;

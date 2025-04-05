@@ -8,6 +8,7 @@ const campaignDraftSchema = z.object({
   campaignId: z.string().uuid().optional(),
   title: z.string().min(3).max(80).optional(),
   description: z.string().min(10).max(1000).optional(),
+  // Story field corresponds to "Presentación de la campaña" in the form
   story: z.string().min(10).max(600).optional(),
   beneficiariesDescription: z.string().min(10).max(500).optional(),
   category: z

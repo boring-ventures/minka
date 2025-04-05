@@ -9,6 +9,7 @@ export interface CampaignFormData {
   goalAmount: string | number;
   location: string;
   endDate: string;
+  // Story field corresponds to "Presentación de la campaña" in the form
   story: string;
   mediaFiles?: File[];
   youtubeUrl?: string;
@@ -99,6 +100,7 @@ export function useCampaign() {
       const payload = {
         title: formData.title,
         description: formData.description,
+        story: formData.story,
         beneficiariesDescription:
           formData.beneficiariesDescription || formData.story,
         category: formData.category,
@@ -175,6 +177,7 @@ export function useCampaign() {
       const payload: any = {
         title: formData.title,
         description: formData.description,
+        story: formData.story,
         beneficiariesDescription:
           formData.beneficiariesDescription || formData.story,
         category: formData.category,
@@ -279,6 +282,54 @@ export function useCampaign() {
           error instanceof Error
             ? error.message
             : "Error al actualizar la campaña",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Add a method to update just the campaign story field
+  const updateCampaignStory = async (
+    story: string,
+    targetCampaignId: string = campaignId || ""
+  ): Promise<boolean> => {
+    if (!targetCampaignId) {
+      toast({
+        title: "Error",
+        description: "No se encontró ID de campaña para actualizar",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const response = await fetch(`/api/campaign/${targetCampaignId}/story`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ story }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update campaign story");
+      }
+
+      toast({
+        title: "Éxito",
+        description: "Presentación de la campaña actualizada correctamente",
+      });
+      return true;
+    } catch (error) {
+      console.error("Error updating campaign story:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Error al actualizar la presentación de la campaña",
         variant: "destructive",
       });
       return false;
@@ -635,6 +686,7 @@ export function useCampaign() {
     createCampaign,
     saveCampaignDraft,
     updateCampaign,
+    updateCampaignStory,
     getCampaignUpdates,
     publishCampaignUpdate,
     deleteCampaignUpdate,
