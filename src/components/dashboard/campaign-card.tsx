@@ -140,17 +140,43 @@ export function CampaignCard({
 
       {/* Button Section - Fixed at bottom with fixed height */}
       <div className="p-4 pt-2 border-t border-gray-100">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
-          asChild
-        >
-          <Link href={`/dashboard/campaigns/${id}`}>
-            Administrar Campaña
-            <Edit className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        {/* Add verification action button if not verified and campaign is active */}
+        {!isVerified && status === "active" ? (
+          <div className="flex justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
+              onClick={handleVerifyClick}
+            >
+              Solicitar verificación
+              <CheckCircle className="ml-2 h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
+              asChild
+            >
+              <Link href={`/dashboard/campaigns/${id}`}>
+                Administrar Campaña
+                <Edit className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
+            asChild
+          >
+            <Link href={`/dashboard/campaigns/${id}`}>
+              Administrar Campaña
+              <Edit className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Add a verification badge if verified */}
@@ -158,20 +184,6 @@ export function CampaignCard({
         <div className="absolute top-2 right-2 bg-[#4caf50] text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
           <CheckCircle size={12} />
           <span>Verificada</span>
-        </div>
-      )}
-
-      {/* Add verification action button if not verified and campaign is active */}
-      {!isVerified && status === "active" && (
-        <div className="mt-3 flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs border-green-600 text-green-600 hover:bg-green-50"
-            onClick={handleVerifyClick}
-          >
-            Solicitar verificación
-          </Button>
         </div>
       )}
     </div>

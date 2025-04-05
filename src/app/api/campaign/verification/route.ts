@@ -8,6 +8,7 @@ import { z } from "zod";
 const verificationRequestSchema = z.object({
   campaignId: z.string().uuid(),
   idDocumentUrl: z.string().url().optional(),
+  idDocumentsUrls: z.array(z.string().url()).optional(),
   supportingDocsUrls: z.array(z.string().url()).optional(),
   campaignStory: z.string().min(10).max(5000).optional(),
   referenceContactName: z.string().min(3).max(100).optional(),
@@ -18,12 +19,31 @@ const verificationRequestSchema = z.object({
 // Route handler for POST request to submit verification
 export async function POST(req: NextRequest) {
   try {
-    // Get session using supabase client
+    // Get session using supabase client with proper cookie handling
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    // Use void to prevent synchronous API warning
+    void cookieStore;
+
+    const supabase = createRouteHandlerClient({
+      cookies: () => cookieStore,
+    });
+
+    // Get the session
     const {
       data: { session },
+      error: sessionError,
     } = await supabase.auth.getSession();
+
+    // Log session debugging info for troubleshooting
+    console.log("Session check result:", !!session, "Error:", sessionError);
+
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      return NextResponse.json(
+        { error: "Authentication error", details: sessionError.message },
+        { status: 401 }
+      );
+    }
 
     if (!session?.user) {
       return NextResponse.json(
@@ -80,6 +100,11 @@ export async function POST(req: NextRequest) {
     if (existingVerification) {
       // If it exists but is rejected, update it instead of creating a new one
       if (existingVerification.verificationStatus === "rejected") {
+        // Get the ID document URL (use first one from idDocumentsUrls if available)
+        const idDocumentUrl = validatedData.idDocumentsUrls?.length
+          ? validatedData.idDocumentsUrls[0]
+          : validatedData.idDocumentUrl;
+
         const updatedVerification = await db.campaignVerification.update({
           where: {
             id: existingVerification.id,
@@ -88,8 +113,7 @@ export async function POST(req: NextRequest) {
             requestDate: new Date(),
             approvalDate: null,
             verificationStatus: "pending",
-            idDocumentUrl:
-              validatedData.idDocumentUrl || existingVerification.idDocumentUrl,
+            idDocumentUrl: idDocumentUrl || existingVerification.idDocumentUrl,
             supportingDocsUrls:
               validatedData.supportingDocsUrls ||
               existingVerification.supportingDocsUrls,
@@ -122,11 +146,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get the ID document URL (use first one from idDocumentsUrls if available)
+    const idDocumentUrl = validatedData.idDocumentsUrls?.length
+      ? validatedData.idDocumentsUrls[0]
+      : validatedData.idDocumentUrl;
+
     // Create new verification request
     const verification = await db.campaignVerification.create({
       data: {
         campaignId: validatedData.campaignId,
-        idDocumentUrl: validatedData.idDocumentUrl,
+        idDocumentUrl,
         supportingDocsUrls: validatedData.supportingDocsUrls || [],
         campaignStory: validatedData.campaignStory,
         referenceContactName: validatedData.referenceContactName,

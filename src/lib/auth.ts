@@ -26,7 +26,7 @@ export const getAuthSession = cache(async (): Promise<Session | null> => {
           },
           remove(name: string, options: any) {
             try {
-              cookieStore.set({ name, value: "", ...options });
+              void cookieStore.set({ name, value: "", ...options });
             } catch (error) {
               // Can't remove cookies during SSR
               console.error("Error removing cookie:", error);
