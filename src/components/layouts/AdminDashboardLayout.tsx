@@ -112,7 +112,7 @@ export function AdminDashboardLayout({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <InlineSpinner size="lg" className="text-primary" />
+        <InlineSpinner className="text-primary h-8 w-8" />
       </div>
     );
   }
