@@ -7,14 +7,10 @@ export async function GET(
 ) {
   try {
     const { userId } = await params;
+
+    // First, fetch the profile without related campaigns
     const profile = await prisma.profile.findUnique({
       where: { id: userId },
-      include: {
-        campaigns: true,
-        donations: true,
-        comments: true,
-        savedCampaigns: true,
-      },
     });
 
     if (!profile) {
@@ -24,11 +20,58 @@ export async function GET(
       });
     }
 
-    return new Response(JSON.stringify({ profile }), {
+    // Then fetch campaigns separately with proper handling
+    const campaigns = await prisma.campaign.findMany({
+      where: { organizerId: userId },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        goalAmount: true,
+        collectedAmount: true,
+        donorCount: true,
+        percentageFunded: true,
+        daysRemaining: true,
+        location: true,
+        endDate: true,
+        verificationStatus: true,
+        campaignStatus: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        // Explicitly exclude verificationDate and any other problematic fields
+      },
+    });
+
+    // Fetch other related data
+    const donations = await prisma.donation.findMany({
+      where: { donorId: userId },
+    });
+
+    const comments = await prisma.comment.findMany({
+      where: { profileId: userId },
+    });
+
+    const savedCampaigns = await prisma.savedCampaign.findMany({
+      where: { profileId: userId },
+    });
+
+    // Combine all data
+    const result = {
+      ...profile,
+      campaigns,
+      donations,
+      comments,
+      savedCampaigns,
+    };
+
+    return new Response(JSON.stringify({ profile: result }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("prisma:error", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return new Response(
