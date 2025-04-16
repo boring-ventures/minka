@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
@@ -8,8 +8,37 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-// Main donate page that acts as a router or campaign selector
-export default function DonatePage() {
+// Loading component
+function DonatePageLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9] flex items-center justify-center">
+      <div className="text-center">
+        <div className="h-16 w-16 mx-auto rounded-full bg-[#e8f0e9] flex items-center justify-center animate-pulse">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-8 w-8 text-[#2c6e49]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            role="img"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+        </div>
+        <p className="mt-4 text-gray-600">Cargando...</p>
+      </div>
+    </div>
+  );
+}
+
+// Client component that uses searchParams
+function DonatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -70,5 +99,14 @@ export default function DonatePage() {
 
       <Footer />
     </div>
+  );
+}
+
+// Main donate page with Suspense boundary
+export default function DonatePage() {
+  return (
+    <Suspense fallback={<DonatePageLoading />}>
+      <DonatePageContent />
+    </Suspense>
   );
 }
