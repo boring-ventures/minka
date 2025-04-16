@@ -2,122 +2,90 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const campaignId = (await params).id;
-    const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Get the session to check if the user is authenticated
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // Get URL parameters for pagination
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
 
-    // Check if the user is the campaign owner
-    let isOwner = false;
-    if (session?.user) {
-      const campaign = await db.campaign.findUnique({
-        where: {
-          id: campaignId,
-        },
-        include: {
-          organizer: {
-            select: {
-              email: true,
-            },
-          },
-        },
-      });
-
-      if (campaign?.organizer.email === session.user.email) {
-        isOwner = true;
-      }
-    }
-
-    // Get donations based on whether user is owner or not
-    // If the user is not the owner, only return public information
-    const donations = await db.donation.findMany({
+    // Get total count for pagination
+    const totalCount = await prisma.donation.count({
       where: {
-        campaignId: campaignId,
+        campaignId,
         status: "active",
       },
-      select: {
-        id: true,
-        amount: true,
-        currency: true,
-        message: isOwner ? true : false,
-        isAnonymous: true,
-        createdAt: true,
-        status: isOwner ? true : false,
-        donor: {
-          select: {
-            id: true,
-            name: true,
-            profilePicture: isOwner ? true : false,
-            email: isOwner ? true : false,
-          },
-        },
+    });
+
+    // Fetch donations with pagination
+    const donations = await prisma.donation.findMany({
+      where: {
+        campaignId,
+        status: "active",
       },
       orderBy: {
         createdAt: "desc",
       },
-      take: limit,
-      skip: offset,
-    });
-
-    // Count total donations
-    const total = await db.donation.count({
-      where: {
-        campaignId: campaignId,
-        status: "active",
-      },
-    });
-
-    // Get total amount raised
-    const totalAmountResult = await db.donation.aggregate({
-      where: {
-        campaignId: campaignId,
-        status: "active",
-      },
-      _sum: {
+      select: {
+        id: true,
         amount: true,
-      },
-    });
-
-    const totalAmount = totalAmountResult._sum.amount || 0;
-
-    // Format the donations to handle anonymous donors
-    const formattedDonations = donations.map((donation) => {
-      if (donation.isAnonymous && !isOwner) {
-        return {
-          ...donation,
-          donor: {
-            id: null,
-            name: "Donador anónimo",
+        message: true,
+        isAnonymous: true,
+        createdAt: true,
+        paymentStatus: true,
+        donor: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
           },
-        };
-      }
-      return donation;
+        },
+      },
+      skip,
+      take: limit,
     });
+
+    // Map the donations to respect anonymity
+    const formattedDonations = donations.map((donation) => ({
+      id: donation.id,
+      amount: donation.amount,
+      message: donation.message,
+      createdAt: donation.createdAt,
+      paymentStatus: donation.paymentStatus,
+      donor: donation.isAnonymous
+        ? {
+            id: null,
+            name: "Donante Anónimo",
+            profilePicture: null,
+          }
+        : donation.donor,
+    }));
+
+    // Calculate the total pages
+    const totalPages = Math.ceil(totalCount / limit);
 
     return NextResponse.json({
-      donations: formattedDonations,
-      total,
-      totalAmount,
-      hasMore: offset + limit < total,
-      isOwner,
+      data: formattedDonations,
+      meta: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     console.error("Error fetching campaign donations:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to fetch campaign donations" },
       { status: 500 }
     );
   }

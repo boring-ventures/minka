@@ -37,10 +37,10 @@ interface Campaign {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Await params if it's a Promise
-  const paramsObj = params instanceof Promise ? await params : params;
+  const paramsObj = await params;
   const id = paramsObj.id;
 
   if (!id) {
