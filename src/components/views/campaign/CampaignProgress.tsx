@@ -83,17 +83,7 @@ export function CampaignProgress({
       <hr className="h-px w-full bg-gray-200 my-4" />
 
       <div className="space-y-3">
-        <Link
-          href={{
-            pathname: "/donate",
-            query: {
-              campaignId: campaignId || "1",
-              title: campaignTitle,
-              organizer: campaignOrganizer,
-              location: campaignLocation,
-            },
-          }}
-        >
+        <Link href={`/donate/${campaignId}`}>
           <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-6">
             Donar ahora
           </Button>

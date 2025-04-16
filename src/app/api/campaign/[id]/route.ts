@@ -4,102 +4,126 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { getAuthSession } from "@/lib/auth";
 
+// Define interfaces to help with typing
+interface OrganizerProfile {
+  id: string;
+  name: string;
+  location: string;
+  profile_picture: string | null;
+}
+
+interface CampaignMedia {
+  id: string;
+  media_url: string;
+  is_primary: boolean;
+  type: string;
+  order_index: number | null;
+}
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  story: string;
+  location: string;
+  goal_amount: number;
+  collected_amount: number;
+  donor_count: number;
+  percentage_funded: number;
+  days_remaining: number;
+  organizer: OrganizerProfile | null;
+  media: CampaignMedia[];
+}
+
 export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
+  // Await params if it's a Promise
+  const paramsObj = params instanceof Promise ? await params : params;
+  const id = paramsObj.id;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: "Campaign ID is required" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const campaignId = (await params).id;
-    const session = await getAuthSession();
+    const supabase = createRouteHandlerClient({ cookies });
 
-    const campaign = await db.campaign.findUnique({
-      where: {
-        id: campaignId,
-      },
-      include: {
-        organizer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            profilePicture: true,
-            location: true,
-            joinDate: true,
-            activeCampaignsCount: true,
-            bio: true,
-            verificationStatus: true,
-          },
-        },
-        media: {
-          orderBy: {
-            orderIndex: "asc",
-          },
-        },
-        updates: {
-          where: {
-            status: "active",
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-        donations: {
-          where: {
-            status: "active",
-          },
-          include: {
-            donor: {
-              select: {
-                name: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 10,
-        },
-        comments: {
-          where: {
-            status: "active",
-          },
-          include: {
-            profile: {
-              select: {
-                name: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 10,
-        },
-      },
-    });
+    // Fetch campaign data with organizer profile and campaign media
+    const { data, error: campaignError } = await supabase
+      .from("campaigns")
+      .select(
+        `
+        id, 
+        title, 
+        description,
+        story,
+        location,
+        goal_amount,
+        collected_amount,
+        donor_count,
+        percentage_funded,
+        days_remaining,
+        organizer:profiles!organizer_id(id, name, location, profile_picture),
+        media:campaign_media(id, media_url, is_primary, type, order_index)
+      `
+      )
+      .eq("id", id)
+      .single();
 
-    if (!campaign) {
+    if (campaignError) {
+      return NextResponse.json(
+        { error: campaignError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
       return NextResponse.json(
         { error: "Campaign not found" },
         { status: 404 }
       );
     }
 
-    // If campaign is in draft status, only the creator should be able to view it
-    if (campaign.campaignStatus === "draft") {
-      if (!session?.user || campaign.organizer.email !== session.user.email) {
-        return NextResponse.json(
-          { error: "You don't have permission to view this campaign" },
-          { status: 403 }
-        );
-      }
-    }
+    const campaign = data as any;
 
-    return NextResponse.json(campaign);
+    // Format the response with proper type handling
+    const formattedCampaign: Campaign = {
+      id: campaign.id,
+      title: campaign.title,
+      description: campaign.description,
+      story: campaign.story,
+      location: campaign.location,
+      goal_amount: campaign.goal_amount,
+      collected_amount: campaign.collected_amount,
+      donor_count: campaign.donor_count,
+      percentage_funded: campaign.percentage_funded,
+      days_remaining: campaign.days_remaining,
+      organizer: campaign.organizer
+        ? {
+            id: campaign.organizer.id,
+            name: campaign.organizer.name,
+            location: campaign.organizer.location,
+            profile_picture: campaign.organizer.profile_picture,
+          }
+        : null,
+      media: Array.isArray(campaign.media)
+        ? campaign.media.sort(
+            (a: CampaignMedia, b: CampaignMedia) =>
+              (a.order_index || 999) - (b.order_index || 999)
+          )
+        : [],
+    };
+
+    return NextResponse.json(formattedCampaign);
   } catch (error) {
     console.error("Error fetching campaign:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to fetch campaign data" },
       { status: 500 }
     );
   }
