@@ -134,6 +134,21 @@ export function CampaignVerificationView({
   );
   const [progress, setProgress] = useState(0);
 
+  // Add a new state for verification status right after all the other state declarations
+  const [verificationStatusInfo, setVerificationStatusInfo] = useState<{
+    status: "pending" | "approved" | "rejected" | null;
+    requestDate: string | null;
+    approvalDate: string | null;
+    notes: string | null;
+  }>({
+    status: null,
+    requestDate: null,
+    approvalDate: null,
+    notes: null,
+  });
+  const [isLoadingVerificationStatus, setIsLoadingVerificationStatus] =
+    useState(false);
+
   // Get campaign ID from props or fetch unverified campaigns on mount
   useEffect(() => {
     const fetchCampaignData = async () => {
@@ -233,6 +248,9 @@ export function CampaignVerificationView({
       if (data.campaign) {
         setSelectedCampaignId(data.campaign.id);
         setCampaignTitle(data.campaign.title);
+
+        // Check verification status after setting the campaign
+        await checkVerificationStatus(data.campaign.id);
       } else {
         throw new Error("Campaign data not found");
       }
@@ -255,6 +273,10 @@ export function CampaignVerificationView({
     if (campaign) {
       setSelectedCampaignId(campaignId);
       setCampaignTitle(campaign.title);
+
+      // Check verification status before redirecting
+      checkVerificationStatus(campaignId);
+
       setShouldRedirect(true);
     }
   };
@@ -266,6 +288,27 @@ export function CampaignVerificationView({
         title: "Error",
         description: "No se encontró la campaña para verificar.",
         variant: "destructive",
+      });
+      return;
+    }
+
+    // Don't proceed if there's already a pending verification
+    if (verificationStatusInfo.status === "pending") {
+      toast({
+        title: "Verificación en progreso",
+        description:
+          "Esta campaña ya tiene una solicitud de verificación pendiente.",
+        variant: "default",
+      });
+      return;
+    }
+
+    // If verification was already approved, don't proceed
+    if (verificationStatusInfo.status === "approved") {
+      toast({
+        title: "Campaña verificada",
+        description: "Esta campaña ya ha sido verificada exitosamente.",
+        variant: "default",
       });
       return;
     }
@@ -774,6 +817,65 @@ export function CampaignVerificationView({
     }
   };
 
+  // Add a function to check the verification status of a campaign
+  const checkVerificationStatus = async (campaignId: string) => {
+    if (!campaignId) return;
+
+    setIsLoadingVerificationStatus(true);
+    try {
+      const response = await fetch(
+        `/api/campaign/verification/status?campaignId=${campaignId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to check verification status");
+      }
+
+      const data = await response.json();
+
+      setVerificationStatusInfo({
+        status: data.status,
+        requestDate: data.requestDate,
+        approvalDate: data.approvalDate,
+        notes: data.notes,
+      });
+
+      // If there's already a pending verification, show a message
+      if (data.status === "pending") {
+        toast({
+          title: "Verificación en progreso",
+          description:
+            "Esta campaña ya tiene una solicitud de verificación pendiente.",
+          variant: "default",
+        });
+      } else if (data.status === "approved") {
+        toast({
+          title: "Campaña verificada",
+          description: "Esta campaña ya ha sido verificada exitosamente.",
+          variant: "default",
+        });
+      } else if (data.status === "rejected") {
+        toast({
+          title: "Verificación rechazada",
+          description: `La verificación de esta campaña fue rechazada. ${data.notes ? `Motivo: ${data.notes}` : ""}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking verification status:", error);
+      // Don't show error toast, just log it - no verification is a valid state
+    } finally {
+      setIsLoadingVerificationStatus(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto space-y-24">
       {/* Campaign Info Banner - Always displayed */}
@@ -857,6 +959,90 @@ export function CampaignVerificationView({
                 </div>
               </div>
             )}
+
+          {/* Display verification status info if available */}
+          {selectedCampaignId && verificationStatusInfo.status && (
+            <div
+              className={`mt-4 p-3 rounded-lg border ${
+                verificationStatusInfo.status === "pending"
+                  ? "bg-blue-50 border-blue-200"
+                  : verificationStatusInfo.status === "approved"
+                    ? "bg-green-50 border-green-200"
+                    : "bg-red-50 border-red-200"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                {verificationStatusInfo.status === "pending" && (
+                  <Clock className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                )}
+                {verificationStatusInfo.status === "approved" && (
+                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                )}
+                {verificationStatusInfo.status === "rejected" && (
+                  <X className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                )}
+
+                <div>
+                  <p
+                    className={`font-medium ${
+                      verificationStatusInfo.status === "pending"
+                        ? "text-blue-800"
+                        : verificationStatusInfo.status === "approved"
+                          ? "text-green-800"
+                          : "text-red-800"
+                    }`}
+                  >
+                    {verificationStatusInfo.status === "pending" &&
+                      "Verificación en progreso"}
+                    {verificationStatusInfo.status === "approved" &&
+                      "Campaña verificada"}
+                    {verificationStatusInfo.status === "rejected" &&
+                      "Verificación rechazada"}
+                  </p>
+
+                  <p
+                    className={`mt-1 ${
+                      verificationStatusInfo.status === "pending"
+                        ? "text-blue-700"
+                        : verificationStatusInfo.status === "approved"
+                          ? "text-green-700"
+                          : "text-red-700"
+                    }`}
+                  >
+                    {verificationStatusInfo.status === "pending" &&
+                      `Solicitud enviada el ${
+                        verificationStatusInfo.requestDate
+                          ? new Date(
+                              verificationStatusInfo.requestDate
+                            ).toLocaleDateString("es-BO")
+                          : "fecha desconocida"
+                      }. Estamos revisando tu solicitud.`}
+                    {verificationStatusInfo.status === "approved" &&
+                      `Verificación aprobada el ${
+                        verificationStatusInfo.approvalDate
+                          ? new Date(
+                              verificationStatusInfo.approvalDate
+                            ).toLocaleDateString("es-BO")
+                          : "fecha desconocida"
+                      }.`}
+                    {verificationStatusInfo.status === "rejected" &&
+                      `Motivo del rechazo: ${verificationStatusInfo.notes || "No especificado"}`}
+                  </p>
+
+                  {verificationStatusInfo.status === "rejected" && (
+                    <div className="mt-3">
+                      <Button
+                        onClick={startVerification}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Enviar nueva solicitud
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -941,22 +1127,29 @@ export function CampaignVerificationView({
                 <div className="border-b border-gray-300 mt-4"></div>
               </div>
 
-              <div className="pt-6">
-                <div className="flex flex-row items-center gap-4">
-                  <Button
-                    className="bg-[#478C5C] hover:bg-[#356945] text-white rounded-full px-8 py-3 text-base font-medium"
-                    onClick={startVerification}
-                    disabled={!selectedCampaignId}
-                  >
-                    Solicitar verificación
-                  </Button>
-                  <button
-                    className="text-[#478C5C] hover:text-[#356945] font-bold text-base px-4 py-2"
-                    onClick={() => router.push("/dashboard/campaigns")}
-                  >
-                    No quiero verificar mi campaña por ahora
-                  </button>
-                </div>
+              {/* Start verification button - disabled if already pending or approved */}
+              <div className="flex justify-center mt-10">
+                <Button
+                  onClick={startVerification}
+                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-8 py-3 rounded-full text-lg"
+                  disabled={
+                    isLoadingVerificationStatus ||
+                    verificationStatusInfo.status === "pending" ||
+                    verificationStatusInfo.status === "approved"
+                  }
+                >
+                  {isLoadingVerificationStatus ? (
+                    <>
+                      <InlineSpinner className="mr-2" /> Verificando estado...
+                    </>
+                  ) : verificationStatusInfo.status === "pending" ? (
+                    "Verificación en curso"
+                  ) : verificationStatusInfo.status === "approved" ? (
+                    "Campaña ya verificada"
+                  ) : (
+                    "Iniciar verificación"
+                  )}
+                </Button>
               </div>
             </div>
 
@@ -1137,22 +1330,29 @@ export function CampaignVerificationView({
                 <div className="border-b border-gray-300 mt-4"></div>
               </div>
 
-              <div className="pt-6">
-                <div className="flex flex-row items-center gap-4">
-                  <Button
-                    className="bg-[#478C5C] hover:bg-[#356945] text-white rounded-full px-8 py-3 text-base font-medium"
-                    onClick={startVerification}
-                    disabled={!selectedCampaignId}
-                  >
-                    Solicitar verificación
-                  </Button>
-                  <button
-                    className="text-[#478C5C] hover:text-[#356945] font-bold text-base px-4 py-2"
-                    onClick={() => router.push("/dashboard/campaigns")}
-                  >
-                    No quiero verificar mi campaña por ahora
-                  </button>
-                </div>
+              {/* Start verification button - disabled if already pending or approved */}
+              <div className="flex justify-center mt-10">
+                <Button
+                  onClick={startVerification}
+                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-8 py-3 rounded-full text-lg"
+                  disabled={
+                    isLoadingVerificationStatus ||
+                    verificationStatusInfo.status === "pending" ||
+                    verificationStatusInfo.status === "approved"
+                  }
+                >
+                  {isLoadingVerificationStatus ? (
+                    <>
+                      <InlineSpinner className="mr-2" /> Verificando estado...
+                    </>
+                  ) : verificationStatusInfo.status === "pending" ? (
+                    "Verificación en curso"
+                  ) : verificationStatusInfo.status === "approved" ? (
+                    "Campaña ya verificada"
+                  ) : (
+                    "Iniciar verificación"
+                  )}
+                </Button>
               </div>
             </div>
 
