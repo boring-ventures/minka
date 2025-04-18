@@ -829,7 +829,7 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                     <div className="flex justify-center mt-8">
                       <Button
                         className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3"
-                        onClick={() => router.push("/")}
+                        onClick={() => router.push(`/campaign/${campaignId}`)}
                       >
                         Completar
                       </Button>

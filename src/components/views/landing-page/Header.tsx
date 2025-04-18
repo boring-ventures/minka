@@ -152,7 +152,7 @@ export function Header() {
                     variant="outline"
                     className={`rounded-full text-lg px-6 py-2 ${
                       isScrolled
-                        ? "border-white text-white hover:bg-white hover:text-[#2c6e49]"
+                        ? "border-white text-[#2c6e49] hover:bg-white hover:text-[#2c6e49]"
                         : "border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
                     }`}
                   >
