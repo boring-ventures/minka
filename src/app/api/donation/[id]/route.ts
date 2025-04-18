@@ -15,8 +15,14 @@ export async function PATCH(
 
     // Parse the request body
     const body = await request.json();
+    console.log(
+      "Received update request for donation:",
+      donationId,
+      "with body:",
+      body
+    );
 
-    // Find the donation to verify it exists and belongs to the user
+    // Find the donation to verify it exists
     const donation = await prisma.donation.findUnique({
       where: { id: donationId },
       select: { id: true, donorId: true, isAnonymous: true },
@@ -24,6 +30,7 @@ export async function PATCH(
 
     // If donation doesn't exist
     if (!donation) {
+      console.error("Donation not found:", donationId);
       return NextResponse.json(
         { error: "Donation not found" },
         { status: 404 }
@@ -50,16 +57,25 @@ export async function PATCH(
       message: body.message !== undefined ? body.message : undefined,
     };
 
-    // Only allow updates if:
-    // 1. The user is authenticated and owns the donation
-    // 2. The donation is anonymous and we're just updating notification settings
-    const isOwner = userId && donation.donorId === userId;
-    const isAnonymousUpdate =
-      donation.isAnonymous &&
-      Object.keys(normalizedBody).length === 1 &&
-      normalizedBody.notificationEnabled !== undefined;
+    console.log("Normalized update body:", normalizedBody);
 
-    if (!isOwner && !isAnonymousUpdate) {
+    // Check if user is owner of the donation
+    const isOwner = userId && donation.donorId === userId;
+
+    // For updates to notification preferences, we'll allow it without authentication
+    // This is particularly important for anonymous donations
+    const isNotificationUpdate =
+      normalizedBody.notificationEnabled !== undefined &&
+      Object.keys(normalizedBody).filter(
+        (key) =>
+          normalizedBody[key as keyof typeof normalizedBody] !== undefined
+      ).length === 1;
+
+    // Only allow updates if:
+    // 1. The user is authenticated and owns the donation, OR
+    // 2. The update is only for notification preferences (which we allow for anyone with the donation ID)
+    if (!isOwner && !isNotificationUpdate) {
+      console.error("Unauthorized update attempt for donation:", donationId);
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -70,11 +86,13 @@ export async function PATCH(
         // Only allow updating specific fields
         notificationEnabled: normalizedBody.notificationEnabled,
 
-        // Only allow updating payment status if provided
-        paymentStatus: normalizedBody.paymentStatus,
-
-        // Only allow updating message if provided
-        message: normalizedBody.message,
+        // Only allow updating these fields if user is owner
+        ...(isOwner
+          ? {
+              paymentStatus: normalizedBody.paymentStatus,
+              message: normalizedBody.message,
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -83,6 +101,7 @@ export async function PATCH(
       },
     });
 
+    console.log("Successfully updated donation:", updatedDonation);
     return NextResponse.json(updatedDonation);
   } catch (error) {
     console.error("Donation update error:", error);

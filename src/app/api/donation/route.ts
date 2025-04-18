@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
           ? "qr"
           : "bank_transfer";
 
-    // If donation is not anonymous, a user ID is required
+    // Handle anonymous vs. authenticated donations properly
+    // Only require authentication for non-anonymous donations
     if (!isAnonymous && !userId) {
       return NextResponse.json(
         { error: "User must be logged in for non-anonymous donations" },
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     let donorProfileId = userId;
 
     if (isAnonymous) {
-      // If we don't have a user ID but the donation is anonymous, find or create an anonymous profile
+      // If donation is anonymous, find or create an anonymous profile
       // We'll check if an anonymous profile exists in our system
       let anonymousProfile = await prisma.profile.findFirst({
         where: {

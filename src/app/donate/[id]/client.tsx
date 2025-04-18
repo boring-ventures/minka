@@ -12,6 +12,7 @@ import { useCampaign } from "@/hooks/useCampaign";
 import React from "react";
 import { Switch } from "@/components/ui/switch";
 import { CheckIcon } from "@/components/icons/CheckIcon";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // Define donation amount options
 const DONATION_AMOUNTS = [
@@ -54,6 +55,7 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
   // Add user state
   const [user, setUser] = useState<any>(null);
 
+  // State variables
   const [step, setStep] = useState(1);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
@@ -63,9 +65,14 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showNotificationSection, setShowNotificationSection] = useState(false);
   const [selectedAmountIndex, setSelectedAmountIndex] = useState(0);
-  const [selectedPaymentMethodIndex, setSelectedPaymentMethodIndex] =
-    useState(0);
+  const [selectedPaymentMethodIndex, setSelectedPaymentMethodIndex] = useState<
+    number | null
+  >(null);
   const [donationId, setDonationId] = useState<string | null>(null);
+
+  // State for error notification
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate donation details
   const donationAmount =
@@ -92,6 +99,11 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
   // Handle payment method selection
   const handlePaymentMethodSelect = (method: string) => {
     setPaymentMethod(method);
+    // Set the selectedPaymentMethodIndex based on the method ID
+    const index = PAYMENT_METHODS.findIndex((pm) => pm.id === method);
+    if (index !== -1) {
+      setSelectedPaymentMethodIndex(index);
+    }
   };
 
   // Handle continue to next step
@@ -116,25 +128,32 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
   // Handle donation confirmation
   const handleConfirmDonation = async () => {
     if (!campaignId) {
-      alert("No campaign selected for donation.");
+      setErrorMessage("No campaign selected for donation.");
       return;
     }
+
+    // Clear any previous errors
+    setErrorMessage(null);
+    setIsSubmitting(true);
 
     try {
       // Get current user
       const { data: userData } = await supabase.auth.getUser();
       setUser(userData?.user || null);
 
-      // Check if we're making an anonymous donation
+      // Determine if this is an anonymous donation
       const isAnonymous = !userData?.user;
 
       // Create donation through our API
       const donationData = {
         campaignId: campaignId,
         amount: donationAmount,
-        paymentMethod: PAYMENT_METHODS[selectedPaymentMethodIndex].id,
+        paymentMethod:
+          selectedPaymentMethodIndex !== null
+            ? PAYMENT_METHODS[selectedPaymentMethodIndex].id
+            : paymentMethod || "card",
         message: "",
-        isAnonymous,
+        isAnonymous: isAnonymous, // Explicitly set isAnonymous flag
         notificationEnabled: receiveNotifications,
         customAmount: !selectedAmount && customAmount ? true : false,
       };
@@ -149,6 +168,7 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Error submitting donation:", errorData.error);
         throw new Error(errorData.error || "Error submitting donation");
       }
 
@@ -163,14 +183,20 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error submitting donation:", error);
-      alert("Error submitting donation. Please try again.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Error desconocido al enviar la donación"
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Handle closing success modal
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    setShowNotificationSection(true);
+    setStep(4); // Show step 4 with notifications options
   };
 
   // Handle notification toggle
@@ -179,6 +205,16 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
     // If we have a donation ID, update the notification preference in the database
     if (donationId) {
       try {
+        console.log(
+          "Updating notification preference for donation:",
+          donationId,
+          "to:",
+          checked
+        );
+
+        // Clear any previous errors
+        setErrorMessage(null);
+
         // Update notification preference in the database
         const response = await fetch(`/api/donation/${donationId}`, {
           method: "PATCH",
@@ -188,12 +224,38 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
           body: JSON.stringify({ notificationEnabled: checked }),
         });
 
+        const responseData = await response
+          .json()
+          .catch(() => ({ error: "Failed to parse response" }));
+
         if (!response.ok) {
-          console.error("Failed to update notification preference");
+          console.error(
+            "Failed to update notification preference:",
+            responseData
+          );
+
+          // Set an error message
+          setErrorMessage(
+            `No se pudo actualizar la preferencia de notificación: ${responseData.error || "Error desconocido"}`
+          );
+          return;
         }
+
+        console.log(
+          "Successfully updated notification preference:",
+          responseData
+        );
       } catch (error) {
         console.error("Error updating notification preference:", error);
+        setErrorMessage(
+          "Error al actualizar la preferencia de notificación. Inténtalo de nuevo."
+        );
       }
+    } else {
+      // If no donation ID yet, the preference will be saved with the donation when submitted
+      console.log(
+        "No donation ID available, notification preference saved for next donation"
+      );
     }
   };
 
@@ -514,7 +576,7 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                     <div className="space-y-4">
                       {/* Credit/Debit Card Option */}
                       <div
-                        className={`bg-[#e8f0e9] rounded-lg p-6 border ${
+                        className={`bg-white rounded-lg p-6 border ${
                           paymentMethod === "card"
                             ? "border-[#2c6e49]"
                             : "border-black"
@@ -523,16 +585,16 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                       >
                         <div className="flex items-start gap-4">
                           <div className="flex-shrink-0 mt-1">
-                            <div className="h-6 w-6 rounded-full bg-[#2c6e49] flex items-center justify-center">
+                            <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
                               {paymentMethod === "card" ? (
-                                <div className="h-3 w-3 rounded-full bg-white"></div>
+                                <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
                               ) : null}
                             </div>
                           </div>
                           <div>
                             <div className="flex items-center gap-2 mb-2">
-                              <CreditCard className="h-6 w-6 text-[#2c6e49]" />
-                              <h3 className="font-medium text-[#2c6e49] text-lg">
+                              <CreditCard className="h-6 w-6 text-gray-600" />
+                              <h3 className="font-medium text-gray-800 text-lg">
                                 Tarjeta de crédito/débito
                               </h3>
                             </div>
@@ -634,16 +696,143 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                         </div>
                       </div>
 
+                      {/* Show error message if there is one */}
+                      {errorMessage && (
+                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative mb-4">
+                          <span className="block sm:inline">
+                            {errorMessage}
+                          </span>
+                          <button
+                            className="absolute top-0 bottom-0 right-0 px-4 py-3"
+                            onClick={() => setErrorMessage(null)}
+                          >
+                            <span className="sr-only">Cerrar</span>
+                            <svg
+                              className="h-6 w-6 text-red-500"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+
                       {/* Confirm button - responsive sizing */}
                       <div className="flex justify-center">
                         <Button
                           className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3"
                           onClick={handleConfirmDonation}
+                          disabled={isSubmitting}
                         >
                           Confirmar donación{" "}
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Notification preferences */}
+              {step === 4 && (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 px-4">
+                  {/* Left column: Title and description */}
+                  <div className="md:col-span-5">
+                    <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
+                      Recibe actualizaciones sobre tu donación (opcional)
+                    </h2>
+                    <p className="text-gray-600">
+                      Sigue el avance de la campaña y descubre el impacto de tu
+                      aporte.
+                    </p>
+                  </div>
+
+                  {/* Right column: Notification preferences */}
+                  <div className="md:col-span-7">
+                    <div
+                      className={`bg-white rounded-lg shadow-sm p-6 mb-8 border ${receiveNotifications ? "border-[#2c6e49]" : "border-black"} hover:border-[#2c6e49] transition-colors`}
+                    >
+                      <div
+                        className="flex items-start space-x-4 cursor-pointer"
+                        onClick={() =>
+                          handleNotificationToggle(!receiveNotifications)
+                        }
+                      >
+                        <div className="flex-shrink-0 mt-1">
+                          <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
+                            {receiveNotifications ? (
+                              <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start gap-2">
+                            <Image
+                              src="/icons/notifications.svg"
+                              alt="Notifications"
+                              width={28}
+                              height={28}
+                              className="mt-1"
+                            />
+                            <div>
+                              <h3 className="text-lg font-medium text-gray-900">
+                                Recibir notificaciones
+                              </h3>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Recibe actualizaciones por correo electrónico
+                                y/o SMS
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Show error message if there is one */}
+                    {errorMessage && (
+                      <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative mb-4">
+                        <span className="block sm:inline">{errorMessage}</span>
+                        <button
+                          className="absolute top-0 bottom-0 right-0 px-4 py-3"
+                          onClick={() => setErrorMessage(null)}
+                        >
+                          <span className="sr-only">Cerrar</span>
+                          <svg
+                            className="h-6 w-6 text-red-500"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Complete button */}
+                    <div className="flex justify-center mt-8">
+                      <Button
+                        className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3"
+                        onClick={() => router.push("/")}
+                      >
+                        Completar
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -685,31 +874,68 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <div className="text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                <CheckIcon
-                  className="h-6 w-6 text-green-600"
-                  aria-hidden="true"
+        <div className="fixed inset-0 bg-gray-800/75 z-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full relative shadow-xl">
+            {/* Darker header with X button */}
+            <div className="bg-[#FCF9ED] p-3 flex justify-end">
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={handleCloseSuccessModal}
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content area with cream background */}
+            <div className="bg-[#FFFDF7] text-center p-8">
+              {/* Heart icon from SVG */}
+              <div className="mx-auto flex justify-center">
+                <Image
+                  src="/icons/heart.svg"
+                  alt="Heart"
+                  width={48}
+                  height={48}
+                  priority
                 />
               </div>
-              <h3 className="mt-3 text-xl font-semibold text-gray-900">
-                ¡Donación Exitosa!
+
+              <h3 className="mt-3 text-xl font-bold text-gray-900">
+                ¡Gracias por ser parte del cambio!
               </h3>
-              <p className="mt-2 text-sm text-gray-500">
-                Gracias por tu generosa donación de ${totalAmount.toFixed(2)}.
-                Tu contribución ayudará a esta causa.
+
+              <p className="mt-2 text-sm text-gray-600">
+                Tu aporte ayuda a construir un futuro mejor.
               </p>
-              <div className="mt-4">
-                <button
-                  type="button"
-                  className="inline-flex justify-center rounded-md border border-transparent bg-[#2c6e49] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#1e4d33]"
-                  onClick={handleCloseSuccessModal}
-                >
-                  Cerrar
-                </button>
-              </div>
+
+              <p className="mt-1 text-sm text-gray-600">
+                ¡Juntos somos más fuertes!
+              </p>
+
+              {/* Black separator */}
+              <div className="border-t border-black my-4"></div>
+
+              {/* Button with flat corners */}
+              <button
+                type="button"
+                className="inline-flex justify-center border-0 bg-[#2c6e49] px-16 py-2 text-sm font-medium text-white hover:bg-[#1e4d33] focus:outline-none rounded-full"
+                onClick={handleCloseSuccessModal}
+              >
+                Inicio
+              </button>
             </div>
           </div>
         </div>
@@ -725,25 +951,7 @@ export function DonatePageLoading() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9] flex items-center justify-center">
       <div className="text-center">
-        <div className="h-16 w-16 mx-auto rounded-full bg-[#e8f0e9] flex items-center justify-center animate-pulse">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-8 w-8 text-[#2c6e49]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            role="img"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-        </div>
-        <p className="mt-4 text-gray-600">Cargando...</p>
+        <LoadingSpinner size="lg" showText={true} text="Cargando..." />
       </div>
     </div>
   );
