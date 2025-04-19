@@ -235,38 +235,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true);
+      console.log("Attempting sign out via API...");
 
-      // Debugging logs
-      console.log("Attempting sign out...");
-      console.log("Current AuthContext user:", user);
-      console.log("Current AuthContext session:", session);
-      const { data: currentSupabaseSessionData, error: getSessionError } =
-        await supabase.auth.getSession();
-      console.log(
-        "Current Supabase session (just before sign out):",
-        currentSupabaseSessionData.session
-      );
-      if (getSessionError) {
-        console.error(
-          "Error getting session right before sign out:",
-          getSessionError
-        );
-      }
-      // End Debugging logs
-
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      setProfile(null);
-      router.push("/sign-in");
-    } catch (error) {
-      console.error("Sign out error:", error);
-      toast({
-        title: "Error",
-        description: "Error signing out.",
-        variant: "destructive",
+      // Call the server-side logout endpoint
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
       });
-      // Removed 'throw error;' for now to prevent unhandled rejection noise during debugging
-      // throw error;
+
+      // Check if the API call itself failed (network error, etc.)
+      if (!response.ok) {
+        let errorData = { error: "Logout API call failed", details: "" };
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          // Ignore error if response body is not JSON
+        }
+        console.error("Logout API error:", errorData);
+        toast({
+          title: "Error",
+          description: `${errorData.error}${errorData.details ? `: ${errorData.details}` : ""}`,
+          variant: "destructive",
+        });
+        // Throw an error to stop execution
+        throw new Error(errorData.error || "Logout API call failed");
+      }
+
+      // API call was successful (status 2xx)
+      // The server has initiated the sign-out and cleared the cookie.
+      // The client-side onAuthStateChange listener should now detect
+      // the SIGNED_OUT event and handle state updates + redirection.
+      console.log(
+        "Logout API call successful. Waiting for auth state change..."
+      );
+
+      // Optional: Keep a success toast here, or rely solely on redirection
+      toast({
+        title: "Éxito",
+        description: "Has cerrado sesión correctamente.",
+      });
+
+      // IMPORTANT: No manual state clearing or redirection here.
+      // Rely entirely on the onAuthStateChange listener.
+    } catch (error) {
+      // Catch errors from the fetch call or the explicit throw above
+      console.error("Sign out process error:", error);
+      // Avoid showing a generic toast if a specific one was already shown
+      if (!(error instanceof Error && error.message.includes("Logout API"))) {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred during sign out.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
