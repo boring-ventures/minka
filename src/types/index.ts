@@ -7,6 +7,7 @@ export interface ProfileData {
   phone: string;
   address: string;
   role: string;
+  created_at: string;
   identity_number?: string;
   birth_date?: string;
   profile_picture?: string;
