@@ -133,8 +133,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData.error || "Authentication failed");
       }
 
-      const data = await response.json();
-      
+      // Explicitly refresh the client-side session after successful API login
+      // This ensures the Supabase client is aware of the session set by the API's cookies
+      await supabase.auth.refreshSession();
+
+      // Fetch profile immediately after ensuring session is refreshed
+      const {
+        data: { session: refreshedSession },
+      } = await supabase.auth.getSession();
+      if (refreshedSession?.user) {
+        await fetchProfile(refreshedSession.user.id);
+      } else {
+        // This case should ideally not happen after a successful login and refresh
+        console.warn(
+          "Session was null even after successful login and refresh."
+        );
+        setProfile(null);
+      }
+
       // Show success message
       toast({
         title: "Éxito",
@@ -143,8 +159,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check for returnUrl in the URL (for redirecting back after sign-in)
       const urlParams = new URLSearchParams(window.location.search);
-      const returnUrl = urlParams.get('returnUrl');
-      
+      const returnUrl = urlParams.get("returnUrl");
+
       if (returnUrl) {
         // Redirect to the originally requested URL
         router.push(returnUrl);
@@ -153,9 +169,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push("/dashboard");
       }
 
-      return data;
+      // We don't really need to return data from the API call itself anymore
+      // return data;
     } catch (error) {
       console.error("Login error:", error);
+      // Make sure profile is cleared on login error
+      setProfile(null);
       throw error;
     } finally {
       setIsLoading(false);
@@ -216,6 +235,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true);
+
+      // Debugging logs
+      console.log("Attempting sign out...");
+      console.log("Current AuthContext user:", user);
+      console.log("Current AuthContext session:", session);
+      const { data: currentSupabaseSessionData, error: getSessionError } =
+        await supabase.auth.getSession();
+      console.log(
+        "Current Supabase session (just before sign out):",
+        currentSupabaseSessionData.session
+      );
+      if (getSessionError) {
+        console.error(
+          "Error getting session right before sign out:",
+          getSessionError
+        );
+      }
+      // End Debugging logs
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setProfile(null);
@@ -227,7 +265,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Error signing out.",
         variant: "destructive",
       });
-      throw error;
+      // Removed 'throw error;' for now to prevent unhandled rejection noise during debugging
+      // throw error;
     } finally {
       setIsLoading(false);
     }

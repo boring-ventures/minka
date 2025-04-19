@@ -36,8 +36,8 @@ export const sidebarData: SidebarData = {
     {
       name: "MINKA",
       logo: HeartHandshake,
-      plan: "Admin Dashboard"
-    }
+      plan: "Admin Dashboard",
+    },
   ],
   navGroups: [
     {
