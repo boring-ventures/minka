@@ -6,13 +6,23 @@ import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
 import { ChevronDown, Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useCampaignBrowse, SortOption } from "@/hooks/use-campaign-browse";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function CampaignsPage() {
+// Loading component for Suspense
+function CampaignsLoading() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c6e49]"></div>
+    </div>
+  );
+}
+
+// Main campaign content component that uses useSearchParams
+function CampaignsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -195,119 +205,88 @@ export default function CampaignsPage() {
               )}
 
               {/* Loading state */}
-              {isLoading && (
+              {isLoading ? (
                 <div className="text-center py-20">
                   <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c6e49]"></div>
-                  <p className="mt-4 text-[#555555]">Cargando campañas...</p>
                 </div>
-              )}
-
-              {/* No results state */}
-              {!isLoading && campaigns.length === 0 && (
-                <div className="text-center py-20">
-                  <p className="text-xl text-[#555555]">
-                    No se encontraron campañas para tu búsqueda.
-                  </p>
-                  <Button
-                    onClick={resetFilters}
-                    variant="outline"
-                    className="mt-4 border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
-                  >
-                    Limpiar filtros
-                  </Button>
-                </div>
-              )}
-
-              {/* Campaign grid */}
-              {!isLoading && campaigns && campaigns.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {campaigns.map((campaign) =>
-                    campaign && campaign.id ? (
+              ) : campaigns.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {campaigns.map((campaign) => (
                       <CampaignCard
                         key={campaign.id}
                         id={campaign.id}
-                        title={campaign.title || "Sin título"}
-                        image={
-                          campaign.primaryImage ||
-                          "/landing-page/dummies/Card/Imagen.png"
-                        }
-                        category={campaign.category || "Sin categoría"}
-                        location={campaign.location || "Sin ubicación"}
-                        progress={campaign.percentageFunded || 0}
-                        verified={campaign.verified || false}
-                        description={campaign.description || "Sin descripción"}
-                        donorCount={campaign.donorCount || 0}
-                        amountRaised={`Bs. ${(campaign.collectedAmount || 0).toLocaleString("es-BO")}`}
+                        title={campaign.title}
+                        image={campaign.primaryImage || ""}
+                        category={campaign.category}
+                        location={campaign.location}
+                        progress={campaign.percentageFunded}
+                        verified={campaign.verified}
+                        description={campaign.description}
+                        donorCount={campaign.donorCount}
+                        amountRaised={`Bs. ${campaign.collectedAmount.toLocaleString("es-BO")}`}
                       />
-                    ) : null
-                  )}
-                </div>
-              )}
-
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex justify-center mt-12">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={handlePrevPage}
-                      disabled={pagination.currentPage === 1}
-                      variant="outline"
-                      className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
-                    >
-                      Anterior
-                    </Button>
-
-                    <div className="flex gap-1">
-                      {Array.from({
-                        length: Math.min(5, pagination.totalPages),
-                      }).map((_, i) => {
-                        // Create a window of pages around the current page
-                        let pageNumber;
-                        if (pagination.totalPages <= 5) {
-                          pageNumber = i + 1;
-                        } else if (pagination.currentPage <= 3) {
-                          pageNumber = i + 1;
-                        } else if (
-                          pagination.currentPage >=
-                          pagination.totalPages - 2
-                        ) {
-                          pageNumber = pagination.totalPages - 4 + i;
-                        } else {
-                          pageNumber = pagination.currentPage - 2 + i;
-                        }
-
-                        return (
-                          <Button
-                            key={pageNumber}
-                            onClick={() => goToPage(pageNumber)}
-                            variant={
-                              pagination.currentPage === pageNumber
-                                ? "default"
-                                : "outline"
-                            }
-                            className={
-                              pagination.currentPage === pageNumber
-                                ? "bg-[#2c6e49] hover:bg-[#1e4d33]"
-                                : "border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
-                            }
-                          >
-                            {pageNumber}
-                          </Button>
-                        );
-                      })}
-                    </div>
-
-                    <Button
-                      onClick={handleNextPage}
-                      disabled={
-                        pagination.currentPage === pagination.totalPages
-                      }
-                      variant="outline"
-                      className="border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
-                    >
-                      Siguiente
-                    </Button>
+                    ))}
                   </div>
+
+                  {/* Pagination controls */}
+                  {pagination.totalPages > 1 && (
+                    <div className="flex justify-center items-center mt-12 space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={handlePrevPage}
+                        disabled={pagination.currentPage === 1}
+                      >
+                        Anterior
+                      </Button>
+
+                      {/* Page numbers */}
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: pagination.totalPages }).map(
+                          (_, index) => (
+                            <Button
+                              key={index}
+                              variant={
+                                pagination.currentPage === index + 1
+                                  ? "default"
+                                  : "outline"
+                              }
+                              className={
+                                pagination.currentPage === index + 1
+                                  ? "bg-[#2c6e49] hover:bg-[#2c6e49]/90"
+                                  : ""
+                              }
+                              onClick={() => goToPage(index + 1)}
+                            >
+                              {index + 1}
+                            </Button>
+                          )
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        onClick={handleNextPage}
+                        disabled={
+                          pagination.currentPage === pagination.totalPages
+                        }
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-16 bg-gray-50 rounded-lg">
+                  <p className="text-xl text-gray-600 mb-4">
+                    No se encontraron campañas con estos filtros.
+                  </p>
+                  <Button
+                    onClick={resetFilters}
+                    className="bg-[#2c6e49] hover:bg-[#2c6e49]/90"
+                  >
+                    Limpiar filtros
+                  </Button>
                 </div>
               )}
             </div>
@@ -316,5 +295,14 @@ export default function CampaignsPage() {
         <Footer />
       </div>
     </div>
+  );
+}
+
+// Main page component with Suspense
+export default function CampaignsPage() {
+  return (
+    <Suspense fallback={<CampaignsLoading />}>
+      <CampaignsContent />
+    </Suspense>
   );
 }
