@@ -1,88 +1,68 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DonationsHistoryTable } from "@/components/dashboard/donations-history-table";
 import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
+import { useUserDonations } from "@/hooks/use-user-donations";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-// @ts-expect-error - Temporarily disable type checking for this component due to Next.js PageProps conflict
-export default async function DonationsPage({ searchParams }) {
-  const supabase = createServerComponentClient({ cookies });
+export default function DonationsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createClientComponentClient();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
+
+  // Get current page from URL or default to 1
+  const currentPage = searchParams.get("page")
+    ? parseInt(searchParams.get("page") || "1")
+    : 1;
+
+  const pageSize = 6;
+
+  // Check user authentication
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        router.push("/sign-in");
+      } else {
+        setHasSession(true);
+      }
+      setIsLoading(false);
+    };
+
+    checkSession();
+  }, [supabase, router]);
+
+  // Use our custom hook to fetch donations
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    donations,
+    meta,
+    isLoading: isDonationsLoading,
+    isError,
+  } = useUserDonations(currentPage, pageSize);
 
-  if (!session) {
-    redirect("/sign-in");
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="h-[70vh] flex items-center justify-center">
+        <LoadingSpinner size="md" showText text="Cargando..." />
+      </div>
+    );
   }
 
-  const currentPage = searchParams.page ? parseInt(searchParams.page) : 1;
-  const pageSize = 6;
-  const from = (currentPage - 1) * pageSize;
-  const to = from + pageSize - 1;
-
-  // Get user's donations with pagination
-  const { data: donations, count } = await supabase
-    .from("donations")
-    .select(
-      `
-      *,
-      campaign:campaigns(id, title)
-    `,
-      { count: "exact" }
-    )
-    .eq("donor_id", session.user.id)
-    .order("created_at", { ascending: false })
-    .range(from, to);
-
-  // Sample data for visualization - will be removed in production
-  const sampleDonations = [
-    {
-      id: "1",
-      amount: 123.0,
-      created_at: "2024-01-04T10:00:00Z",
-      campaign: { id: "101", title: "Esperanza en acción" },
-    },
-    {
-      id: "2",
-      amount: 789.0,
-      created_at: "2024-01-04T09:30:00Z",
-      campaign: { id: "102", title: "Unidos por la alegría" },
-    },
-    {
-      id: "3",
-      amount: 234.0,
-      created_at: "2024-01-04T09:00:00Z",
-      campaign: { id: "103", title: "Cambiando vidas con sonrisas" },
-    },
-    {
-      id: "4",
-      amount: 567.0,
-      created_at: "2024-01-04T08:30:00Z",
-      campaign: { id: "104", title: "Semillas que inspiran" },
-    },
-    {
-      id: "5",
-      amount: 890.0,
-      created_at: "2024-01-04T08:00:00Z",
-      campaign: { id: "105", title: "Apoyo para nuevos comienzos" },
-    },
-    {
-      id: "6",
-      amount: 345.0,
-      created_at: "2024-01-04T07:30:00Z",
-      campaign: { id: "106", title: "Esperanza y solidaridad" },
-    },
-  ];
-
-  // Use sample data for development, real data for production
-  const displayDonations =
-    process.env.NODE_ENV === "development" ? sampleDonations : donations;
-  const totalPages = count ? Math.ceil(count / pageSize) : 4; // Default to 4 pages in development
-
-  // For testing empty state, uncomment the following line
-  // const displayDonations = [];
+  // If user is not authenticated, this will redirect (see useEffect)
+  if (!hasSession) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -90,12 +70,21 @@ export default async function DonationsPage({ searchParams }) {
         Historial de donaciones
       </h1>
 
-      {displayDonations && displayDonations.length > 0 ? (
+      {isDonationsLoading ? (
+        <div className="bg-white rounded-lg p-6 shadow-sm h-96 flex items-center justify-center">
+          <LoadingSpinner size="sm" showText text="Cargando donaciones..." />
+        </div>
+      ) : isError ? (
+        <div className="bg-red-50 rounded-lg p-6 text-red-500">
+          Ocurrió un error al cargar tus donaciones. Por favor intenta
+          nuevamente.
+        </div>
+      ) : donations.length > 0 ? (
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <DonationsHistoryTable
-            donations={displayDonations}
-            currentPage={currentPage}
-            totalPages={totalPages}
+            donations={donations}
+            currentPage={meta.currentPage}
+            totalPages={meta.totalPages}
           />
         </div>
       ) : (

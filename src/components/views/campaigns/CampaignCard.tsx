@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 interface CampaignCardProps {
-  id?: number;
+  id?: string | number;
   title: string;
   image: string;
   category: string;

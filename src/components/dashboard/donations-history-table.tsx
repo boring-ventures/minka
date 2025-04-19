@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  XCircle,
+  Clock,
+  RotateCcw,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Donation {
-  id: string;
-  amount: number;
-  created_at: string;
-  campaign?: {
-    id: string;
-    title: string;
-  };
-}
+import { Donation } from "@/hooks/use-user-donations";
+import { Badge } from "@/components/ui/badge";
 
 interface DonationsHistoryTableProps {
   donations: Donation[];
@@ -33,6 +34,54 @@ export function DonationsHistoryTable({
     return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
   };
 
+  // Payment status display
+  const getPaymentStatusDisplay = (status: string) => {
+    switch (status) {
+      case "completed":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-600 border-green-200 flex items-center gap-1"
+          >
+            <CheckCircle className="h-3 w-3" />
+            Completada
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-600 border-yellow-200 flex items-center gap-1"
+          >
+            <Clock className="h-3 w-3" />
+            Pendiente
+          </Badge>
+        );
+      case "failed":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-600 border-red-200 flex items-center gap-1"
+          >
+            <XCircle className="h-3 w-3" />
+            Fallida
+          </Badge>
+        );
+      case "refunded":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Reembolsada
+          </Badge>
+        );
+      default:
+        return status;
+    }
+  };
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -45,27 +94,70 @@ export function DonationsHistoryTable({
               <th className="text-center py-4 px-2 font-medium text-gray-600">
                 Fecha
               </th>
+              <th className="text-center py-4 px-2 font-medium text-gray-600">
+                Estado
+              </th>
               <th className="text-right py-4 px-2 font-medium text-gray-600">
                 Monto
+              </th>
+              <th className="text-center py-4 px-2 font-medium text-gray-600">
+                Acciones
               </th>
             </tr>
           </thead>
           <tbody>
             {donations.map((donation) => (
-              <tr key={donation.id} className="border-b border-gray-100">
+              <tr
+                key={donation.id}
+                className="border-b border-gray-100 hover:bg-gray-50"
+              >
                 <td className="py-4 px-2">
                   <Link
                     href={`/campaign/${donation.campaign?.id}`}
-                    className="text-gray-800 hover:text-[#2c6e49]"
+                    className="flex items-center gap-3 text-gray-800 hover:text-[#2c6e49]"
                   >
-                    {donation.campaign?.title}
+                    {donation.campaign?.media &&
+                      donation.campaign.media.length > 0 && (
+                        <div className="relative w-12 h-12 rounded-md overflow-hidden">
+                          <Image
+                            src={donation.campaign.media[0].mediaUrl}
+                            alt={donation.campaign.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                    <div>
+                      <div className="font-medium">
+                        {donation.campaign?.title}
+                      </div>
+                      <div className="text-xs text-gray-500 capitalize">
+                        {donation.campaign?.category?.replace(/_/g, " ")}
+                      </div>
+                    </div>
                   </Link>
                 </td>
                 <td className="py-4 px-2 text-center text-gray-700">
                   {formatDate(donation.created_at)}
                 </td>
-                <td className="py-4 px-2 text-right">
-                  Bs. {donation.amount.toFixed(2)}
+                <td className="py-4 px-2 text-center">
+                  {getPaymentStatusDisplay(donation.payment_status)}
+                </td>
+                <td className="py-4 px-2 text-right font-medium">
+                  {donation.currency} {donation.amount.toFixed(2)}
+                </td>
+                <td className="py-4 px-2 text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[#2c6e49] hover:text-[#1e4d33] hover:bg-green-50"
+                    asChild
+                  >
+                    <Link href={`/dashboard/donations/${donation.id}`}>
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Ver detalles
+                    </Link>
+                  </Button>
                 </td>
               </tr>
             ))}

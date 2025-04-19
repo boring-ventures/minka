@@ -12,61 +12,76 @@ import {
   Stethoscope,
 } from "lucide-react";
 
-const categories = [
-  { id: "todas", label: "Todas", icon: Grid2X2 },
-  { id: "cultura", label: "Cultura y arte", icon: Palette },
-  { id: "educacion", label: "Educación", icon: GraduationCap },
-  { id: "emergencia", label: "Emergencia", icon: AlertTriangle },
-  { id: "igualdad", label: "Igualdad", icon: Heart },
-  { id: "medioambiente", label: "Medioambiente", icon: Leaf },
-  { id: "salud", label: "Salud", icon: Stethoscope },
-];
+export interface CategoryItem {
+  name: string;
+  count: number;
+}
 
-export function CategorySelector() {
-  const [selectedCategory, setSelectedCategory] = useState("todas");
+interface CategorySelectorProps {
+  categories: CategoryItem[];
+  selectedCategory?: string;
+  onSelectCategory: (category: string | undefined) => void;
+}
+
+export function CategorySelector({
+  categories,
+  selectedCategory,
+  onSelectCategory,
+}: CategorySelectorProps) {
+  const [activeCategory, setActiveCategory] = useState<string | undefined>(
+    selectedCategory
+  );
+
+  const handleCategoryClick = (category: string | undefined) => {
+    setActiveCategory(category);
+    onSelectCategory(category);
+  };
+
+  // Default categories if none are provided
+  const defaultCategories: CategoryItem[] = [
+    { name: "Medio ambiente", count: 42 },
+    { name: "Educación", count: 35 },
+    { name: "Salud", count: 28 },
+    { name: "Igualdad", count: 21 },
+    { name: "Cultura y arte", count: 15 },
+    { name: "Deporte", count: 12 },
+  ];
+
+  // Use provided categories or defaults if empty
+  const displayCategories =
+    categories.length > 0 ? categories : defaultCategories;
 
   return (
-    <div className="flex flex-nowrap overflow-x-auto pb-4 gap-4 max-w-full mx-auto hide-scrollbar">
-      {categories.map((category) => {
-        const Icon = category.icon;
-        return (
+    <div className="mt-16">
+      <div className="flex flex-wrap justify-center gap-4">
+        <button
+          onClick={() => handleCategoryClick(undefined)}
+          className={`px-6 py-4 border-2 rounded-full transition-all ${
+            activeCategory === undefined
+              ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+              : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
+          }`}
+        >
+          Todas las categorías
+        </button>
+
+        {displayCategories.map((category) => (
           <button
-            type="button"
-            key={category.id}
-            onClick={() => setSelectedCategory(category.id)}
-            className={cn(
-              "flex flex-row items-start justify-start px-6 py-4 rounded-xl border border-[#2c6e49] transition-all flex-shrink-0",
-              "hover:shadow-sm",
-              "w-[180px]",
-              selectedCategory === category.id
-                ? "bg-[#f8f9fa] border-[#2c6e49] border-2"
-                : "bg-transparent"
-            )}
+            key={category.name}
+            onClick={() => handleCategoryClick(category.name)}
+            className={`px-6 py-4 border-2 rounded-full transition-all flex items-center ${
+              activeCategory === category.name
+                ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+                : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
+            }`}
           >
-            <div className="flex flex-col items-start">
-              <Icon
-                className={cn(
-                  "h-6 w-6 mb-2",
-                  selectedCategory === category.id
-                    ? "text-[#2c6e49]"
-                    : "text-gray-600"
-                )}
-              />
-              <span
-                className={cn(
-                  "text-base font-medium text-left",
-                  selectedCategory === category.id
-                    ? "text-[#2c6e49]"
-                    : "text-gray-600"
-                )}
-              >
-                {category.label}
-              </span>
-            </div>
+            <span>{category.name}</span>
+            <span className="ml-2 bg-white bg-opacity-20 text-sm px-2 py-0.5 rounded-full">
+              {category.count}
+            </span>
           </button>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
-

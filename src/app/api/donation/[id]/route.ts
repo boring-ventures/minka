@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function PATCH(
   request: NextRequest,
@@ -9,8 +11,11 @@ export async function PATCH(
   try {
     const donationId = (await params).id;
 
-    // Get the authenticated user
-    const session = await getAuthSession();
+    // Get the authenticated user using Supabase client
+    const supabase = createRouteHandlerClient({ cookies });
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
     // Parse the request body
@@ -119,8 +124,11 @@ export async function GET(
   try {
     const donationId = (await params).id;
 
-    // Get the authenticated user
-    const session = await getAuthSession();
+    // Get the authenticated user using Supabase client
+    const supabase = createRouteHandlerClient({ cookies });
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
     // Find the donation

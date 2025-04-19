@@ -1,145 +1,164 @@
 "use client";
 
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, Check, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { CampaignFilters } from "@/hooks/use-campaign-browse";
 
-export function FilterSidebar() {
+export interface LocationItem {
+  name: string;
+  count: number;
+}
+
+interface FilterSidebarProps {
+  locations: LocationItem[];
+  filters: CampaignFilters;
+  onUpdateFilters: (newFilters: Partial<CampaignFilters>) => void;
+  onResetFilters: () => void;
+}
+
+export function FilterSidebar({
+  locations,
+  filters,
+  onUpdateFilters,
+  onResetFilters,
+}: FilterSidebarProps) {
+  const [isCertifiedMenuOpen, setIsCertifiedMenuOpen] = useState(true);
+  const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(true);
+
+  const toggleCertifiedMenu = () => {
+    setIsCertifiedMenuOpen(!isCertifiedMenuOpen);
+  };
+
+  const toggleLocationMenu = () => {
+    setIsLocationMenuOpen(!isLocationMenuOpen);
+  };
+
+  // Default locations if none are provided
+  const defaultLocations: LocationItem[] = [
+    { name: "La Paz", count: 45 },
+    { name: "Santa Cruz", count: 38 },
+    { name: "Cochabamba", count: 25 },
+    { name: "Sucre", count: 12 },
+    { name: "Oruro", count: 8 },
+  ];
+
+  // Use provided locations or defaults if empty
+  const displayLocations = locations.length > 0 ? locations : defaultLocations;
+
+  const handleVerifiedChange = (verified: boolean) => {
+    onUpdateFilters({ verified });
+  };
+
+  const handleLocationChange = (location: string | undefined) => {
+    onUpdateFilters({ location });
+  };
+
   return (
-    <div className="w-full md:w-80 flex-shrink-0 p-6 rounded-xl">
-      {/* Header with title and icon */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Filtrar resultados</h2>
-        <SlidersHorizontal className="h-5 w-5 text-gray-600" />
+    <div className="w-full md:w-72 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden h-fit">
+      <div className="p-6 border-b border-gray-100">
+        <h2 className="text-xl font-semibold text-[#333333] mb-4">Filtros</h2>
+        <button
+          onClick={onResetFilters}
+          className="text-[#2c6e49] hover:underline font-medium"
+        >
+          Limpiar filtros
+        </button>
       </div>
 
-      {/* Search bar */}
-      <div className="relative mb-8">
-        <div className="relative rounded-full border border-gray-300  flex items-center px-4 py-2">
-          <Search className="h-5 w-5 text-gray-400 mr-2" />
-          <input
-            type="text"
-            placeholder="Buscar campañas"
-            className="w-full bg-transparent border-none focus:outline-none text-gray-700"
+      {/* Certified Organizations Section */}
+      <div className="border-b border-gray-100">
+        <button
+          onClick={toggleCertifiedMenu}
+          className="flex items-center justify-between w-full p-6 text-left"
+        >
+          <span className="text-lg font-medium text-[#333333]">Verificado</span>
+          <ChevronDown
+            className={`h-5 w-5 text-[#2c6e49] transition-transform ${
+              isCertifiedMenuOpen ? "rotate-180" : ""
+            }`}
           />
-          <button type="button" className="absolute right-3">
-            <Search className="h-5 w-5 text-gray-600" />
-          </button>
-        </div>
+        </button>
+
+        {isCertifiedMenuOpen && (
+          <div className="px-6 pb-6">
+            <div
+              className="flex items-center mb-2 cursor-pointer"
+              onClick={() => handleVerifiedChange(true)}
+            >
+              <div
+                className={`w-5 h-5 rounded-sm border mr-3 flex items-center justify-center ${
+                  filters.verified
+                    ? "bg-[#2c6e49] border-[#2c6e49]"
+                    : "border-gray-400"
+                }`}
+              >
+                {filters.verified && <Check className="h-4 w-4 text-white" />}
+              </div>
+              <span className="text-[#333333]">Mostrar solo verificadas</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="space-y-8">
-        {/* Campañas verificadas */}
-        <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">
-            Campañas verificadas
-          </h3>
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-            />
-            <span className="text-base text-gray-700">
-              Solo campañas verificadas
-            </span>
-          </label>
-        </div>
+      {/* Location Section */}
+      <div className="border-b border-gray-100">
+        <button
+          onClick={toggleLocationMenu}
+          className="flex items-center justify-between w-full p-6 text-left"
+        >
+          <span className="text-lg font-medium text-[#333333]">Ubicación</span>
+          <ChevronDown
+            className={`h-5 w-5 text-[#2c6e49] transition-transform ${
+              isLocationMenuOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
 
-        {/* Estado de verificación */}
-        <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">
-            Estado de verificación
-          </h3>
-          <div className="space-y-3">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">
-                En proceso de verificación
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">Sin verificar</span>
-            </label>
-          </div>
-        </div>
+        {isLocationMenuOpen && (
+          <div className="px-6 pb-6">
+            <div
+              className="flex items-center mb-3 cursor-pointer"
+              onClick={() => handleLocationChange(undefined)}
+            >
+              <div
+                className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
+                  !filters.location
+                    ? "bg-[#2c6e49] border-[#2c6e49]"
+                    : "border-gray-400"
+                }`}
+              >
+                {!filters.location && (
+                  <div className="h-3 w-3 rounded-full bg-white"></div>
+                )}
+              </div>
+              <span className="text-[#333333]">Todas</span>
+            </div>
 
-        {/* Fecha de creación */}
-        <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">
-            Fecha de creación
-          </h3>
-          <div className="space-y-3">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">Últimas 24 horas</span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">Últimos 7 días</span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">Último mes</span>
-            </label>
+            {displayLocations.map((location) => (
+              <div
+                key={location.name}
+                className="flex items-center mb-3 cursor-pointer"
+                onClick={() => handleLocationChange(location.name)}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
+                    filters.location === location.name
+                      ? "bg-[#2c6e49] border-[#2c6e49]"
+                      : "border-gray-400"
+                  }`}
+                >
+                  {filters.location === location.name && (
+                    <div className="h-3 w-3 rounded-full bg-white"></div>
+                  )}
+                </div>
+                <span className="text-[#333333]">{location.name}</span>
+                <span className="ml-2 text-sm text-gray-500">
+                  ({location.count})
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
-
-        {/* Monto recaudado */}
-        <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800">
-            Monto recaudado
-          </h3>
-          <div className="space-y-3">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">
-                Menos del 25% de la meta
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">
-                Entre el 25% y 75% de la meta
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">
-                Más del 75% de la meta
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 form-checkbox text-[#2c6e49] rounded border-gray-300"
-              />
-              <span className="text-base text-gray-700">Meta alcanzada</span>
-            </label>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

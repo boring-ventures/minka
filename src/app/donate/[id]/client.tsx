@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CreditCard, QrCode, Bell } from "lucide-react";
@@ -74,6 +74,20 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load user data on component mount
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        setUser(data?.user || null);
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+      }
+    };
+
+    checkUser();
+  }, [supabase]);
+
   // Calculate donation details
   const donationAmount =
     selectedAmount || (customAmount ? Number.parseFloat(customAmount) : 0);
@@ -137,13 +151,6 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
     setIsSubmitting(true);
 
     try {
-      // Get current user
-      const { data: userData } = await supabase.auth.getUser();
-      setUser(userData?.user || null);
-
-      // Determine if this is an anonymous donation
-      const isAnonymous = !userData?.user;
-
       // Create donation through our API
       const donationData = {
         campaignId: campaignId,
@@ -153,7 +160,7 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
             ? PAYMENT_METHODS[selectedPaymentMethodIndex].id
             : paymentMethod || "card",
         message: "",
-        isAnonymous: isAnonymous, // Explicitly set isAnonymous flag
+        isAnonymous: !user, // Explicitly set isAnonymous flag
         notificationEnabled: receiveNotifications,
         customAmount: !selectedAmount && customAmount ? true : false,
       };
@@ -164,11 +171,23 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(donationData),
+        credentials: "include", // Include cookies for authentication
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Error submitting donation:", errorData.error);
+
+        // Check specifically for auth error
+        if (
+          errorData.error ===
+          "User must be logged in for non-anonymous donations"
+        ) {
+          throw new Error(
+            "Debes iniciar sesión para realizar donaciones. Por favor, inicia sesión o regístrate primero."
+          );
+        }
+
         throw new Error(errorData.error || "Error submitting donation");
       }
 
@@ -191,6 +210,13 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Handle authentication error by redirecting to login
+  const handleLoginRedirect = () => {
+    // Store the current URL to redirect back after login
+    const currentPath = window.location.pathname;
+    router.push(`/sign-in?redirect=${encodeURIComponent(currentPath)}`);
   };
 
   // Handle closing success modal
@@ -696,33 +722,37 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                         </div>
                       </div>
 
-                      {/* Show error message if there is one */}
+                      {/* Error notification */}
                       {errorMessage && (
-                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative mb-4">
-                          <span className="block sm:inline">
-                            {errorMessage}
-                          </span>
-                          <button
-                            className="absolute top-0 bottom-0 right-0 px-4 py-3"
-                            onClick={() => setErrorMessage(null)}
-                          >
-                            <span className="sr-only">Cerrar</span>
-                            <svg
-                              className="h-6 w-6 text-red-500"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              aria-hidden="true"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
+                        <div className="bg-red-50 border border-red-300 text-red-800 rounded-lg p-4 mb-6">
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                              <svg
+                                className="h-5 w-5 text-red-400"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm">{errorMessage}</p>
+                              {errorMessage.includes("iniciar sesión") && (
+                                <Button
+                                  className="mt-2 bg-white border border-red-300 text-red-700 hover:bg-red-50"
+                                  onClick={handleLoginRedirect}
+                                >
+                                  Iniciar sesión
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
 
