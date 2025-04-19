@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         campaign: {
           ...donation.campaign,
           media:
-            donation.campaign?.media?.map((item) => ({
+            donation.campaign?.media?.map((item: { media_url: string }) => ({
               mediaUrl: item.media_url,
             })) || [],
         },

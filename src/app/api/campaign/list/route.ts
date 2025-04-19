@@ -132,6 +132,40 @@ const mockCampaigns = [
   },
 ];
 
+// Define interfaces for better type safety
+interface OrganizerProfile {
+  id: string;
+  name: string;
+  location: string;
+  profile_picture: string;
+}
+
+interface CampaignMedia {
+  id: string;
+  media_url: string;
+  is_primary: boolean;
+  type: string;
+  order_index: number;
+}
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  goal_amount: number;
+  collected_amount: number;
+  donor_count: number;
+  percentage_funded: number;
+  days_remaining: number;
+  created_at: string;
+  verification_status: boolean;
+  organizer_id: string;
+  organizer: OrganizerProfile | null;
+  media: CampaignMedia[];
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -236,6 +270,46 @@ export async function GET(request: Request) {
           ? campaign.media.find((m) => m.is_primary)
           : null;
 
+        let organizerData = null;
+
+        if (campaign.organizer) {
+          if (
+            Array.isArray(campaign.organizer) &&
+            campaign.organizer.length > 0
+          ) {
+            // Handle the case where it's an array (take the first item)
+            const firstOrganizer = campaign.organizer[0];
+            organizerData = {
+              id: firstOrganizer.id,
+              name: firstOrganizer.name,
+              location: firstOrganizer.location,
+              profilePicture: firstOrganizer.profile_picture,
+            };
+          } else if (typeof campaign.organizer === "object") {
+            // Handle the case where it's a single object
+            // Use unknown type first to avoid TypeScript errors
+            const organizer = campaign.organizer as unknown;
+            if (
+              organizer &&
+              typeof organizer === "object" &&
+              !Array.isArray(organizer)
+            ) {
+              const typedOrganizer = organizer as {
+                id?: string;
+                name?: string;
+                location?: string;
+                profile_picture?: string;
+              };
+              organizerData = {
+                id: typedOrganizer.id || "",
+                name: typedOrganizer.name || "",
+                location: typedOrganizer.location || "",
+                profilePicture: typedOrganizer.profile_picture || "",
+              };
+            }
+          }
+        }
+
         return {
           id: campaign.id,
           title: campaign.title,
@@ -248,14 +322,7 @@ export async function GET(request: Request) {
           percentageFunded: campaign.percentage_funded,
           daysRemaining: campaign.days_remaining,
           verified: campaign.verification_status,
-          organizer: campaign.organizer
-            ? {
-                id: campaign.organizer.id,
-                name: campaign.organizer.name,
-                location: campaign.organizer.location,
-                profilePicture: campaign.organizer.profile_picture,
-              }
-            : null,
+          organizer: organizerData,
           primaryImage: primaryMedia ? primaryMedia.media_url : null,
         };
       });

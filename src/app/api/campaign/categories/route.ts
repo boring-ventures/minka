@@ -2,6 +2,12 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+// Interface for category count data
+interface CategoryCount {
+  category: string;
+  count: string | number;
+}
+
 // Fallback categories data for development
 const mockCategories = [
   { name: "Medio ambiente", count: 42 },
@@ -20,24 +26,54 @@ export async function GET() {
         cookies: () => cookies(),
       });
 
-      // Query to get unique categories and their counts
-      const { data, error } = await supabase
-        .from("campaigns")
-        .select("category, count(*)")
-        .eq("campaign_status", "active")
-        .group("category")
-        .order("count", { ascending: false });
+      // Use a raw SQL query to get categories and counts
+      const { data, error } = await supabase.rpc("get_category_counts");
 
       if (error) {
         console.error("Error fetching categories:", error);
         throw error;
       }
 
-      // Format the response
-      const categories = data.map((item) => ({
-        name: item.category,
-        count: item.count,
-      }));
+      // If RPC function doesn't exist, try with raw SQL
+      if (!data) {
+        const { data: rawData, error: rawError } = await supabase
+          .from("campaigns")
+          .select("category")
+          .eq("campaign_status", "active");
+
+        if (rawError) {
+          console.error("Error with raw query:", rawError);
+          throw rawError;
+        }
+
+        // Manually count categories with proper typing
+        const categoryCounts: Record<string, number> = rawData.reduce(
+          (acc: Record<string, number>, item: { category: string }) => {
+            acc[item.category] = (acc[item.category] || 0) + 1;
+            return acc;
+          },
+          {}
+        );
+
+        // Format into the expected structure
+        const categories = Object.entries(categoryCounts)
+          .map(([name, count]) => ({
+            name,
+            count,
+          }))
+          .sort((a, b) => b.count - a.count);
+
+        return NextResponse.json({ categories });
+      }
+
+      // Format the response if RPC worked
+      const categories = (data as CategoryCount[]).map(
+        (item: CategoryCount) => ({
+          name: item.category,
+          count:
+            typeof item.count === "string" ? parseInt(item.count) : item.count,
+        })
+      );
 
       return NextResponse.json({ categories });
     } catch (dbError) {

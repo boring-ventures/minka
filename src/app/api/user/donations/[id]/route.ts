@@ -4,10 +4,10 @@ import { cookies } from "next/headers";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const donationId = params.id;
+    const donationId = (await params).id;
 
     // Check if user is authenticated
     const supabase = createServerComponentClient({ cookies });
@@ -62,12 +62,19 @@ export async function GET(
       campaign: {
         ...donation.campaign,
         media:
-          donation.campaign?.media?.map((item) => ({
-            mediaUrl: item.media_url,
-            id: item.id,
-            type: item.type,
-            isPrimary: item.is_primary,
-          })) || [],
+          donation.campaign?.media?.map(
+            (item: {
+              media_url: string;
+              id: string;
+              type: string;
+              is_primary: boolean;
+            }) => ({
+              mediaUrl: item.media_url,
+              id: item.id,
+              type: item.type,
+              isPrimary: item.is_primary,
+            })
+          ) || [],
       },
     };
 

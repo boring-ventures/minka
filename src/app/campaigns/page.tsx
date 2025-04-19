@@ -129,10 +129,18 @@ export default function CampaignsPage() {
           </p>
         </div>
 
-        <CategorySelector />
+        <CategorySelector
+          categories={[]}
+          onSelectCategory={(category) => console.log(category)}
+        />
 
         <div className="flex flex-col md:flex-row gap-10 mt-16">
-          <FilterSidebar />
+          <FilterSidebar
+            locations={[]}
+            filters={{ verified: false, location: undefined, search: "" }}
+            onUpdateFilters={(filters) => console.log(filters)}
+            onResetFilters={() => console.log("Filters reset")}
+          />
 
           <div className="flex-1">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
