@@ -6,9 +6,11 @@ import { Footer } from "@/components/views/landing-page/Footer";
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9] flex flex-col">
       <Header />
-      <main className="container mx-auto px-4 py-16">
+      {/* Spacer div to account for the fixed header height */}
+      <div className="h-20 md:h-28"></div>
+      <main className="container mx-auto px-4 py-16 flex-grow">
         {/* Hero Section */}
         <div className="max-w-4xl mx-auto text-center mb-32">
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8">

@@ -262,20 +262,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // API call was successful (status 2xx)
       // The server has initiated the sign-out and cleared the cookie.
-      // The client-side onAuthStateChange listener should now detect
-      // the SIGNED_OUT event and handle state updates + redirection.
-      console.log(
-        "Logout API call successful. Waiting for auth state change..."
-      );
+      console.log("Logout API call successful.");
 
-      // Optional: Keep a success toast here, or rely solely on redirection
+      // Manually clear user state
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+
+      // Show success toast
       toast({
         title: "Éxito",
         description: "Has cerrado sesión correctamente.",
       });
 
-      // IMPORTANT: No manual state clearing or redirection here.
-      // Rely entirely on the onAuthStateChange listener.
+      // Manually redirect to sign-in page
+      router.push("/sign-in");
     } catch (error) {
       // Catch errors from the fetch call or the explicit throw above
       console.error("Sign out process error:", error);

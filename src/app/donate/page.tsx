@@ -53,7 +53,7 @@ function DonatePageContent() {
   }, [router, searchParams]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]">
+    <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9] flex flex-col">
       <Header />
 
       {/* Spacer div to account for the fixed header height */}
@@ -76,7 +76,7 @@ function DonatePageContent() {
       </div>
 
       {/* Main content */}
-      <main className="container mx-auto py-16 px-4">
+      <main className="container mx-auto py-16 px-4 flex-grow">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-[#2c6e49] mb-6">
             Para realizar una donación, elige una campaña

@@ -11,7 +11,7 @@ import {
 
 export function Footer() {
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4 mt-auto">
       <footer className="bg-[#2c6e49] rounded-t-3xl text-white">
         <div className="p-8 md:p-16">
           <div className="flex flex-col md:flex-row justify-between items-center mb-16">

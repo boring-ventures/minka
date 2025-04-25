@@ -24,6 +24,16 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 142 43% 30%;
     --radius: 0.5rem;
+    
+    /* Sidebar Colors - Green theme */
+    --sidebar-background: 142 43% 30%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 142 43% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142 55% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 142 43% 45%;
+    --sidebar-ring: 0 0% 100%;
   }
   
   html {

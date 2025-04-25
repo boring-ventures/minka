@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,8 @@ export function DashboardHeader() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
@@ -37,4 +36,4 @@ export function DashboardHeader() {
       </div>
     </header>
   );
-} 
+}

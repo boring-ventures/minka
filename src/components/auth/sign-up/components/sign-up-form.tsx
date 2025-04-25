@@ -16,6 +16,8 @@ import {
   ChevronDown,
   Apple,
   Info,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
 import { LoadingScreen } from "@/components/ui/loading-screen";
@@ -70,6 +72,8 @@ export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp } = useAuth();
 
   const {
@@ -186,7 +190,7 @@ export function SignUpForm() {
             id="firstName"
             {...register("firstName")}
             placeholder="Ingresa tu nombre"
-            className="w-full"
+            className="w-full border-black"
             aria-invalid={errors.firstName ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
@@ -209,7 +213,7 @@ export function SignUpForm() {
             id="lastName"
             {...register("lastName")}
             placeholder="Ingresa tus apellidos"
-            className="w-full"
+            className="w-full border-black"
             aria-invalid={errors.lastName ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
@@ -231,7 +235,7 @@ export function SignUpForm() {
           <div className="relative">
             <button
               type="button"
-              className="flex items-center justify-between h-11 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
+              className="flex items-center justify-between h-10 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
               disabled={isLoading || isSubmitting}
             >
               <div className="flex items-center">
@@ -245,7 +249,7 @@ export function SignUpForm() {
             id="documentId"
             {...register("documentId")}
             placeholder="Ingresa el número de tu DNI"
-            className="flex-1 rounded-l-none"
+            className="flex-1 rounded-l-none border-black"
             aria-invalid={errors.documentId ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
@@ -272,7 +276,7 @@ export function SignUpForm() {
             type="text"
             {...register("birthDate")}
             placeholder="DD/MM/AAAA"
-            className="pl-10"
+            className="pl-10 border-black"
             aria-invalid={errors.birthDate ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
@@ -298,8 +302,8 @@ export function SignUpForm() {
             id="email"
             type="email"
             {...register("email")}
-            placeholder="tucorreo@dominio.com"
-            className="pl-10"
+            placeholder="correo@ejemplo.com"
+            className="pl-10 border-black"
             aria-invalid={errors.email ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
@@ -321,7 +325,7 @@ export function SignUpForm() {
           <div className="relative">
             <button
               type="button"
-              className="flex items-center justify-between h-11 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
+              className="flex items-center justify-between h-10 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
               disabled={isLoading || isSubmitting}
             >
               <div className="flex items-center">
@@ -333,9 +337,10 @@ export function SignUpForm() {
           </div>
           <Input
             id="phone"
+            type="tel"
             {...register("phone")}
-            placeholder="Ingresa tu número de teléfono"
-            className="flex-1 rounded-l-none"
+            placeholder="XXXXXXXX"
+            className="flex-1 rounded-l-none border-black"
             aria-invalid={errors.phone ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
@@ -356,13 +361,24 @@ export function SignUpForm() {
         <div className="relative">
           <Input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             {...register("password")}
             placeholder="••••••••"
-            className="w-full"
+            className="border-black pr-10"
             aria-invalid={errors.password ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex items-center pr-3"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? (
+              <EyeOff className="h-5 w-5 text-gray-400" />
+            ) : (
+              <Eye className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
         </div>
         {errors.password && (
           <p className="text-sm text-red-500 mt-1 flex items-center">
@@ -378,18 +394,29 @@ export function SignUpForm() {
           htmlFor="confirmPassword"
           className="block text-sm font-medium mb-2"
         >
-          Confirmar Contraseña
+          Confirmar contraseña
         </label>
         <div className="relative">
           <Input
             id="confirmPassword"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             {...register("confirmPassword")}
             placeholder="••••••••"
-            className="w-full"
+            className="border-black pr-10"
             aria-invalid={errors.confirmPassword ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex items-center pr-3"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            {showConfirmPassword ? (
+              <EyeOff className="h-5 w-5 text-gray-400" />
+            ) : (
+              <Eye className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
         </div>
         {errors.confirmPassword && (
           <p className="text-sm text-red-500 mt-1 flex items-center">
@@ -399,7 +426,7 @@ export function SignUpForm() {
         )}
       </div>
 
-      {/* Terms */}
+      {/* Accept Terms */}
       <div className="flex items-center space-x-2">
         <Controller
           name="acceptTerms"
@@ -415,7 +442,11 @@ export function SignUpForm() {
         />
         <label htmlFor="terms" className="text-sm leading-none cursor-pointer">
           Acepto los{" "}
-          <Link href="/terminos" className="text-[#2c6e49] hover:underline">
+          <Link
+            href="/terminos"
+            className="text-[#2c6e49] hover:underline"
+            target="_blank"
+          >
             Términos, Condiciones y Políticas de Minka
           </Link>
           .
@@ -428,18 +459,17 @@ export function SignUpForm() {
         </p>
       )}
 
-      {/* Submit Button */}
       <Button
         type="submit"
         className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white font-medium py-2 rounded-full"
         disabled={isLoading || isSubmitting}
       >
-        {isLoading ? "Creando cuenta..." : "Crear cuenta"}
+        {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
       </Button>
 
       <div className="relative flex items-center justify-center">
         <div className="border-t border-gray-300 flex-grow" />
-        <span className="mx-4 text-sm text-gray-500">O regístrate con</span>
+        <span className="mx-4 text-sm text-gray-500">Regístrate con</span>
         <div className="border-t border-gray-300 flex-grow" />
       </div>
 

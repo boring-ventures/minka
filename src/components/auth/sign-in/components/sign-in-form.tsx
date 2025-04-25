@@ -6,11 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { z } from "zod";
-import { Facebook, Mail, Lock, Apple, Info } from "lucide-react";
+import { Facebook, Mail, Lock, Apple, Info, Eye, EyeOff } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,9 +23,6 @@ const signInFormSchema = z.object({
     .string()
     .min(1, "La contraseña es requerida")
     .min(6, "La contraseña debe tener al menos 6 caracteres"),
-  acceptTerms: z.boolean().refine((val) => val === true, {
-    message: "Debes aceptar los términos y condiciones",
-  }),
 });
 
 type SignInFormData = z.infer<typeof signInFormSchema>;
@@ -34,6 +30,7 @@ type SignInFormData = z.infer<typeof signInFormSchema>;
 export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,7 +39,6 @@ export function SignInForm() {
   const {
     register,
     handleSubmit,
-    control,
     formState: { errors },
     setError,
   } = useForm<SignInFormData>({
@@ -50,7 +46,6 @@ export function SignInForm() {
     defaultValues: {
       email: "",
       password: "",
-      acceptTerms: false,
     },
   });
 
@@ -131,7 +126,7 @@ export function SignInForm() {
             type="email"
             {...register("email")}
             placeholder="correo@ejemplo.com"
-            className="pl-10"
+            className="pl-10 border-black"
             aria-invalid={errors.email ? "true" : "false"}
           />
         </div>
@@ -153,12 +148,23 @@ export function SignInForm() {
           </div>
           <Input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             {...register("password")}
             placeholder="••••••••"
-            className="pl-10"
+            className="pl-10 pr-10 border-black"
             aria-invalid={errors.password ? "true" : "false"}
           />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex items-center pr-3"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? (
+              <EyeOff className="h-5 w-5 text-gray-400" />
+            ) : (
+              <Eye className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
         </div>
         {errors.password && (
           <p className="text-sm text-red-500 mt-1 flex items-center">
@@ -167,33 +173,6 @@ export function SignInForm() {
           </p>
         )}
       </div>
-
-      <div className="flex items-center space-x-2">
-        <Controller
-          name="acceptTerms"
-          control={control}
-          render={({ field }) => (
-            <Checkbox
-              id="terms"
-              checked={field.value}
-              onCheckedChange={field.onChange}
-            />
-          )}
-        />
-        <label htmlFor="terms" className="text-sm leading-none cursor-pointer">
-          Acepto los{" "}
-          <Link href="/terminos" className="text-[#2c6e49] hover:underline">
-            Términos, Condiciones y Políticas de Minka
-          </Link>
-          .
-        </label>
-      </div>
-      {errors.acceptTerms && (
-        <p className="text-sm text-red-500 mt-1 flex items-center">
-          <Info className="h-3 w-3 mr-1" />
-          {errors.acceptTerms.message}
-        </p>
-      )}
 
       <Button
         type="submit"
@@ -250,7 +229,7 @@ export function SignInForm() {
             />
             <path
               fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07h3.66c.86-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
           <span className="ml-2">
@@ -269,6 +248,15 @@ export function SignInForm() {
             {socialLoading === "apple" ? "Cargando..." : "Apple"}
           </span>
         </Button>
+      </div>
+
+      <div className="text-center">
+        <Link
+          href="/forgot-password"
+          className="text-[#2c6e49] hover:underline text-sm font-medium"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
       </div>
     </form>
   );
