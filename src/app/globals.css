@@ -24,7 +24,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 142 43% 30%;
     --radius: 0.5rem;
-    
+
     /* Sidebar Colors - Green theme */
     --sidebar-background: 142 43% 30%;
     --sidebar-foreground: 0 0% 100%;
@@ -35,7 +35,7 @@
     --sidebar-border: 142 43% 45%;
     --sidebar-ring: 0 0% 100%;
   }
-  
+
   html {
     font-family: var(--font-quicksand), system-ui, sans-serif;
   }
@@ -138,3 +138,40 @@ html {
   transform: scale(1.2);
 }
 
+/* Sidebar size adjustments */
+[data-sidebar="sidebar"] [data-sidebar="menu-button"] svg,
+[data-sidebar="sidebar"] [data-sidebar="menu-action"] svg,
+[data-sidebar="sidebar"] [data-sidebar="group-action"] svg,
+[data-sidebar="sidebar"] [data-sidebar="menu-badge"] svg,
+[data-sidebar="sidebar"] [data-sidebar="trigger"] svg,
+[data-sidebar="sidebar"] [data-sidebar="menu-sub-button"] svg,
+[data-sidebar="sidebar"] .lucide {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+[data-sidebar="sidebar"] [data-sidebar="menu-button"],
+[data-sidebar="sidebar"] [data-sidebar="group-label"],
+[data-sidebar="sidebar"] [data-sidebar="menu-sub-button"] {
+  font-size: 1.125rem !important;
+  line-height: 1.75rem !important;
+}
+
+[data-sidebar="sidebar"] [data-sidebar="menu-button"] span,
+[data-sidebar="sidebar"] [data-sidebar="group-label"] span {
+  font-size: 1.125rem !important;
+}
+
+/* Handle smaller elements */
+[data-sidebar="sidebar"] [data-sidebar="menu-badge"] {
+  font-size: 0.875rem !important;
+  height: 1.5rem !important;
+  min-width: 1.5rem !important;
+}
+
+/* Adjust spacing for the increased size */
+[data-sidebar="sidebar"] [data-sidebar="menu-button"],
+[data-sidebar="sidebar"] [data-sidebar="menu-sub-button"] {
+  padding: 0.625rem !important;
+  gap: 0.75rem !important;
+}

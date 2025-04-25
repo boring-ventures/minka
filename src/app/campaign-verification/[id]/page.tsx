@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 
-export default function CampaignVerificationRedirect({
+export default async function CampaignVerificationRedirect({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   // Redirect to the main campaign verification page
   // The CampaignVerificationView component already handles the campaignId prop
-  redirect(`/campaign-verification?id=${params.id}`);
+  redirect(`/campaign-verification?id=${(await params).id}`);
 }
