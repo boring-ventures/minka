@@ -1,12 +1,13 @@
-import { MapPin, Calendar, Award } from "lucide-react"
+import { MapPin, Calendar, Award } from "lucide-react";
+import { getRegionDisplayName, Region } from "@/lib/region-utils";
 
 interface CampaignOrganizerProps {
-  name: string
-  role: string
-  location: string
-  memberSince: string
-  successfulCampaigns: number
-  bio: string
+  name: string;
+  role: string;
+  location: Region;
+  memberSince: string;
+  successfulCampaigns: number;
+  bio: string;
 }
 
 export function CampaignOrganizer({
@@ -32,7 +33,7 @@ export function CampaignOrganizer({
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <MapPin className="h-4 w-4" />
-          <span>{location}</span>
+          <span>{getRegionDisplayName(location)}</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Calendar className="h-4 w-4" />
@@ -49,6 +50,5 @@ export function CampaignOrganizer({
         <p className="text-sm text-gray-600">{bio}</p>
       </div>
     </div>
-  )
+  );
 }
-

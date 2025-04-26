@@ -1,6 +1,5 @@
 "use client";
 
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserDashboardContent } from "@/components/dashboard/user-dashboard-content";
@@ -12,6 +11,8 @@ import { toast } from "@/components/ui/use-toast";
 import { X } from "lucide-react";
 import { ProfileData } from "@/types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useAuth } from "@/providers/auth-provider";
+import { useDb } from "@/hooks/use-db";
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -25,36 +26,48 @@ export default function DashboardPage() {
     address: "",
   });
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const { user } = useAuth();
+  const { getProfile, updateProfile } = useDb();
 
   useEffect(() => {
     async function getUser() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
+      if (!user) {
         router.push("/sign-in");
         return;
       }
 
       // Get user profile and role
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+      const prismaData = await getProfile(user.id);
 
-      setProfile(data);
-      setIsAdmin(data?.role === "admin");
+      if (prismaData) {
+        // Function to safely get ISO string
+        const getISOString = (dateVal: any): string => {
+          if (typeof dateVal === "string") return dateVal;
+          if (dateVal instanceof Date) return dateVal.toISOString();
+          return new Date().toISOString();
+        };
 
-      // Initialize form data with profile data
-      if (data) {
+        // Convert Prisma profile to ProfileData
+        const profileData: ProfileData = {
+          id: prismaData.id,
+          name: prismaData.name,
+          email: prismaData.email,
+          phone: prismaData.phone,
+          address: prismaData.address || "",
+          role: prismaData.role,
+          created_at: getISOString(prismaData.createdAt),
+          // Add other fields as needed
+        };
+
+        setProfile(profileData);
+        setIsAdmin(prismaData.role === "admin");
+
+        // Initialize form data with profile data
         setProfileForm({
-          name: data.name || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          address: data.address || "",
+          name: prismaData.name || "",
+          email: prismaData.email || "",
+          phone: prismaData.phone || "",
+          address: prismaData.address || "",
         });
       }
 
@@ -62,21 +75,18 @@ export default function DashboardPage() {
     }
 
     getUser();
-  }, [supabase, router]);
+  }, [user, router, getProfile]);
 
   const handleSaveChanges = async () => {
     try {
       if (!profile) return;
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          name: profileForm.name,
-          email: profileForm.email,
-          phone: profileForm.phone,
-          address: profileForm.address,
-        })
-        .eq("id", profile.id);
+      const { error } = await updateProfile(profile.id, {
+        name: profileForm.name,
+        email: profileForm.email,
+        phone: profileForm.phone,
+        address: profileForm.address,
+      });
 
       if (error) throw error;
 

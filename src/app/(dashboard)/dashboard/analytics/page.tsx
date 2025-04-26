@@ -1,9 +1,13 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { ProfileData } from "@/types";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, HeartHandshake, Library, CheckCheck } from "lucide-react";
+import { ProfileData } from "@/types";
+import { useDb } from "@/hooks/use-db";
+import { useAuth } from "@/providers/auth-provider";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // Helper to format currency
 const formatCurrency = (amount: number) => {
@@ -13,71 +17,81 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-export default async function AnalyticsPage() {
-  const supabase = createServerComponentClient({ cookies });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect("/sign-in");
-  }
-
-  // Fetch current user's profile to check role
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", session.user.id)
-    .single<Pick<ProfileData, "role">>();
-
-  // --- Admin-Specific Data Fetching ---
-  let adminData = {
+export default function AnalyticsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { getProfile, getAnalytics, loading } = useDb();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [adminData, setAdminData] = useState({
     totalUsers: 0,
     totalCampaigns: 0,
     totalDonations: 0,
     pendingVerifications: 0,
-  };
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (profile?.role === "admin") {
-    // Use Supabase Edge Function or RPC for aggregation if performance becomes an issue
-    const [
-      usersCountRes,
-      campaignsCountRes,
-      donationsSumRes,
-      pendingVerificationsRes,
-    ] = await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
-      supabase.from("campaigns").select("id", { count: "exact", head: true }),
-      supabase.from("donations").select("amount"), // Fetch all amounts - Aggregate client-side or use RPC
-      supabase
-        .from("campaigns")
-        .select("id", { count: "exact", head: true })
-        .eq("verification_status", false),
-    ]);
+  useEffect(() => {
+    async function loadData() {
+      if (!user) {
+        router.push("/sign-in");
+        return;
+      }
 
-    // Calculate total donations sum
-    const totalDonationAmount =
-      donationsSumRes.data?.reduce((sum, d) => sum + (d.amount || 0), 0) || 0;
+      // Fetch current user's profile to check role
+      const prismaProfile = await getProfile(user.id);
 
-    adminData = {
-      totalUsers: usersCountRes.count ?? 0,
-      totalCampaigns: campaignsCountRes.count ?? 0,
-      totalDonations: totalDonationAmount,
-      pendingVerifications: pendingVerificationsRes.count ?? 0,
-    };
+      if (!prismaProfile) {
+        router.push("/sign-in");
+        return;
+      }
+
+      // Convert to ProfileData
+      const getISOString = (dateVal: any): string => {
+        if (typeof dateVal === "string") return dateVal;
+        if (dateVal instanceof Date) return dateVal.toISOString();
+        return new Date().toISOString();
+      };
+
+      const profileData: ProfileData = {
+        id: prismaProfile.id,
+        name: prismaProfile.name,
+        email: prismaProfile.email,
+        phone: prismaProfile.phone,
+        address: prismaProfile.address || "",
+        role: prismaProfile.role,
+        created_at: getISOString(prismaProfile.createdAt),
+      };
+
+      setProfile(profileData);
+
+      // --- Admin-Specific Data Fetching ---
+      if (prismaProfile.role === "admin") {
+        const analyticsData = await getAnalytics();
+        setAdminData(analyticsData);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadData();
+  }, [user, router, getProfile, getAnalytics]);
+
+  if (isLoading || loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
-  // --- End Admin-Specific Data Fetching ---
 
-  // TODO: Add logic for non-admin users if needed, or redirect them
+  // Redirect non-admins or show a limited view
   if (profile?.role !== "admin") {
-    // Example: Redirect non-admins or show a limited view
     return (
       <div className="space-y-6 p-4 md:p-6">
         <h1 className="text-3xl font-bold text-gray-800">Analytics</h1>
         <p>Analytics view is only available for administrators.</p>
       </div>
     );
-    // redirect("/dashboard");
   }
 
   return (

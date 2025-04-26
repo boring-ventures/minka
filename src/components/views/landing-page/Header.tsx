@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useDb } from "@/hooks/use-db";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,7 +14,7 @@ export function Header() {
   const router = useRouter();
   const { user } = useAuth();
   const [profileName, setProfileName] = useState<string>("");
-  const supabase = createClientComponentClient();
+  const { getProfile } = useDb();
 
   // Add scroll event listener
   useEffect(() => {
@@ -32,28 +32,25 @@ export function Header() {
     };
   }, []);
 
-  // Fetch user profile data from Supabase
-  useEffect(() => {
-    async function fetchUserProfile() {
-      if (!user) return;
+  // Memoize the fetchUserProfile function to prevent recreating it on each render
+  const fetchUserProfile = useCallback(async () => {
+    if (!user) return;
 
-      try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("name")
-          .eq("id", user.id)
-          .single();
+    try {
+      const data = await getProfile(user.id);
 
-        if (data?.name) {
-          setProfileName(data.name);
-        }
-      } catch (error) {
-        console.error("Error fetching user profile", error);
+      if (data?.name) {
+        setProfileName(data.name);
       }
+    } catch (error) {
+      console.error("Error fetching user profile", error);
     }
+  }, [user, getProfile]);
 
+  // Fetch user profile data from Prisma
+  useEffect(() => {
     fetchUserProfile();
-  }, [user, supabase]);
+  }, [fetchUserProfile]); // Only depends on the memoized function
 
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
@@ -78,7 +75,7 @@ export function Header() {
   };
 
   const menuItems = [
-    { href: "/campaigns", label: "Donar" },
+    { href: "/campaign", label: "Donar" },
     { href: "/create-campaign", label: "Crear campaña" },
     { href: "/about-us", label: "Nosotros" },
     { href: "/help", label: "Ayuda" },

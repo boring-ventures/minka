@@ -1,11 +1,13 @@
 "use client";
 
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useAuth } from "@/providers/auth-provider";
+import { useDb, NotificationPreferences } from "@/hooks/use-db";
 
 interface Notification {
   id: string;
@@ -19,45 +21,35 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [preferences, setPreferences] = useState({
-    news_updates: false,
-    campaign_updates: true,
+  const [preferences, setPreferences] = useState<NotificationPreferences>({
+    newsUpdates: false,
+    campaignUpdates: true,
   });
 
-  const supabase = createClientComponentClient();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { getNotificationPreferences, updateNotificationPreferences } = useDb();
   const { toast } = useToast();
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
-        const { data: session } = await supabase.auth.getSession();
 
-        if (!session.session) {
-          window.location.href = "/sign-in";
+        if (!user) {
+          router.push("/sign-in");
           return;
         }
 
         // Get user's notification preferences
-        const { data: prefsData } = await supabase
-          .from("notification_preferences")
-          .select("*")
-          .eq("user_id", session.session.user.id)
-          .single();
+        const prefsData = await getNotificationPreferences(user.id);
 
         if (prefsData) {
           setPreferences({
-            news_updates: prefsData.news_updates,
-            campaign_updates: prefsData.campaign_updates,
+            newsUpdates: prefsData.newsUpdates,
+            campaignUpdates: prefsData.campaignUpdates,
           });
         }
-
-        // Get user's notifications
-        const { data: notificationsData } = await supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", session.session.user.id)
-          .order("created_at", { ascending: false });
 
         // Placeholder notifications for demo
         const placeholderNotifications = [
@@ -89,9 +81,7 @@ export default function NotificationsPage() {
 
         // Use placeholder data in development
         setNotifications(
-          process.env.NODE_ENV === "development"
-            ? placeholderNotifications
-            : notificationsData || []
+          process.env.NODE_ENV === "development" ? placeholderNotifications : [] // In production, we would fetch from the database
         );
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -101,9 +91,9 @@ export default function NotificationsPage() {
     }
 
     fetchData();
-  }, [supabase]);
+  }, [user, router, getNotificationPreferences]);
 
-  const handleToggle = async (key: "news_updates" | "campaign_updates") => {
+  const handleToggle = async (key: "newsUpdates" | "campaignUpdates") => {
     try {
       // Update local state immediately for responsive UI
       const newPreferences = {
@@ -115,18 +105,15 @@ export default function NotificationsPage() {
       // Start saving
       setSaving(true);
 
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        window.location.href = "/sign-in";
+      if (!user) {
+        router.push("/sign-in");
         return;
       }
 
-      const { error } = await supabase.from("notification_preferences").upsert({
-        user_id: session.session.user.id,
-        news_updates: newPreferences.news_updates,
-        campaign_updates: newPreferences.campaign_updates,
-        updated_at: new Date().toISOString(),
-      });
+      const { error } = await updateNotificationPreferences(
+        user.id,
+        newPreferences
+      );
 
       if (error) throw error;
 
@@ -179,8 +166,8 @@ export default function NotificationsPage() {
             <div>
               <Switch
                 id="news-updates"
-                checked={preferences.news_updates}
-                onCheckedChange={() => handleToggle("news_updates")}
+                checked={preferences.newsUpdates}
+                onCheckedChange={() => handleToggle("newsUpdates")}
                 className="data-[state=checked]:bg-[#2c6e49]"
                 disabled={saving}
               />
@@ -194,8 +181,8 @@ export default function NotificationsPage() {
             <div>
               <Switch
                 id="campaign-updates"
-                checked={preferences.campaign_updates}
-                onCheckedChange={() => handleToggle("campaign_updates")}
+                checked={preferences.campaignUpdates}
+                onCheckedChange={() => handleToggle("campaignUpdates")}
                 className="data-[state=checked]:bg-[#2c6e49]"
                 disabled={saving}
               />

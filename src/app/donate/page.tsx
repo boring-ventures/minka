@@ -91,7 +91,7 @@ function DonatePageContent() {
               className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white py-6 px-8 rounded-full"
               asChild
             >
-              <Link href="/campaigns">Ver todas las campañas</Link>
+              <Link href="/campaign">Ver todas las campañas</Link>
             </Button>
           </div>
         </div>

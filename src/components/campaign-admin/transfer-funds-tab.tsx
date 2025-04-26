@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
-
+import { useDb } from "@/hooks/use-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
@@ -15,6 +14,7 @@ interface TransferFundsTabProps {
 export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSaveBar, setShowSaveBar] = useState(false);
+  const { createFundTransfer } = useDb();
 
   const initialFormState = useMemo(
     () => ({
@@ -58,20 +58,13 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
     setIsLoading(true);
 
     try {
-      // This would be replaced with actual transfer logic in production
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // For demonstration purposes
-      const supabase = createClientComponentClient();
-
-      const { error } = await supabase.from("fund_transfers").insert({
-        campaign_id: campaign.id,
-        account_holder_name: formData.accountHolderName,
-        bank_name: formData.bankName,
-        account_number: formData.accountNumber,
+      const { error } = await createFundTransfer({
+        campaignId: campaign.id,
+        accountHolderName: formData.accountHolderName,
+        bankName: formData.bankName,
+        accountNumber: formData.accountNumber,
         amount: formData.amount,
         status: "processing",
-        created_at: new Date().toISOString(),
       });
 
       if (error) throw error;

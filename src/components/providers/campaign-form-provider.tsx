@@ -20,7 +20,16 @@ export type CampaignFormState = {
   description: string;
   category: string;
   goalAmount: number;
-  location: string;
+  location:
+    | "la_paz"
+    | "santa_cruz"
+    | "cochabamba"
+    | "sucre"
+    | "oruro"
+    | "potosi"
+    | "tarija"
+    | "beni"
+    | "pando";
   endDate: string;
   youtubeUrl: string;
   media: MediaItem[];
@@ -64,7 +73,7 @@ const initialState: CampaignFormState = {
   description: "",
   category: "",
   goalAmount: 0,
-  location: "",
+  location: "la_paz",
   endDate: "",
   youtubeUrl: "",
   media: [],
@@ -93,7 +102,19 @@ const reducer = (
     case "SET_GOAL_AMOUNT":
       return { ...state, goalAmount: action.payload };
     case "SET_LOCATION":
-      return { ...state, location: action.payload };
+      return {
+        ...state,
+        location: action.payload as
+          | "la_paz"
+          | "santa_cruz"
+          | "cochabamba"
+          | "sucre"
+          | "oruro"
+          | "potosi"
+          | "tarija"
+          | "beni"
+          | "pando",
+      };
     case "SET_END_DATE":
       return { ...state, endDate: action.payload };
     case "SET_YOUTUBE_URL":

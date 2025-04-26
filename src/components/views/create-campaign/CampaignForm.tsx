@@ -366,7 +366,7 @@ export function CampaignForm() {
     description: "",
     category: "",
     goalAmount: "",
-    location: "",
+    location: "la_paz", // Set default value to La Paz
     endDate: "",
     story: "",
     recipient: "",
@@ -1386,32 +1386,28 @@ export function CampaignForm() {
                   Ubicación de la campaña
                 </label>
                 <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="¿Adónde irán los fondos?"
-                    className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 pl-10 h-14 px-4"
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+                  <Select
                     value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, location: value as any })
                     }
-                  />
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <button className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <svg
-                      className="h-4 w-4 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                  >
+                    <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 pl-10 h-14 px-4">
+                      <SelectValue placeholder="Selecciona una ubicación" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="la_paz">La Paz</SelectItem>
+                      <SelectItem value="santa_cruz">Santa Cruz</SelectItem>
+                      <SelectItem value="cochabamba">Cochabamba</SelectItem>
+                      <SelectItem value="sucre">Sucre</SelectItem>
+                      <SelectItem value="oruro">Oruro</SelectItem>
+                      <SelectItem value="potosi">Potosí</SelectItem>
+                      <SelectItem value="tarija">Tarija</SelectItem>
+                      <SelectItem value="beni">Beni</SelectItem>
+                      <SelectItem value="pando">Pando</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex items-center gap-2 mt-4">
@@ -1422,7 +1418,7 @@ export function CampaignForm() {
                     height={16}
                   />
                   <span className="text-base text-gray-600">
-                    Campo opcional
+                    Campo requerido
                   </span>
                 </div>
               </div>

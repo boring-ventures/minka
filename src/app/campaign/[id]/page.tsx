@@ -1,10 +1,10 @@
-import { Suspense } from "react";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Clock, Award } from "lucide-react";
+import { notFound, useParams } from "next/navigation";
 
 import { CampaignGallery } from "@/components/views/campaign/CampaignGallery";
 import { CampaignProgress } from "@/components/views/campaign/CampaignProgress";
@@ -15,6 +15,7 @@ import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
 import { CampaignUpdates } from "@/components/views/campaign/CampaignUpdates";
 import { Button } from "@/components/ui/button";
 import Loading from "./loading";
+import { useCampaign, Campaign } from "@/hooks/useCampaign";
 
 interface CampaignMedia {
   id: string;
@@ -84,61 +85,109 @@ interface CampaignData {
 }
 
 // Helper function to format campaign data for components
-function formatCampaignData(campaign: CampaignData) {
+function formatCampaignData(campaign: any) {
   // Format gallery images
-  const galleryItems = campaign.media.map((item) => ({
-    url: item.media_url,
-    type: item.type as "image" | "video",
-    id: item.id,
-  }));
+  const galleryItems =
+    campaign.media?.map((item: any) => ({
+      url: item.media_url,
+      type: item.type as "image" | "video",
+      id: item.id,
+    })) || [];
 
-  // Format updates for display
-  const formattedUpdates = campaign.updates.map((update) => ({
-    id: update.id,
-    title: update.title,
-    message: update.content,
-    createdAt: update.created_at,
-    imageUrl: update.image_url,
-    youtubeUrl: update.youtube_url,
-  }));
+  // Format updates from campaign data
+  const formattedUpdates: Array<{
+    id: string;
+    title: string;
+    message: string;
+    createdAt: string;
+    imageUrl?: string;
+    youtubeUrl?: string;
+  }> =
+    campaign.updates?.map((update: any) => ({
+      id: update.id,
+      title: update.title,
+      message: update.content,
+      createdAt: update.created_at,
+      imageUrl: update.image_url,
+      youtubeUrl: update.youtube_url,
+    })) || [];
 
-  // Format comments
-  const formattedComments = campaign.comments.map((comment) => ({
-    donor: comment.profile.name,
-    amount: 0, // We don't have amount in comments, would need to fetch from donations
-    date: new Date(comment.created_at).toLocaleDateString(),
-    comment: comment.message,
-  }));
+  // Format comments from campaign data
+  const formattedComments: Array<{
+    donor: string;
+    amount: number;
+    date: string;
+    comment: string;
+  }> =
+    campaign.comments?.map((comment: any) => ({
+      donor: comment.profile?.name || "Anonymous",
+      amount: 0, // We don't have amount in comments
+      date: new Date(comment.created_at).toLocaleDateString(),
+      comment: comment.message,
+    })) || [];
 
   const progressData = {
-    isVerified: campaign.verification_status,
-    createdAt: new Date(campaign.created_at).toLocaleDateString(),
-    currentAmount: campaign.collected_amount,
-    targetAmount: campaign.goal_amount,
-    donorsCount: campaign.donor_count,
+    isVerified: campaign.verification_status || false,
+    createdAt: campaign.created_at
+      ? new Date(campaign.created_at).toLocaleDateString()
+      : new Date().toLocaleDateString(),
+    currentAmount: campaign.collected_amount || 0,
+    targetAmount: campaign.goal_amount || 0,
+    donorsCount: campaign.donor_count || 0,
   };
 
+  // Create default organizer data structure
   const organizerData = {
-    name: campaign.organizer.name,
+    name: campaign.organizer?.name || "Organizador",
     role: "Organizador de campaña",
-    location: campaign.organizer.location || campaign.location,
-    memberSince: new Date(campaign.organizer.join_date)
-      .getFullYear()
-      .toString(),
-    successfulCampaigns: campaign.organizer.active_campaigns_count,
-    bio: campaign.organizer.bio || "Sin biografía",
+    location: campaign.organizer?.location || campaign.location || "Bolivia",
+    memberSince: campaign.organizer?.join_date
+      ? new Date(campaign.organizer.join_date).getFullYear().toString()
+      : new Date().getFullYear().toString(),
+    successfulCampaigns: campaign.organizer?.active_campaigns_count || 0,
+    bio: campaign.organizer?.bio || "Sin biografía",
   };
 
   return {
     title: campaign.title,
     description: campaign.description,
-    beneficiaries: campaign.beneficiaries_description,
+    beneficiaries: campaign.beneficiaries_description || campaign.description,
     images: galleryItems,
     progress: progressData,
     organizer: organizerData,
     comments: formattedComments,
     updates: formattedUpdates,
   };
+}
+
+// Helper to format category for display
+function formatCategory(category: string) {
+  const categories: Record<string, string> = {
+    educacion: "Educación",
+    salud: "Salud",
+    medioambiente: "Medioambiente",
+    cultura_arte: "Cultura y arte",
+    emergencia: "Emergencia",
+    igualdad: "Igualdad",
+  };
+
+  return categories[category] || category;
+}
+
+// Async function to fetch related campaigns
+async function fetchRelatedCampaigns(category: string, id: string) {
+  try {
+    const response = await fetch(
+      `/api/campaign/related?category=${category}&excludeId=${id}`
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch related campaigns");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching related campaigns:", error);
+    return [];
+  }
 }
 
 // Custom CampaignDetails component
@@ -291,118 +340,52 @@ function CustomDonorComments({ comments }: { comments: any[] }) {
   );
 }
 
-// Fetch similar campaigns
-async function fetchSimilarCampaigns(category: string, excludeId: string) {
-  try {
-    const supabase = createServerComponentClient({ cookies });
+export default function CampaignPage() {
+  const params = useParams();
+  const campaignId = params?.id as string;
+  console.log("Rendering campaign page for ID:", campaignId);
 
-    const { data: campaigns } = await supabase
-      .from("campaigns")
-      .select(
-        `
-        id,
-        title,
-        description,
-        category,
-        location,
-        collected_amount,
-        goal_amount,
-        donor_count,
-        media:campaign_media(media_url, is_primary)
-        `
-      )
-      .eq("category", category)
-      .eq("campaign_status", "active")
-      .neq("id", excludeId)
-      .order("created_at", { ascending: false })
-      .limit(3);
+  const { campaign, isLoading, error } = useCampaign(campaignId);
+  const [relatedCampaigns, setRelatedCampaigns] = useState<any[]>([]);
+  const [formattedCampaign, setFormattedCampaign] = useState<any>(null);
 
-    return (
-      campaigns?.map((campaign) => {
-        // Find primary image
-        const primaryImage = campaign.media?.find(
-          (m: any) => m.is_primary
-        )?.media_url;
+  useEffect(() => {
+    console.log("Campaign data state:", { campaign, isLoading, error });
 
-        return {
-          id: campaign.id,
-          title: campaign.title,
-          image: primaryImage || "/landing-page/dummies/Card/Imagen.png",
-          category: formatCategory(campaign.category),
-          location: campaign.location,
-          progress: Math.min(
-            Math.round(
-              (campaign.collected_amount / campaign.goal_amount) * 100
-            ),
-            100
-          ),
-          description: campaign.description,
-          donorCount: campaign.donor_count,
-          amountRaised: `Bs. ${campaign.collected_amount.toFixed(2)}`,
-        };
-      }) || []
-    );
-  } catch (error) {
-    console.error("Error fetching similar campaigns:", error);
-    return [];
+    if (campaign) {
+      console.log("Setting formatted campaign with data:", campaign);
+      setFormattedCampaign(formatCampaignData(campaign));
+
+      // Fetch related campaigns when we have the main campaign data
+      // Use location as the category parameter since Campaign doesn't have a category field
+      fetchRelatedCampaigns(campaign.location, campaign.id).then((data) => {
+        setRelatedCampaigns(data?.campaigns || []);
+      });
+    }
+  }, [campaign, isLoading, error]);
+
+  if (isLoading) {
+    console.log("Campaign is loading...");
+    return <Loading />;
   }
-}
 
-// Helper to format category for display
-function formatCategory(category: string) {
-  const categories: Record<string, string> = {
-    educacion: "Educación",
-    salud: "Salud",
-    medioambiente: "Medioambiente",
-    cultura_arte: "Cultura y arte",
-    emergencia: "Emergencia",
-    igualdad: "Igualdad",
-  };
-
-  return categories[category] || category;
-}
-
-export default async function CampaignPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const supabase = createServerComponentClient({ cookies });
-  const id = (await params).id;
-  // Fetch campaign data with all related information
-  const { data: campaign, error } = await supabase
-    .from("campaigns")
-    .select(
-      `
-      *,
-      organizer:profiles(*),
-      media:campaign_media(*),
-      updates:campaign_updates(*),
-      comments(
-        id,
-        message,
-        created_at,
-        profile:profiles(id, name)
-      )
-      `
-    )
-    .eq("id", id)
-    .eq("campaign_status", "active")
-    .single();
-
-  if (error || !campaign) {
-    console.error("Error fetching campaign:", error);
+  // Separate conditions for better debugging
+  if (error) {
+    console.error("Error from useCampaign hook:", error);
     return notFound();
   }
 
-  // Format campaign data for components
-  const formattedCampaign = formatCampaignData(campaign);
+  if (!campaign) {
+    console.error("No campaign data returned (null campaign)");
+    return notFound();
+  }
 
-  // Fetch similar campaigns
-  const relatedCampaigns = await fetchSimilarCampaigns(
-    campaign.category,
-    campaign.id
-  );
+  if (!formattedCampaign) {
+    console.log("Waiting for formatted campaign data...");
+    return <Loading />;
+  }
+
+  console.log("Rendering campaign:", formattedCampaign.title);
 
   return (
     <>
@@ -431,7 +414,7 @@ export default async function CampaignPage({
                   campaignTitle={formattedCampaign.title}
                   campaignOrganizer={formattedCampaign.organizer.name}
                   campaignLocation={formattedCampaign.organizer.location}
-                  campaignId={id}
+                  campaignId={campaignId}
                 />
               </StickyProgressWrapper>
             </div>
@@ -493,13 +476,13 @@ export default async function CampaignPage({
                   key={campaign.id}
                   id={campaign.id}
                   title={campaign.title}
-                  image={campaign.image}
-                  category={campaign.category}
+                  image={campaign.image || campaign.primaryImage}
+                  category={formatCategory(campaign.category)}
                   location={campaign.location}
-                  progress={campaign.progress}
+                  progress={campaign.percentageFunded || campaign.progress}
                   description={campaign.description}
                   donorCount={campaign.donorCount}
-                  amountRaised={campaign.amountRaised}
+                  amountRaised={`Bs. ${campaign.collectedAmount || campaign.collected_amount || 0}`}
                 />
               ))}
             </div>

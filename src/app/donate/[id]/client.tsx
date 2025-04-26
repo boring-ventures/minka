@@ -458,7 +458,7 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                   </div>
                   <div className="mt-6">
                     <Button
-                      onClick={() => router.push(`/campaigns/${campaignId}`)}
+                      onClick={() => router.push("/campaign")}
                       className="px-6 py-2 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-md"
                     >
                       Volver a la campaña

@@ -475,47 +475,25 @@ export function EditCampaignTab({ campaign }: EditCampaignTabProps) {
             >
               Ubicación de la campaña
             </label>
-            <div className="relative">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 21C13.6569 21 15 19.6569 15 18C15 16.3431 13.6569 15 12 15C10.3431 15 9 16.3431 9 18C9 19.6569 10.3431 21 12 21Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M12 15V2"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M8 6L12 2L16 6"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <Input
-                id="location"
-                name="location"
-                value={formData.location}
-                onChange={handleInputChange}
-                placeholder="¿Dónde tendrá lugar la campaña?"
-                className="pl-10 w-full border-gray-300"
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Campo opcional</p>
+            <select
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              className="w-full rounded-md border border-gray-300 p-3"
+              required
+            >
+              <option value="">Selecciona una región</option>
+              <option value="la_paz">La Paz</option>
+              <option value="santa_cruz">Santa Cruz</option>
+              <option value="cochabamba">Cochabamba</option>
+              <option value="sucre">Sucre</option>
+              <option value="oruro">Oruro</option>
+              <option value="potosi">Potosí</option>
+              <option value="tarija">Tarija</option>
+              <option value="beni">Beni</option>
+              <option value="pando">Pando</option>
+            </select>
           </div>
 
           <div>

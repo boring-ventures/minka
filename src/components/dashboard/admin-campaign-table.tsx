@@ -144,8 +144,8 @@ export function AdminCampaignTable({ campaigns }: AdminCampaignTableProps) {
                   </Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
-                  {/* Assuming a public campaign page exists at /campaigns/:id */}
-                  <Link href={`/campaigns/${campaign.id}`} target="_blank">
+                  {/* Assuming a public campaign page exists at /campaign/:id */}
+                  <Link href={`/campaign/${campaign.id}`} target="_blank">
                     <ExternalLink className="mr-1 h-4 w-4" /> View
                   </Link>
                 </Button>

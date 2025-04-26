@@ -83,7 +83,7 @@ export default async function SavedCampaignsPage() {
             className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3 text-base"
             asChild
           >
-            <Link href="/campaigns">Explorar campañas</Link>
+            <Link href="/campaign">Explorar campañas</Link>
           </Button>
         </div>
       )}

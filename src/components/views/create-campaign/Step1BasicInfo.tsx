@@ -63,9 +63,7 @@ const formSchema = z.object({
   goalAmount: z.coerce.number().min(1, {
     message: "Por favor ingresa un monto mayor a cero",
   }),
-  location: z.string().min(3, {
-    message: "Por favor ingresa una ubicación válida",
-  }),
+  location: z.enum(["la_paz", "santa_cruz", "cochabamba", "sucre", "oruro", "potosi", "tarija", "beni", "pando"]),
   endDate: z
     .date({
       required_error: "Por favor selecciona una fecha",
@@ -389,12 +387,30 @@ export function Step1BasicInfo() {
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <Input
-                          placeholder="Ej. La Paz, Bolivia"
-                          className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 pl-12 pr-4"
-                          {...field}
-                        />
+                        <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" />
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 pl-12 pr-4">
+                            <SelectValue placeholder="Selecciona una ubicación" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="la_paz">La Paz</SelectItem>
+                            <SelectItem value="santa_cruz">
+                              Santa Cruz
+                            </SelectItem>
+                            <SelectItem value="cochabamba">
+                              Cochabamba
+                            </SelectItem>
+                            <SelectItem value="sucre">Sucre</SelectItem>
+                            <SelectItem value="oruro">Oruro</SelectItem>
+                            <SelectItem value="potosi">Potosí</SelectItem>
+                            <SelectItem value="tarija">Tarija</SelectItem>
+                            <SelectItem value="beni">Beni</SelectItem>
+                            <SelectItem value="pando">Pando</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </FormControl>
                     <FormMessage />

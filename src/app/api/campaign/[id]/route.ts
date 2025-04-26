@@ -10,6 +10,9 @@ interface OrganizerProfile {
   name: string;
   location: string;
   profile_picture: string | null;
+  join_date?: string;
+  active_campaigns_count?: number;
+  bio?: string;
 }
 
 interface CampaignMedia {
@@ -20,30 +23,54 @@ interface CampaignMedia {
   order_index: number | null;
 }
 
+interface CampaignUpdate {
+  id: string;
+  title: string;
+  content: string;
+  image_url?: string;
+  youtube_url?: string;
+  created_at: string;
+}
+
+interface CampaignComment {
+  id: string;
+  message: string;
+  created_at: string;
+  profile: {
+    id: string;
+    name: string;
+  };
+}
+
 interface Campaign {
   id: string;
   title: string;
   description: string;
   story: string;
+  beneficiaries_description?: string;
   location: string;
   goal_amount: number;
   collected_amount: number;
   donor_count: number;
   percentage_funded: number;
   days_remaining: number;
+  verification_status?: boolean;
+  created_at?: string;
   organizer: OrganizerProfile | null;
   media: CampaignMedia[];
+  updates?: CampaignUpdate[];
+  comments?: CampaignComment[];
 }
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  // Await params if it's a Promise
-  const paramsObj = await params;
-  const id = paramsObj.id;
+  const id = params.id;
+  console.log(`API: Fetching campaign with ID: ${id}`);
 
   if (!id) {
+    console.error("API: Campaign ID is required but not provided");
     return NextResponse.json(
       { error: "Campaign ID is required" },
       { status: 400 }
@@ -52,8 +79,10 @@ export async function GET(
 
   try {
     const supabase = createRouteHandlerClient({ cookies });
+    console.log(`API: Created supabase client for campaign: ${id}`);
 
     // Fetch campaign data with organizer profile and campaign media
+    console.log(`API: Executing supabase query for campaign: ${id}`);
     const { data, error: campaignError } = await supabase
       .from("campaigns")
       .select(
@@ -62,33 +91,59 @@ export async function GET(
         title, 
         description,
         story,
+        beneficiaries_description,
         location,
         goal_amount,
         collected_amount,
         donor_count,
         percentage_funded,
         days_remaining,
-        organizer:profiles!organizer_id(id, name, location, profile_picture),
-        media:campaign_media(id, media_url, is_primary, type, order_index)
+        verification_status,
+        created_at,
+        organizer:profiles!organizer_id(id, name, location, profile_picture, join_date, active_campaigns_count, bio),
+        media:campaign_media(id, media_url, is_primary, type, order_index),
+        updates:campaign_updates(id, title, content, image_url, youtube_url, created_at),
+        comments:comments(
+          id,
+          message,
+          created_at,
+          profile:profiles(id, name)
+        )
       `
       )
       .eq("id", id)
+      .eq("campaign_status", "active")
       .single();
 
     if (campaignError) {
+      console.error(
+        `API: Error fetching campaign data: ${campaignError.message}`,
+        campaignError
+      );
+
+      // If not found, return 404
+      if (campaignError.code === "PGRST116") {
+        return NextResponse.json(
+          { error: "Campaign not found" },
+          { status: 404 }
+        );
+      }
+
       return NextResponse.json(
-        { error: campaignError.message },
+        { error: campaignError.message, details: campaignError },
         { status: 500 }
       );
     }
 
     if (!data) {
+      console.error(`API: No data found for campaign: ${id}`);
       return NextResponse.json(
         { error: "Campaign not found" },
         { status: 404 }
       );
     }
 
+    console.log(`API: Successfully fetched campaign: ${data.title}`);
     const campaign = data as any;
 
     // Format the response with proper type handling
@@ -97,18 +152,24 @@ export async function GET(
       title: campaign.title,
       description: campaign.description,
       story: campaign.story,
+      beneficiaries_description: campaign.beneficiaries_description,
       location: campaign.location,
       goal_amount: campaign.goal_amount,
       collected_amount: campaign.collected_amount,
       donor_count: campaign.donor_count,
       percentage_funded: campaign.percentage_funded,
       days_remaining: campaign.days_remaining,
+      verification_status: campaign.verification_status,
+      created_at: campaign.created_at,
       organizer: campaign.organizer
         ? {
             id: campaign.organizer.id,
             name: campaign.organizer.name,
             location: campaign.organizer.location,
             profile_picture: campaign.organizer.profile_picture,
+            join_date: campaign.organizer.join_date,
+            active_campaigns_count: campaign.organizer.active_campaigns_count,
+            bio: campaign.organizer.bio,
           }
         : null,
       media: Array.isArray(campaign.media)
@@ -117,13 +178,15 @@ export async function GET(
               (a.order_index || 999) - (b.order_index || 999)
           )
         : [],
+      updates: Array.isArray(campaign.updates) ? campaign.updates : [],
+      comments: Array.isArray(campaign.comments) ? campaign.comments : [],
     };
 
     return NextResponse.json(formattedCampaign);
   } catch (error) {
-    console.error("Error fetching campaign:", error);
+    console.error("API: Unhandled error fetching campaign:", error);
     return NextResponse.json(
-      { error: "Failed to fetch campaign data" },
+      { error: "Failed to fetch campaign data", details: error },
       { status: 500 }
     );
   }
@@ -131,7 +194,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const cookieStore = cookies();
@@ -164,7 +227,7 @@ export async function PATCH(
     // Get the current campaign to check ownership
     const existingCampaign = await db.campaign.findUnique({
       where: {
-        id: (await params).id,
+        id: params.id,
       },
     });
 
@@ -232,7 +295,7 @@ export async function PATCH(
     // Update campaign with all provided fields
     const campaign = await db.campaign.update({
       where: {
-        id: (await params).id,
+        id: params.id,
       },
       data: updateData,
     });
@@ -241,7 +304,7 @@ export async function PATCH(
     if (media && Array.isArray(media) && media.length > 0) {
       // Delete existing media
       await db.campaignMedia.deleteMany({
-        where: { campaignId: (await params).id },
+        where: { campaignId: params.id },
       });
 
       // Create new media
@@ -249,7 +312,7 @@ export async function PATCH(
         media.map(async (item: any) =>
           db.campaignMedia.create({
             data: {
-              campaignId: (await params).id,
+              campaignId: params.id,
               mediaUrl: item.mediaUrl,
               type: item.type,
               isPrimary: item.isPrimary,

@@ -4,13 +4,14 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { getRegionDisplayName, Region } from "@/lib/region-utils";
 
 interface CampaignCardProps {
   id?: string | number;
   title: string;
   image: string;
   category: string;
-  location: string;
+  location: Region;
   progress: number;
   verified?: boolean;
   description?: string;
@@ -72,7 +73,7 @@ export function CampaignCard({
             {category}
           </span>
           <span className="bg-[#F8FAF2] text-[#2c6e49] px-2 py-1 rounded-md">
-            {location}
+            {getRegionDisplayName(location)}
           </span>
         </div>
         <div className="mb-4">
@@ -121,7 +122,7 @@ export function CampaignCard({
             {category}
           </span>
           <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
-            {location}
+            {getRegionDisplayName(location)}
           </span>
         </div>
 

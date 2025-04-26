@@ -26,6 +26,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "i.ytimg.com",
       },
+      {
+        protocol: "https",
+        hostname: "source.unsplash.com",
+      },
     ],
   },
   eslint: {

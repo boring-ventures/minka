@@ -48,7 +48,7 @@ model Campaign {
   percentageFunded         Float                @map("percentage_funded")
   daysRemaining            Int                  @map("days_remaining")
   youtubeUrl               String?              @map("youtube_url")
-  location                 String
+  location                 Region
   endDate                  DateTime             @map("end_date") @db.Date
   verificationStatus       Boolean              @default(false) @map("verification_status")
   verificationDate         DateTime?            @map("verification_date") @db.Timestamp(6)
@@ -230,4 +230,16 @@ enum PaymentStatus {
 enum Status {
   active
   inactive
+}
+
+enum Region {
+  la_paz
+  santa_cruz
+  cochabamba
+  sucre
+  oruro
+  potosi
+  tarija
+  beni
+  pando
 }

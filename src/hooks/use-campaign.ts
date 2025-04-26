@@ -7,7 +7,16 @@ export interface CampaignFormData {
   description: string;
   category: string;
   goalAmount: string | number;
-  location: string;
+  location:
+    | "la_paz"
+    | "santa_cruz"
+    | "cochabamba"
+    | "sucre"
+    | "oruro"
+    | "potosi"
+    | "tarija"
+    | "beni"
+    | "pando";
   endDate: string;
   // Story field corresponds to "Presentación de la campaña" in the form
   story: string;

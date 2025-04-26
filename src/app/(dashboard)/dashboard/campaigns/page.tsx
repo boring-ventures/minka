@@ -1,6 +1,7 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,9 @@ import {
 import { CompletedCampaignCard } from "@/components/dashboard/completed-campaign-card";
 import { ProfileData } from "@/types";
 import { AdminCampaignTable } from "@/components/dashboard/admin-campaign-table";
+import { useAuth } from "@/providers/auth-provider";
+import { useDb } from "@/hooks/use-db";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface CampaignMedia {
   media_url: string;
@@ -57,129 +61,134 @@ interface FormattedCampaign {
   organizerEmail?: string;
 }
 
-export default async function ManageCampaignsPage() {
-  const supabase = createServerComponentClient({ cookies });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+export default function ManageCampaignsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { getProfile, getCampaigns, getOrganizers } = useDb();
 
-  if (!session) {
-    redirect("/sign-in");
-  }
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [formattedCampaigns, setFormattedCampaigns] = useState<
+    FormattedCampaign[]
+  >([]);
 
-  // Fetch user role
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", session.user.id)
-    .single<Pick<ProfileData, "role">>();
+  useEffect(() => {
+    async function loadData() {
+      if (!user) {
+        router.push("/sign-in");
+        return;
+      }
 
-  const isAdmin = profile?.role === "admin";
+      try {
+        // Fetch user profile to check role
+        const prismaProfile = await getProfile(user.id);
 
-  // --- Step 1: Fetch base campaign data ---
-  const baseSelect = `
-    id, title, description, category, location, collected_amount, goal_amount,
-    campaign_status, created_at, verification_status, organizer_id,
-    media:campaign_media( media_url, is_primary )
-  `;
+        if (!prismaProfile) {
+          router.push("/sign-in");
+          return;
+        }
 
-  let query = supabase.from("campaigns").select(baseSelect);
+        // Convert to ProfileData
+        const getISOString = (dateVal: any): string => {
+          if (typeof dateVal === "string") return dateVal;
+          if (dateVal instanceof Date) return dateVal.toISOString();
+          return new Date().toISOString();
+        };
 
-  if (!isAdmin) {
-    query = query.eq("organizer_id", session.user.id);
-  }
+        const profileData: ProfileData = {
+          id: prismaProfile.id,
+          name: prismaProfile.name,
+          email: prismaProfile.email,
+          phone: prismaProfile.phone,
+          address: prismaProfile.address || "",
+          role: prismaProfile.role,
+          created_at: getISOString(prismaProfile.createdAt),
+        };
 
-  const { data: baseCampaigns, error: campaignError } = await query.order(
-    "created_at",
-    {
-      ascending: false,
+        setProfile(profileData);
+        setIsAdmin(prismaProfile.role === "admin");
+
+        // Fetch campaigns based on role
+        const campaigns = await getCampaigns(isAdmin ? undefined : user.id);
+
+        if (campaigns.length > 0) {
+          // Get organizer details if admin
+          let organizersMap = new Map<string, OrganizerData>();
+
+          if (prismaProfile.role === "admin") {
+            const organizerIds = [
+              ...new Set(campaigns.map((c) => c.organizerId).filter(Boolean)),
+            ];
+
+            if (organizerIds.length > 0) {
+              organizersMap = await getOrganizers(organizerIds);
+            }
+          }
+
+          // Format campaigns with organizer data if needed
+          const formatted = campaigns.map((campaign) => {
+            const organizer =
+              prismaProfile.role === "admin"
+                ? organizersMap.get(campaign.organizerId)
+                : undefined;
+
+            // Find primary image or use first available
+            const mediaUrl =
+              campaign.media.find((m) => m.isPrimary)?.mediaUrl ||
+              campaign.media[0]?.mediaUrl ||
+              "/amboro-main.jpg";
+
+            return {
+              id: campaign.id || "",
+              title: campaign.title || "Sin título",
+              imageUrl: mediaUrl,
+              category: campaign.category || "General",
+              location: campaign.location || "Bolivia",
+              raisedAmount:
+                parseFloat(campaign.collectedAmount.toString()) || 0,
+              goalAmount: parseFloat(campaign.goalAmount.toString()) || 1,
+              progress:
+                parseFloat(campaign.goalAmount.toString()) > 0
+                  ? Math.round(
+                      ((parseFloat(campaign.collectedAmount.toString()) || 0) /
+                        parseFloat(campaign.goalAmount.toString())) *
+                        100
+                    ) || 0
+                  : 0,
+              status: (campaign.campaignStatus as CampaignStatus) || "draft",
+              description: campaign.description || "",
+              isVerified: campaign.verificationStatus || false,
+              organizerName: organizer?.name ?? undefined,
+              organizerEmail: organizer?.email ?? undefined,
+            };
+          });
+
+          setFormattedCampaigns(formatted);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
     }
-  );
 
-  if (campaignError) {
-    console.error("Error fetching campaigns:", JSON.stringify(campaignError));
+    loadData();
+  }, [user, router, getProfile, getCampaigns, getOrganizers, isAdmin]);
+
+  if (loading) {
     return (
-      <div className="bg-gray-50 rounded-lg py-12 px-4 flex flex-col items-center justify-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-6">
-          <Info className="h-6 w-6 text-red-500" />
-        </div>
-        <p className="text-gray-800 text-lg text-center mb-8">
-          Hubo un error al cargar tus campañas. Por favor, intenta nuevamente.
-        </p>
-        <Button
-          className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3 text-base flex items-center gap-2"
-          asChild
-        >
-          <Link href="/create-campaign">
-            <Plus size={18} />
-            Crear una campaña
-          </Link>
-        </Button>
+      <div className="flex items-center justify-center py-16">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
-
-  // --- Step 2 & 3: Fetch organizer profiles if admin ---
-  let organizersMap: Map<
-    string,
-    { name: string | null; email: string | null }
-  > = new Map();
-
-  if (isAdmin && baseCampaigns && baseCampaigns.length > 0) {
-    const organizerIds = [
-      ...new Set(baseCampaigns.map((c) => c.organizer_id).filter(Boolean)),
-    ]; // Get unique, non-null IDs
-
-    if (organizerIds.length > 0) {
-      const { data: organizers, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .in("id", organizerIds);
-
-      if (profileError) {
-        console.error("Error fetching organizer profiles:", profileError);
-        // Optionally handle this error - maybe show campaigns without organizer names
-      } else if (organizers) {
-        organizers.forEach((org: OrganizerData) => {
-          organizersMap.set(org.id, { name: org.name, email: org.email });
-        });
-      }
-    }
-  }
-
-  // --- Step 4: Format campaigns, adding organizer data if admin ---
-  const formattedCampaigns = (baseCampaigns || []).map(
-    (campaign: BaseCampaign): FormattedCampaign => {
-      const organizer = isAdmin
-        ? organizersMap.get(campaign.organizer_id)
-        : undefined;
-      return {
-        id: campaign.id || "",
-        title: campaign.title || "Sin título",
-        imageUrl: campaign.media?.[0]?.media_url || "/amboro-main.jpg",
-        category: campaign.category || "General",
-        location: campaign.location || "Bolivia",
-        raisedAmount: campaign.collected_amount || 0,
-        goalAmount: campaign.goal_amount || 1,
-        progress:
-          campaign.goal_amount > 0
-            ? Math.round(
-                ((campaign.collected_amount || 0) / campaign.goal_amount) * 100
-              ) || 0
-            : 0,
-        status: campaign.campaign_status || "draft",
-        description: campaign.description || "",
-        isVerified: campaign.verification_status || false,
-        organizerName: organizer?.name ?? undefined,
-        organizerEmail: organizer?.email ?? undefined,
-      };
-    }
-  );
 
   const displayActiveCampaigns =
     formattedCampaigns?.filter(
       (c: FormattedCampaign) => c.status !== "completed"
     ) || [];
+
   const displayCompletedCampaigns =
     formattedCampaigns?.filter(
       (c: FormattedCampaign) => c.status === "completed"
