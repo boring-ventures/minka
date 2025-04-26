@@ -1,6 +1,5 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 // Interface for location count data
 interface LocationCount {
@@ -21,86 +20,125 @@ const mockLocations = [
   { name: "Pando", count: 3 },
 ];
 
-export async function GET() {
+// Map database enum values to display names
+const displayLocationMap: Record<string, string> = {
+  la_paz: "La Paz",
+  santa_cruz: "Santa Cruz",
+  cochabamba: "Cochabamba",
+  sucre: "Sucre",
+  oruro: "Oruro",
+  potosi: "Potosí",
+  tarija: "Tarija",
+  beni: "Beni",
+  pando: "Pando",
+};
+
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+
+    // Get filters from query parameters
+    const category = url.searchParams.get("category");
+    const search = url.searchParams.get("search");
+    const verified = url.searchParams.get("verified") === "true";
+
+    console.log("Locations API - Received filters:", {
+      category,
+      search,
+      verified,
+    });
+
     try {
-      // Create Supabase client
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookies(),
+      // Use Prisma directly instead of raw SQL for better type safety and filtering
+      const whereClause: any = {
+        campaignStatus: "active",
+        status: "active",
+      };
+
+      // Apply filters if they exist
+      if (category) {
+        whereClause.category = category;
+      }
+
+      if (verified) {
+        whereClause.verificationStatus = true;
+      }
+
+      if (search) {
+        whereClause.OR = [
+          { title: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+        ];
+      }
+
+      // Get all campaigns that match the filters
+      const campaigns = await db.campaign.findMany({
+        where: whereClause,
+        select: {
+          location: true,
+        },
       });
 
-      // Use RPC to get locations and counts
-      const { data, error } = await supabase.rpc('get_location_counts');
+      console.log(
+        `Locations API - Found ${campaigns.length} total campaigns matching filters`
+      );
 
-      if (error) {
-        console.error("Error fetching locations:", error);
-        throw error;
-      }
+      // Count the occurrences of each location
+      const locationCounts: Record<string, number> = {};
 
-      // If RPC function doesn't exist, try with raw SQL
-      if (!data) {
-        const { data: rawData, error: rawError } = await supabase
-          .from('campaigns')
-          .select('location')
-          .eq('campaign_status', 'active');
-          
-        if (rawError) {
-          console.error("Error with raw query:", rawError);
-          throw rawError;
-        }
+      campaigns.forEach((campaign) => {
+        const location = campaign.location.toString();
+        locationCounts[location] = (locationCounts[location] || 0) + 1;
+      });
 
-        // Manually count locations
-        const locationCounts: Record<string, number> = rawData.reduce((acc: Record<string, number>, item: { location: string }) => {
-          if (item.location) {
-            acc[item.location] = (acc[item.location] || 0) + 1;
-          }
-          return acc;
-        }, {});
+      console.log("Locations API - Location counts:", locationCounts);
 
-        // Format into the expected structure
-        const locations = Object.entries(locationCounts).map(([name, count]) => ({
-          name,
-          count,
-        })).sort((a, b) => b.count - a.count);
-
-        return NextResponse.json({ locations });
-      }
-
-      // Format the response if RPC worked
-      const locations = (data as LocationCount[]).map((item: LocationCount) => ({
-        name: item.location,
-        count: typeof item.count === 'string' ? parseInt(item.count) : item.count,
-      }));
+      // Format the locations for the response
+      const locations = Object.entries(locationCounts)
+        .map(([location, count]) => ({
+          name: displayLocationMap[location] || location,
+          count: count,
+        }))
+        .sort((a, b) => b.count - a.count);
 
       return NextResponse.json({ locations });
     } catch (dbError) {
-      console.error("Database error fetching locations:", dbError);
-
-      // In development mode, return mock data as a fallback
-      if (process.env.NODE_ENV === "development") {
-        console.log("Using mock locations data as fallback");
-        return NextResponse.json({ locations: mockLocations });
-      }
-
-      // In production, return an empty list with a message
-      return NextResponse.json(
-        {
-          locations: [],
-          error: "Database error, please try again later.",
-        },
-        { status: 200 } // Return 200 instead of 500 to handle the error gracefully
-      );
+      console.error("Database error in locations API:", dbError);
+      throw dbError;
     }
   } catch (error) {
-    console.error("Error in campaign locations endpoint:", error);
+    console.error("Error fetching locations:", error);
 
-    // Return a user-friendly error response with 200 status
+    // In development mode, return mock data as a fallback
+    if (process.env.NODE_ENV === "development") {
+      console.log("Using mock locations data as fallback");
+      return NextResponse.json({ locations: mockLocations });
+    }
+
+    // In production, return an empty list with a message
     return NextResponse.json(
       {
         locations: [],
-        error: "An unexpected error occurred. Please try again later.",
+        error: "Error fetching locations. Please try again later.",
       },
-      { status: 200 }
+      { status: 200 } // Return 200 instead of 500 to handle the error gracefully
     );
   }
+}
+
+// Helper function to format location from DB enum to display format
+function formatLocation(location: string) {
+  const locationMap: Record<string, string> = {
+    la_paz: "La Paz",
+    santa_cruz: "Santa Cruz",
+    cochabamba: "Cochabamba",
+    sucre: "Sucre",
+    oruro: "Oruro",
+    potosi: "Potosí",
+    tarija: "Tarija",
+    beni: "Beni",
+    pando: "Pando",
+  };
+
+  return locationMap[location] || location;
 }

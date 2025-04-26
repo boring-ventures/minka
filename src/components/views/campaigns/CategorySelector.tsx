@@ -10,6 +10,7 @@ import {
   Heart,
   Leaf,
   Stethoscope,
+  Loader2,
 } from "lucide-react";
 
 export interface CategoryItem {
@@ -21,12 +22,14 @@ interface CategorySelectorProps {
   categories: CategoryItem[];
   selectedCategory?: string;
   onSelectCategory: (category: string | undefined) => void;
+  isLoading?: boolean;
 }
 
 export function CategorySelector({
   categories,
   selectedCategory,
   onSelectCategory,
+  isLoading = false,
 }: CategorySelectorProps) {
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
     selectedCategory
@@ -61,26 +64,37 @@ export function CategorySelector({
               ? "border-[#2c6e49] bg-[#2c6e49] text-white"
               : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
           }`}
+          disabled={isLoading}
         >
           Todas las categorías
         </button>
 
-        {displayCategories.map((category) => (
-          <button
-            key={category.name}
-            onClick={() => handleCategoryClick(category.name)}
-            className={`px-6 py-4 border-2 rounded-full transition-all flex items-center ${
-              activeCategory === category.name
-                ? "border-[#2c6e49] bg-[#2c6e49] text-white"
-                : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
-            }`}
-          >
-            <span>{category.name}</span>
-            <span className="ml-2 bg-white bg-opacity-20 text-sm px-2 py-0.5 rounded-full">
-              {category.count}
+        {isLoading ? (
+          <div className="flex items-center justify-center px-6 py-4 border-2 border-gray-200 rounded-full">
+            <Loader2 className="h-5 w-5 animate-spin text-[#2c6e49]" />
+            <span className="ml-2 text-gray-500">
+              Actualizando categorías...
             </span>
-          </button>
-        ))}
+          </div>
+        ) : (
+          displayCategories.map((category) => (
+            <button
+              key={category.name}
+              onClick={() => handleCategoryClick(category.name)}
+              className={`px-6 py-4 border-2 rounded-full transition-all flex items-center ${
+                activeCategory === category.name
+                  ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+                  : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
+              }`}
+              disabled={isLoading}
+            >
+              <span>{category.name}</span>
+              <span className="ml-2 bg-white bg-opacity-20 text-sm px-2 py-0.5 rounded-full">
+                {category.count}
+              </span>
+            </button>
+          ))
+        )}
       </div>
     </div>
   );

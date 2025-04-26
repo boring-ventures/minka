@@ -1,6 +1,5 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 // Fallback campaign data for development
 const mockCampaigns = [
@@ -132,40 +131,6 @@ const mockCampaigns = [
   },
 ];
 
-// Define interfaces for better type safety
-interface OrganizerProfile {
-  id: string;
-  name: string;
-  location: string;
-  profile_picture: string;
-}
-
-interface CampaignMedia {
-  id: string;
-  media_url: string;
-  is_primary: boolean;
-  type: string;
-  order_index: number;
-}
-
-interface Campaign {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  location: string;
-  goal_amount: number;
-  collected_amount: number;
-  donor_count: number;
-  percentage_funded: number;
-  days_remaining: number;
-  created_at: string;
-  verification_status: boolean;
-  organizer_id: string;
-  organizer: OrganizerProfile | null;
-  media: CampaignMedia[];
-}
-
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -175,300 +140,129 @@ export async function GET(request: Request) {
     const location = url.searchParams.get("location");
     const search = url.searchParams.get("search");
     const sortBy = url.searchParams.get("sortBy") || "popular"; // default sort
-    const verified = url.searchParams.get("verified");
+    const verified = url.searchParams.get("verified") === "true";
     const page = parseInt(url.searchParams.get("page") || "1");
     const limit = parseInt(url.searchParams.get("limit") || "12"); // items per page
 
     // Calculate offset for pagination
-    const offset = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    try {
-      // Create Supabase client
-      const supabase = createRouteHandlerClient({
-        cookies: () => cookies(),
-      });
+    // Build the where clause with filters
+    const whereClause: any = {
+      campaignStatus: "active",
+      status: "active",
+    };
 
-      // Start building the query
-      let query = supabase
-        .from("campaigns")
-        .select(
-          `
-          id, 
-          title, 
-          description,
-          category,
-          location,
-          goal_amount,
-          collected_amount,
-          donor_count,
-          percentage_funded,
-          days_remaining,
-          created_at,
-          verification_status,
-          organizer_id,
-          organizer:profiles!organizer_id(id, name, location, profile_picture),
-          media:campaign_media(
-            id, 
-            media_url, 
-            is_primary, 
-            type, 
-            order_index
-          )
-        `
-        )
-        .eq("campaign_status", "active") // Only active campaigns
-        .range(offset, offset + limit - 1);
-
-      // Apply filters if they exist
-      if (category) {
-        query = query.eq("category", category);
-      }
-
-      if (location) {
-        query = query.eq("location", location);
-      }
-
-      if (search) {
-        query = query.or(
-          `title.ilike.%${search}%,description.ilike.%${search}%`
-        );
-      }
-
-      if (verified === "true") {
-        query = query.eq("verification_status", true);
-      }
-
-      // Apply sorting
-      switch (sortBy) {
-        case "newest":
-          query = query.order("created_at", { ascending: false });
-          break;
-        case "most_funded":
-          query = query.order("percentage_funded", { ascending: false });
-          break;
-        case "ending_soon":
-          query = query.order("days_remaining", { ascending: true });
-          break;
-        case "popular":
-        default:
-          query = query.order("donor_count", { ascending: false });
-          break;
-      }
-
-      // Execute the query
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("Error fetching campaigns:", error);
-        throw error;
-      }
-
-      // Format the response
-      const campaigns = data.map((campaign) => {
-        // Find primary image
-        const primaryMedia = Array.isArray(campaign.media)
-          ? campaign.media.find((m) => m.is_primary)
-          : null;
-
-        let organizerData = null;
-
-        if (campaign.organizer) {
-          if (
-            Array.isArray(campaign.organizer) &&
-            campaign.organizer.length > 0
-          ) {
-            // Handle the case where it's an array (take the first item)
-            const firstOrganizer = campaign.organizer[0];
-            organizerData = {
-              id: firstOrganizer.id,
-              name: firstOrganizer.name,
-              location: firstOrganizer.location,
-              profilePicture: firstOrganizer.profile_picture,
-            };
-          } else if (typeof campaign.organizer === "object") {
-            // Handle the case where it's a single object
-            // Use unknown type first to avoid TypeScript errors
-            const organizer = campaign.organizer as unknown;
-            if (
-              organizer &&
-              typeof organizer === "object" &&
-              !Array.isArray(organizer)
-            ) {
-              const typedOrganizer = organizer as {
-                id?: string;
-                name?: string;
-                location?: string;
-                profile_picture?: string;
-              };
-              organizerData = {
-                id: typedOrganizer.id || "",
-                name: typedOrganizer.name || "",
-                location: typedOrganizer.location || "",
-                profilePicture: typedOrganizer.profile_picture || "",
-              };
-            }
-          }
-        }
-
-        return {
-          id: campaign.id,
-          title: campaign.title,
-          description: campaign.description,
-          category: campaign.category,
-          location: campaign.location,
-          goalAmount: campaign.goal_amount,
-          collectedAmount: campaign.collected_amount,
-          donorCount: campaign.donor_count,
-          percentageFunded: campaign.percentage_funded,
-          daysRemaining: campaign.days_remaining,
-          verified: campaign.verification_status,
-          organizer: organizerData,
-          primaryImage: primaryMedia ? primaryMedia.media_url : null,
-        };
-      });
-
-      // Get the count in a separate query
-      const countQuery = supabase
-        .from("campaigns")
-        .select("id", { count: "exact" })
-        .eq("campaign_status", "active");
-
-      // Apply the same filters to the count query
-      if (category) {
-        countQuery.eq("category", category);
-      }
-
-      if (location) {
-        countQuery.eq("location", location);
-      }
-
-      if (search) {
-        countQuery.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
-      }
-
-      if (verified === "true") {
-        countQuery.eq("verification_status", true);
-      }
-
-      // Execute count query
-      const { count, error: countError } = await countQuery;
-
-      if (countError) {
-        console.error("Error getting count:", countError);
-        throw countError;
-      }
-
-      const totalCount = count || 0;
-      const totalPages = Math.ceil(totalCount / limit);
-
-      return NextResponse.json({
-        campaigns,
-        pagination: {
-          totalCount,
-          totalPages,
-          currentPage: page,
-          limit,
-          hasMore: page < totalPages,
-        },
-      });
-    } catch (dbError) {
-      console.error("Database error:", dbError);
-
-      // In development mode, return mock data as a fallback
-      if (process.env.NODE_ENV === "development") {
-        console.log("Using mock data as fallback");
-
-        // Apply filters to mock data
-        let filteredMockCampaigns = [...mockCampaigns];
-
-        if (category) {
-          filteredMockCampaigns = filteredMockCampaigns.filter(
-            (c) => c.category === category
-          );
-        }
-
-        if (location) {
-          filteredMockCampaigns = filteredMockCampaigns.filter(
-            (c) => c.location === location
-          );
-        }
-
-        if (search) {
-          const searchLower = search.toLowerCase();
-          filteredMockCampaigns = filteredMockCampaigns.filter(
-            (c) =>
-              c.title.toLowerCase().includes(searchLower) ||
-              c.description.toLowerCase().includes(searchLower)
-          );
-        }
-
-        if (verified === "true") {
-          filteredMockCampaigns = filteredMockCampaigns.filter(
-            (c) => c.verified === true
-          );
-        }
-
-        // Apply sorting
-        switch (sortBy) {
-          case "newest":
-            // No date in mock data, just use the order
-            break;
-          case "most_funded":
-            filteredMockCampaigns.sort(
-              (a, b) => b.percentageFunded - a.percentageFunded
-            );
-            break;
-          case "ending_soon":
-            filteredMockCampaigns.sort(
-              (a, b) => a.daysRemaining - b.daysRemaining
-            );
-            break;
-          case "popular":
-          default:
-            filteredMockCampaigns.sort((a, b) => b.donorCount - a.donorCount);
-            break;
-        }
-
-        // Apply pagination
-        const totalCount = filteredMockCampaigns.length;
-        const totalPages = Math.ceil(totalCount / limit);
-        const paginatedMockCampaigns = filteredMockCampaigns.slice(
-          offset,
-          offset + limit
-        );
-
-        return NextResponse.json({
-          campaigns: paginatedMockCampaigns,
-          pagination: {
-            totalCount,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasMore: page < totalPages,
-          },
-        });
-      }
-
-      // In production, return an empty list with error message
-      return NextResponse.json(
-        {
-          campaigns: [],
-          pagination: {
-            totalCount: 0,
-            totalPages: 0,
-            currentPage: page,
-            limit,
-            hasMore: false,
-          },
-          error: "Database error, please try again later.",
-        },
-        { status: 200 } // Return 200 instead of 500 to handle the error gracefully
-      );
+    // Apply filters if they exist
+    if (category) {
+      whereClause.category = category;
     }
-  } catch (error) {
-    console.error("Error in campaign list endpoint:", error);
 
-    // Return a user-friendly error response with 200 status to handle the error gracefully
+    if (location) {
+      whereClause.location = location;
+    }
+
+    if (search) {
+      whereClause.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (verified) {
+      whereClause.verificationStatus = true;
+    }
+
+    // Determine sort order
+    let orderBy: any = {};
+
+    switch (sortBy) {
+      case "newest":
+        orderBy = { createdAt: "desc" };
+        break;
+      case "most_funded":
+        orderBy = { percentageFunded: "desc" };
+        break;
+      case "ending_soon":
+        orderBy = { daysRemaining: "asc" };
+        break;
+      case "popular":
+      default:
+        orderBy = { donorCount: "desc" };
+        break;
+    }
+
+    // Execute the query to get campaigns
+    const campaigns = await db.campaign.findMany({
+      where: whereClause,
+      include: {
+        media: true,
+        organizer: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            profilePicture: true,
+          },
+        },
+      },
+      orderBy,
+      skip,
+      take: limit,
+    });
+
+    // Format the campaigns for the response
+    const formattedCampaigns = campaigns.map((campaign) => {
+      // Find primary image
+      const primaryMedia = campaign.media.find((media) => media.isPrimary);
+
+      // Format organizer data
+      const organizerData = campaign.organizer
+        ? {
+            id: campaign.organizer.id,
+            name: campaign.organizer.name,
+            location: campaign.organizer.location || "",
+            profilePicture: campaign.organizer.profilePicture,
+          }
+        : null;
+
+      return {
+        id: campaign.id,
+        title: campaign.title,
+        description: campaign.description,
+        category: formatCategory(campaign.category.toString()), // Format the category for display
+        location: formatLocation(campaign.location.toString()), // Format the location for display
+        goalAmount: Number(campaign.goalAmount),
+        collectedAmount: Number(campaign.collectedAmount),
+        donorCount: campaign.donorCount,
+        percentageFunded: campaign.percentageFunded,
+        daysRemaining: campaign.daysRemaining,
+        verified: campaign.verificationStatus,
+        organizer: organizerData,
+        primaryImage: primaryMedia ? primaryMedia.mediaUrl : null,
+      };
+    });
+
+    // Get the count of matching campaigns
+    const totalCount = await db.campaign.count({
+      where: whereClause,
+    });
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return NextResponse.json({
+      campaigns: formattedCampaigns,
+      pagination: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasMore: page < totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching campaigns:", error);
+
     return NextResponse.json(
       {
         campaigns: [],
@@ -479,9 +273,41 @@ export async function GET(request: Request) {
           limit: 12,
           hasMore: false,
         },
-        error: "An unexpected error occurred. Please try again later.",
+        error: "Error fetching campaigns. Please try again later.",
       },
-      { status: 200 }
+      { status: 200 } // Return 200 to handle errors gracefully on the client side
     );
   }
+}
+
+// Helper function to format category from DB enum to display format
+function formatCategory(category: string) {
+  const categoryMap: Record<string, string> = {
+    cultura_arte: "Cultura y arte",
+    educacion: "Educación",
+    emergencia: "Emergencia",
+    igualdad: "Igualdad",
+    medioambiente: "Medio ambiente",
+    salud: "Salud",
+    otros: "Otros",
+  };
+
+  return categoryMap[category] || category;
+}
+
+// Helper function to format location from DB enum to display format
+function formatLocation(location: string) {
+  const locationMap: Record<string, string> = {
+    la_paz: "La Paz",
+    santa_cruz: "Santa Cruz",
+    cochabamba: "Cochabamba",
+    sucre: "Sucre",
+    oruro: "Oruro",
+    potosi: "Potosí",
+    tarija: "Tarija",
+    beni: "Beni",
+    pando: "Pando",
+  };
+
+  return locationMap[location] || location;
 }

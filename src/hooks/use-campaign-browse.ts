@@ -106,9 +106,14 @@ export function useCampaignBrowse() {
         url.searchParams.append("page", page.toString());
         url.searchParams.append("limit", pagination.limit.toString());
 
-        const response = await fetch(url.toString());
+        console.log("Fetching campaigns with URL:", url.toString());
+        console.log("Current filters:", filters);
+        console.log("Current sort:", sortBy);
+        console.log("Current page:", page);
 
+        const response = await fetch(url.toString());
         const data = await response.json();
+        console.log("API response:", data);
 
         // Check if there is an error message in the response
         if (data.error) {
@@ -146,12 +151,22 @@ export function useCampaignBrowse() {
   );
 
   // Function to fetch categories
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setIsCategoriesLoading(true);
 
     try {
-      const response = await fetch("/api/campaign/categories");
+      // Build URL with query parameters to get filtered categories
+      const url = new URL("/api/campaign/categories", window.location.origin);
 
+      // Add current filters to get dynamic counts except category itself
+      if (filters.location)
+        url.searchParams.append("location", filters.location);
+      if (filters.search) url.searchParams.append("search", filters.search);
+      if (filters.verified) url.searchParams.append("verified", "true");
+
+      console.log("Fetching categories with URL:", url.toString());
+
+      const response = await fetch(url.toString());
       const data = await response.json();
 
       // Check if there is an error message in the response
@@ -169,15 +184,25 @@ export function useCampaignBrowse() {
     } finally {
       setIsCategoriesLoading(false);
     }
-  };
+  }, [filters.location, filters.search, filters.verified]);
 
   // Function to fetch locations
-  const fetchLocations = async () => {
+  const fetchLocations = useCallback(async () => {
     setIsLocationsLoading(true);
 
     try {
-      const response = await fetch("/api/campaign/locations");
+      // Build URL with query parameters to get filtered locations
+      const url = new URL("/api/campaign/locations", window.location.origin);
 
+      // Add current filters to get dynamic counts except location itself
+      if (filters.category)
+        url.searchParams.append("category", filters.category);
+      if (filters.search) url.searchParams.append("search", filters.search);
+      if (filters.verified) url.searchParams.append("verified", "true");
+
+      console.log("Fetching locations with URL:", url.toString());
+
+      const response = await fetch(url.toString());
       const data = await response.json();
 
       // Check if there is an error message in the response
@@ -195,17 +220,24 @@ export function useCampaignBrowse() {
     } finally {
       setIsLocationsLoading(false);
     }
-  };
+  }, [filters.category, filters.search, filters.verified]);
 
   // Update filters
   const updateFilters = (newFilters: Partial<CampaignFilters>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }));
+    console.log("Updating filters with:", newFilters);
+    console.log("Previous filters:", filters);
+    setFilters((prev) => {
+      const updated = { ...prev, ...newFilters };
+      console.log("New filters will be:", updated);
+      return updated;
+    });
     // Reset to page 1 when filters change
     setPagination((prev) => ({ ...prev, currentPage: 1 }));
   };
 
   // Update sort
   const updateSort = (newSortBy: string) => {
+    console.log("Updating sortBy from", sortBy, "to", newSortBy);
     setSortBy(newSortBy);
     // Reset to page 1 when sort changes
     setPagination((prev) => ({ ...prev, currentPage: 1 }));
@@ -229,7 +261,22 @@ export function useCampaignBrowse() {
     fetchCampaigns();
     fetchCategories();
     fetchLocations();
-  }, [fetchCampaigns]);
+  }, [fetchCampaigns, fetchCategories, fetchLocations]);
+
+  // Update categories and locations when filters change
+  useEffect(() => {
+    // Only update categories when a non-category filter changes
+    if (filters.location || filters.search || filters.verified) {
+      fetchCategories();
+    }
+  }, [filters.location, filters.search, filters.verified, fetchCategories]);
+
+  useEffect(() => {
+    // Only update locations when a non-location filter changes
+    if (filters.category || filters.search || filters.verified) {
+      fetchLocations();
+    }
+  }, [filters.category, filters.search, filters.verified, fetchLocations]);
 
   // Fetch campaigns when filters or sort change
   useEffect(() => {

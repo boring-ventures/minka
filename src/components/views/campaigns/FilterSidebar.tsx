@@ -1,6 +1,12 @@
 "use client";
 
-import { Search, SlidersHorizontal, Check, ChevronDown } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  Check,
+  ChevronDown,
+  Loader2,
+} from "lucide-react";
 import { useState } from "react";
 import { CampaignFilters } from "@/hooks/use-campaign-browse";
 
@@ -14,6 +20,7 @@ interface FilterSidebarProps {
   filters: CampaignFilters;
   onUpdateFilters: (newFilters: Partial<CampaignFilters>) => void;
   onResetFilters: () => void;
+  isLocationsLoading?: boolean;
 }
 
 export function FilterSidebar({
@@ -21,6 +28,7 @@ export function FilterSidebar({
   filters,
   onUpdateFilters,
   onResetFilters,
+  isLocationsLoading = false,
 }: FilterSidebarProps) {
   const [isCertifiedMenuOpen, setIsCertifiedMenuOpen] = useState(true);
   const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(true);
@@ -60,6 +68,7 @@ export function FilterSidebar({
         <button
           onClick={onResetFilters}
           className="text-[#2c6e49] hover:underline font-medium"
+          disabled={isLocationsLoading}
         >
           Limpiar filtros
         </button>
@@ -118,45 +127,58 @@ export function FilterSidebar({
           <div className="px-6 pb-6">
             <div
               className="flex items-center mb-3 cursor-pointer"
-              onClick={() => handleLocationChange(undefined)}
+              onClick={() =>
+                !isLocationsLoading && handleLocationChange(undefined)
+              }
             >
               <div
                 className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
                   !filters.location
                     ? "bg-[#2c6e49] border-[#2c6e49]"
                     : "border-gray-400"
-                }`}
+                } ${isLocationsLoading ? "opacity-50" : ""}`}
               >
                 {!filters.location && (
                   <div className="h-3 w-3 rounded-full bg-white"></div>
                 )}
               </div>
-              <span className="text-[#333333]">Todas</span>
+              <span
+                className={`text-[#333333] ${isLocationsLoading ? "opacity-50" : ""}`}
+              >
+                Todas
+              </span>
             </div>
 
-            {displayLocations.map((location) => (
-              <div
-                key={location.name}
-                className="flex items-center mb-3 cursor-pointer"
-                onClick={() => handleLocationChange(location.name)}
-              >
-                <div
-                  className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                    filters.location === location.name
-                      ? "bg-[#2c6e49] border-[#2c6e49]"
-                      : "border-gray-400"
-                  }`}
-                >
-                  {filters.location === location.name && (
-                    <div className="h-3 w-3 rounded-full bg-white"></div>
-                  )}
-                </div>
-                <span className="text-[#333333]">{location.name}</span>
-                <span className="ml-2 text-sm text-gray-500">
-                  ({location.count})
-                </span>
+            {isLocationsLoading ? (
+              <div className="flex items-center justify-start ml-2 mt-4 text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-[#2c6e49]" />
+                <span>Actualizando ubicaciones...</span>
               </div>
-            ))}
+            ) : (
+              displayLocations.map((location) => (
+                <div
+                  key={location.name}
+                  className="flex items-center mb-3 cursor-pointer"
+                  onClick={() => handleLocationChange(location.name)}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
+                      filters.location === location.name
+                        ? "bg-[#2c6e49] border-[#2c6e49]"
+                        : "border-gray-400"
+                    }`}
+                  >
+                    {filters.location === location.name && (
+                      <div className="h-3 w-3 rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <span className="text-[#333333]">{location.name}</span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    ({location.count})
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>

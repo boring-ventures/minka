@@ -6,6 +6,7 @@ import { Footer } from "@/components/views/landing-page/Footer";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function CampaignVerificationPage() {
   return (
@@ -61,12 +62,17 @@ function CampaignVerificationPageSkeleton() {
 
       <div className="w-full h-[300px] md:h-[500px] relative border-t border-[#2c6e49]/5">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-3/4 h-16 bg-gray-200 animate-pulse rounded-lg"></div>
+          <LoadingSpinner size="lg" />
         </div>
       </div>
       <main className="overflow-x-hidden">
         <div className="container mx-auto px-4 py-16">
-          <div className="w-full h-96 bg-gray-100 animate-pulse rounded-lg"></div>
+          <div className="flex justify-center">
+            <LoadingSpinner
+              showText
+              text="Cargando formulario de verificación..."
+            />
+          </div>
         </div>
       </main>
       <Footer />
