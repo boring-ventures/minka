@@ -56,6 +56,7 @@ interface Campaign {
   days_remaining: number;
   verification_status?: boolean;
   created_at?: string;
+  campaign_status?: string;
   organizer: OrganizerProfile | null;
   media: CampaignMedia[];
   updates?: CampaignUpdate[];
@@ -100,6 +101,7 @@ export async function GET(
         days_remaining,
         verification_status,
         created_at,
+        campaign_status,
         organizer:profiles!organizer_id(id, name, location, profile_picture, join_date, active_campaigns_count, bio),
         media:campaign_media(id, media_url, is_primary, type, order_index),
         updates:campaign_updates(id, title, content, image_url, youtube_url, created_at),
@@ -112,7 +114,6 @@ export async function GET(
       `
       )
       .eq("id", id)
-      .eq("campaign_status", "active")
       .single();
 
     if (campaignError) {
@@ -161,6 +162,7 @@ export async function GET(
       days_remaining: campaign.days_remaining,
       verification_status: campaign.verification_status,
       created_at: campaign.created_at,
+      campaign_status: campaign.campaign_status,
       organizer: campaign.organizer
         ? {
             id: campaign.organizer.id,
