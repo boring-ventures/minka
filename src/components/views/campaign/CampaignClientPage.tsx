@@ -279,6 +279,16 @@ export default function CampaignClientPage({ id }: { id: string }) {
   const [relatedCampaigns, setRelatedCampaigns] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("descripcion");
 
+  useEffect(() => {
+    if (campaign?.category) {
+      fetchRelatedCampaigns(campaign.category, id)
+        .then(setRelatedCampaigns)
+        .catch((err) =>
+          console.error("Error fetching related campaigns:", err)
+        );
+    }
+  }, [campaign, id]);
+
   // Handle error state
   if (error) {
     return (
@@ -303,19 +313,10 @@ export default function CampaignClientPage({ id }: { id: string }) {
   // Format campaign data for components
   const formattedData = formatCampaignData(campaign);
 
-  useEffect(() => {
-    if (campaign?.category) {
-      fetchRelatedCampaigns(campaign.category, id)
-        .then(setRelatedCampaigns)
-        .catch((err) =>
-          console.error("Error fetching related campaigns:", err)
-        );
-    }
-  }, [campaign, id]);
-
   return (
     <>
       <Header />
+      <div className="h-20 md:h-28"></div>
       <main className="container mx-auto px-4 py-10">
         {/* Campaign Title */}
         <h1 className="text-3xl md:text-5xl font-bold text-[#2c6e49] mb-6">

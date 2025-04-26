@@ -8,27 +8,27 @@ async function main() {
   // Create profiles from the Supabase auth users in the screenshot
   const supabaseUsers = [
     {
-      id: "bed29d5c-28f8-4238-8b68-6802e9b4e9de",
+      id: "88b86a9f-b6bf-4817-8818-e6f5e04588b2",
       email: "tester5@minka.com",
       name: "Tester Cinco",
     },
     {
-      id: "5995e8be-1b8d-4d04-b169-942bb7143e57",
+      id: "2e800f9d-3866-4e97-9300-68966cf89a57",
       email: "tester4@minka.com",
       name: "Tester Cuatro",
     },
     {
-      id: "97385ee4-fdbc-4de7-a8e9-870e510fb364",
+      id: "e509821d-b66d-4d5f-93ce-9ecf2e60cc55",
       email: "tester3@minka.com",
       name: "Tester Tres",
     },
     {
-      id: "9588ffa7-0ca2-4ce1-9068-e974a153a416",
+      id: "576f6e70-6af3-4f99-87c6-4662e4b711b8",
       email: "tester2@minka.com",
       name: "Tester Dos",
     },
     {
-      id: "35dd663e-e31d-4d54-b3c4-0adf38924a27",
+      id: "31ffa214-3a8e-48ff-b100-0ffd891176ae",
       email: "tester@minka.com",
       name: "Tester Uno",
     },
