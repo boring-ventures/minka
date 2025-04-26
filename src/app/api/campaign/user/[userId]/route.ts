@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Get the user session to validate authentication
@@ -19,7 +19,7 @@ export async function GET(
     }
 
     // Users can only access their own campaigns unless they're an admin
-    if (session.user.id !== params.userId) {
+    if (session.user.id !== (await params).userId) {
       const requestingUser = await prisma.profile.findUnique({
         where: { id: session.user.id },
         select: { role: true },
@@ -36,7 +36,7 @@ export async function GET(
     // Fetch the user's campaigns
     const campaigns = await prisma.campaign.findMany({
       where: {
-        organizerId: params.userId,
+        organizerId: (await params).userId,
       },
       include: {
         media: true,
@@ -63,7 +63,10 @@ export async function GET(
       { status: 200 }
     );
   } catch (error) {
-    console.error(`Error fetching campaigns for user ${params.userId}:`, error);
+    console.error(
+      `Error fetching campaigns for user ${await params}.userId:`,
+      error
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

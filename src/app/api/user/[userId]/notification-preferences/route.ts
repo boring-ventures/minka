@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Get the user session to validate authentication
@@ -19,7 +19,7 @@ export async function GET(
     }
 
     // Users can only access their own preferences
-    if (session.user.id !== params.userId) {
+    if (session.user.id !== (await params).userId) {
       // Check if the requesting user is an admin
       const requestingUser = await prisma.profile.findUnique({
         where: { id: session.user.id },
@@ -36,7 +36,7 @@ export async function GET(
 
     // Fetch the notification preferences
     const preferences = await prisma.notificationPreference.findUnique({
-      where: { userId: params.userId },
+      where: { userId: (await params).userId },
     });
 
     // If no preferences found, return defaults
@@ -73,7 +73,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Get the user session to validate authentication
@@ -87,7 +87,7 @@ export async function PUT(
     }
 
     // Users can only update their own preferences
-    if (session.user.id !== params.userId) {
+    if (session.user.id !== (await params).userId) {
       // Check if the requesting user is an admin
       const requestingUser = await prisma.profile.findUnique({
         where: { id: session.user.id },
@@ -117,9 +117,9 @@ export async function PUT(
 
     // Update the notification preferences
     await prisma.notificationPreference.upsert({
-      where: { userId: params.userId },
+      where: { userId: (await params).userId },
       create: {
-        userId: params.userId,
+        userId: (await params).userId,
         newsUpdates: requestData.newsUpdates,
         campaignUpdates: requestData.campaignUpdates,
       },

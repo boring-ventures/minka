@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
+import { Region } from "@/lib/region-utils";
 
 export function CausesSection() {
   const campaigns = [
@@ -14,7 +15,7 @@ export function CausesSection() {
         "El Parque Nacional Amboró es uno de los lugares más biodiversos del mundo, hogar de especies únicas y ecosistemas vitales. Su conservación depende de todos nosotros.",
       image: "/landing-page/dummies/Card/Imagen.png",
       category: "Medio ambiente",
-      location: "Bolivia, Santa Cruz",
+      location: "santa_cruz" as Region,
       progress: 80,
       donorCount: 250,
       amountRaised: "Bs. 1.200,00",
@@ -26,7 +27,7 @@ export function CausesSection() {
         "Ayúdanos a llevar educación de calidad a niños en zonas rurales de Bolivia que no tienen acceso a escuelas o materiales educativos adecuados.",
       image: "/landing-page/dummies/Card/Imagen.png",
       category: "Educación",
-      location: "Bolivia, Cochabamba",
+      location: "cochabamba" as Region,
       progress: 65,
       donorCount: 180,
       amountRaised: "Bs. 950,00",
@@ -38,7 +39,7 @@ export function CausesSection() {
         "Contribuye a nuestro proyecto para instalar sistemas de agua potable en comunidades aisladas que actualmente no tienen acceso a agua limpia y segura.",
       image: "/landing-page/dummies/Card/Imagen.png",
       category: "Salud",
-      location: "Bolivia, La Paz",
+      location: "la_paz" as Region,
       progress: 45,
       donorCount: 120,
       amountRaised: "Bs. 750,00",

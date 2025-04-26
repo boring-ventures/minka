@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const id = (await params).id;
   console.log(`Public API: Redirecting to main campaign API for ID: ${id}`);
 
   if (!id) {

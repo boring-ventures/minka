@@ -219,7 +219,7 @@ function CampaignsContent() {
                         title={campaign.title}
                         image={campaign.primaryImage || ""}
                         category={campaign.category}
-                        location={campaign.location}
+                        location={campaign.location as any}
                         progress={campaign.percentageFunded}
                         verified={campaign.verified}
                         description={campaign.description}

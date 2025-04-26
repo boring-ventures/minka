@@ -65,9 +65,9 @@ interface Campaign {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const id = (await params).id;
   console.log(`API: Fetching campaign with ID: ${id}`);
 
   if (!id) {
@@ -196,7 +196,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = cookies();
@@ -229,7 +229,7 @@ export async function PATCH(
     // Get the current campaign to check ownership
     const existingCampaign = await db.campaign.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
     });
 
@@ -297,7 +297,7 @@ export async function PATCH(
     // Update campaign with all provided fields
     const campaign = await db.campaign.update({
       where: {
-        id: params.id,
+        id: (await params).id,
       },
       data: updateData,
     });
@@ -306,7 +306,7 @@ export async function PATCH(
     if (media && Array.isArray(media) && media.length > 0) {
       // Delete existing media
       await db.campaignMedia.deleteMany({
-        where: { campaignId: params.id },
+        where: { campaignId: (await params).id },
       });
 
       // Create new media
@@ -314,7 +314,7 @@ export async function PATCH(
         media.map(async (item: any) =>
           db.campaignMedia.create({
             data: {
-              campaignId: params.id,
+              campaignId: (await params).id,
               mediaUrl: item.mediaUrl,
               type: item.type,
               isPrimary: item.isPrimary,

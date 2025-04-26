@@ -53,6 +53,7 @@ export interface Campaign {
   verification_status?: boolean;
   created_at?: string;
   campaign_status?: string;
+  category?: string;
   organizer: OrganizerProfile | null;
   media: CampaignMedia[];
   updates?: CampaignUpdate[];

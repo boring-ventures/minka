@@ -3,6 +3,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { Region } from "@prisma/client";
 
 const campaignDraftSchema = z.object({
   campaignId: z.string().uuid().optional(),
@@ -23,7 +24,7 @@ const campaignDraftSchema = z.object({
     ])
     .optional(),
   goalAmount: z.coerce.number().min(1).optional(),
-  location: z.string().min(3).max(100).optional(),
+  location: z.nativeEnum(Region).optional(),
   endDate: z
     .string()
     .transform((str) => new Date(str))
@@ -165,7 +166,7 @@ export async function POST(req: NextRequest) {
                   (1000 * 60 * 60 * 24)
               )
             : 30,
-          location: validatedData.location || "Bolivia",
+          location: validatedData.location || "la_paz",
           endDate:
             validatedData.endDate ||
             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),

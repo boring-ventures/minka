@@ -4,8 +4,12 @@ import Loading from "./loading";
 import CampaignClientPage from "@/components/views/campaign/CampaignClientPage";
 
 // Server component that passes the campaign ID to the client component
-export default function CampaignPage({ params }: { params: { id: string } }) {
-  const id = params.id;
+export default async function CampaignPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const id = (await params).id;
   console.log(`Server: Rendering campaign page with ID: ${id}`);
 
   if (!id) {

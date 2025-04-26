@@ -427,7 +427,19 @@ export default function CampaignClientPage({ id }: { id: string }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {relatedCampaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
+                <CampaignCard
+                  key={campaign.id}
+                  id={campaign.id}
+                  title={campaign.title}
+                  image={campaign.primaryImage || ""}
+                  category={campaign.category}
+                  location={campaign.location as any}
+                  progress={campaign.percentageFunded}
+                  verified={campaign.verified}
+                  description={campaign.description}
+                  donorCount={campaign.donorCount}
+                  amountRaised={`Bs. ${campaign.collectedAmount.toLocaleString("es-BO")}`}
+                />
               ))}
             </div>
           </div>
