@@ -8,6 +8,8 @@ const prisma = new PrismaClient();
 // GET: Fetch all saved campaigns for the current user
 export async function GET() {
   try {
+    console.log("GET /api/saved-campaign: Fetching saved campaigns");
+
     // Get the current session using Supabase
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({
@@ -19,7 +21,14 @@ export async function GET() {
       error: sessionError,
     } = await supabase.auth.getSession();
 
+    console.log("Session check:", {
+      hasSession: !!session,
+      error: sessionError ? sessionError.message : null,
+      userEmail: session?.user?.email,
+    });
+
     if (sessionError || !session?.user?.email) {
+      console.error("Session error or no user found:", sessionError);
       return NextResponse.json(
         { error: "You must be logged in to view saved campaigns" },
         { status: 401 }
@@ -32,11 +41,14 @@ export async function GET() {
     });
 
     if (!profile) {
+      console.error("Profile not found for email:", session.user.email);
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 }
       );
     }
+
+    console.log("Found profile:", profile.id);
 
     // Fetch the saved campaigns with campaign details
     const savedCampaigns = await prisma.savedCampaign.findMany({
@@ -67,6 +79,8 @@ export async function GET() {
       },
     });
 
+    console.log(`Found ${savedCampaigns.length} saved campaigns`);
+
     // Format the response to match the expected structure
     const formattedCampaigns = savedCampaigns.map((saved) => ({
       id: saved.campaign.id,
@@ -92,7 +106,10 @@ export async function GET() {
 // POST: Save a campaign for the current user
 export async function POST(request: NextRequest) {
   try {
+    console.log("POST /api/saved-campaign: Saving campaign");
+
     const { campaignId } = await request.json();
+    console.log("Request to save campaignId:", campaignId);
 
     if (!campaignId) {
       return NextResponse.json(
@@ -112,7 +129,14 @@ export async function POST(request: NextRequest) {
       error: sessionError,
     } = await supabase.auth.getSession();
 
+    console.log("Session check:", {
+      hasSession: !!session,
+      error: sessionError ? sessionError.message : null,
+      userEmail: session?.user?.email,
+    });
+
     if (sessionError || !session?.user?.email) {
+      console.error("Session error or no user found:", sessionError);
       return NextResponse.json(
         { error: "You must be logged in to save campaigns" },
         { status: 401 }
@@ -125,11 +149,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (!profile) {
+      console.error("Profile not found for email:", session.user.email);
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 }
       );
     }
+
+    console.log("Found profile:", profile.id);
 
     // Check if the campaign exists
     const campaign = await prisma.campaign.findUnique({
@@ -137,6 +164,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!campaign) {
+      console.error("Campaign not found:", campaignId);
       return NextResponse.json(
         { error: "Campaign not found" },
         { status: 404 }
@@ -153,6 +181,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSave) {
+      console.log("Campaign already saved");
       return NextResponse.json(
         { error: "Campaign already saved" },
         { status: 400 }
@@ -167,11 +196,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log("Campaign saved successfully:", savedCampaign.id);
     return NextResponse.json(savedCampaign);
   } catch (error) {
     console.error("Error saving campaign:", error);
     return NextResponse.json(
-      { error: "Failed to save campaign" },
+      {
+        error: "Failed to save campaign",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -180,7 +213,10 @@ export async function POST(request: NextRequest) {
 // DELETE: Remove a saved campaign for the current user
 export async function DELETE(request: NextRequest) {
   try {
+    console.log("DELETE /api/saved-campaign: Unsaving campaign");
+
     const { campaignId } = await request.json();
+    console.log("Request to unsave campaignId:", campaignId);
 
     if (!campaignId) {
       return NextResponse.json(
@@ -200,7 +236,14 @@ export async function DELETE(request: NextRequest) {
       error: sessionError,
     } = await supabase.auth.getSession();
 
+    console.log("Session check:", {
+      hasSession: !!session,
+      error: sessionError ? sessionError.message : null,
+      userEmail: session?.user?.email,
+    });
+
     if (sessionError || !session?.user?.email) {
+      console.error("Session error or no user found:", sessionError);
       return NextResponse.json(
         { error: "You must be logged in to unsave campaigns" },
         { status: 401 }
@@ -213,11 +256,14 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (!profile) {
+      console.error("Profile not found for email:", session.user.email);
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 }
       );
     }
+
+    console.log("Found profile:", profile.id);
 
     // Find the saved campaign
     const savedCampaign = await prisma.savedCampaign.findFirst({
@@ -229,6 +275,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (!savedCampaign) {
+      console.error("Saved campaign not found");
       return NextResponse.json(
         { error: "Saved campaign not found" },
         { status: 404 }
@@ -241,11 +288,15 @@ export async function DELETE(request: NextRequest) {
       data: { status: "inactive" },
     });
 
+    console.log("Campaign unsaved successfully");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error unsaving campaign:", error);
     return NextResponse.json(
-      { error: "Failed to unsave campaign" },
+      {
+        error: "Failed to unsave campaign",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

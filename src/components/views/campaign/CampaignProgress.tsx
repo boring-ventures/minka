@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Check, Clock, Share2, Bookmark, BookmarkCheck } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSavedCampaigns } from "@/hooks/use-saved-campaigns";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/use-toast";
@@ -31,13 +31,26 @@ export function CampaignProgress({
   campaignLocation = "",
   campaignId = "",
 }: CampaignProgressProps) {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { isCampaignSaved, saveCampaign, unsaveCampaign } = useSavedCampaigns();
   const [isSaving, setIsSaving] = useState(false);
+  const [isSessionLoaded, setIsSessionLoaded] = useState(false);
 
   const isLoggedIn = !!session;
   const isSaved = isCampaignSaved(campaignId);
+
+  // Debug session state
+  useEffect(() => {
+    if (!authLoading) {
+      setIsSessionLoaded(true);
+      console.log("Session state:", {
+        isLoggedIn,
+        hasSession: !!session,
+        email: session?.user?.email,
+      });
+    }
+  }, [session, authLoading, isLoggedIn]);
 
   const safeCurrentAmount = currentAmount || 0;
   const safeTargetAmount = targetAmount || 1;
@@ -47,7 +60,17 @@ export function CampaignProgress({
       : 0;
 
   const handleSaveToggle = async () => {
+    // Don't proceed until auth is confirmed loaded
+    if (authLoading) {
+      toast({
+        title: "Cargando",
+        description: "Por favor espera mientras verificamos tu sesión",
+      });
+      return;
+    }
+
     if (!isLoggedIn) {
+      console.log("User not logged in, session:", session);
       toast({
         title: "Inicia sesión",
         description: "Debes iniciar sesión para guardar campañas",
@@ -59,9 +82,11 @@ export function CampaignProgress({
     setIsSaving(true);
     try {
       if (isSaved) {
-        await unsaveCampaign(campaignId);
+        const result = await unsaveCampaign(campaignId);
+        console.log("Unsave result:", result);
       } else {
-        await saveCampaign(campaignId);
+        const result = await saveCampaign(campaignId);
+        console.log("Save result:", result);
       }
     } catch (error) {
       console.error("Error toggling saved state:", error);
@@ -140,7 +165,7 @@ export function CampaignProgress({
           variant="ghost"
           className="w-full hover:bg-gray-50 rounded-full py-6"
           onClick={handleSaveToggle}
-          disabled={isSaving}
+          disabled={isSaving || authLoading}
         >
           {isSaved ? (
             <BookmarkCheck className="mr-2 h-4 w-4 text-[#2c6e49]" />
@@ -148,6 +173,7 @@ export function CampaignProgress({
             <Bookmark className="mr-2 h-4 w-4" />
           )}
           {isSaved ? "Campaña guardada" : "Guardar campaña"}
+          {authLoading && " (cargando...)"}
         </Button>
       </div>
     </div>

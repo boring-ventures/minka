@@ -17,10 +17,15 @@ export function useSavedCampaigns() {
   const [savedCampaigns, setSavedCampaigns] = useState<SavedCampaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
 
   // Function to fetch saved campaigns
   const fetchSavedCampaigns = useCallback(async () => {
+    if (authLoading) {
+      // Still loading auth state, don't fetch yet
+      return;
+    }
+
     if (!session) {
       setSavedCampaigns([]);
       setIsLoading(false);
@@ -30,7 +35,16 @@ export function useSavedCampaigns() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch("/api/saved-campaign");
+
+      console.log("Fetching saved campaigns for session:", !!session);
+      const response = await fetch("/api/saved-campaign", {
+        credentials: "include", // Important to include cookies
+        headers: {
+          "Cache-Control": "no-cache", // Prevent caching issues
+        },
+      });
+
+      console.log("Fetch response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -38,6 +52,7 @@ export function useSavedCampaigns() {
       }
 
       const data = await response.json();
+      console.log(`Fetched ${data.length} saved campaigns`);
       setSavedCampaigns(data);
     } catch (err) {
       console.error("Error fetching saved campaigns:", err);
@@ -47,19 +62,30 @@ export function useSavedCampaigns() {
     } finally {
       setIsLoading(false);
     }
-  }, [session]);
+  }, [session, authLoading]);
 
   // Fetch saved campaigns on mount and when session changes
   useEffect(() => {
-    fetchSavedCampaigns();
-  }, [fetchSavedCampaigns]);
+    if (!authLoading) {
+      // Only fetch if auth loading is complete
+      fetchSavedCampaigns();
+    }
+  }, [fetchSavedCampaigns, authLoading]);
 
   // Function to save a campaign
   const saveCampaign = async (campaignId: string) => {
+    if (authLoading) {
+      toast({
+        title: "Cargando",
+        description: "Por favor espera mientras verificamos tu sesión",
+      });
+      return false;
+    }
+
     if (!session) {
       toast({
         title: "Error",
-        description: "You must be logged in to save campaigns",
+        description: "Debes iniciar sesión para guardar campañas",
         variant: "destructive",
       });
       return false;
@@ -67,13 +93,19 @@ export function useSavedCampaigns() {
 
     try {
       setError(null);
+      console.log("Saving campaign:", campaignId);
+
       const response = await fetch("/api/saved-campaign", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
+        credentials: "include", // Include cookies for auth
         body: JSON.stringify({ campaignId }),
       });
+
+      console.log("Save response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -81,6 +113,7 @@ export function useSavedCampaigns() {
       }
 
       const data = await response.json();
+      console.log("Save response:", data);
 
       // Refresh the list of saved campaigns
       await fetchSavedCampaigns();
@@ -110,10 +143,18 @@ export function useSavedCampaigns() {
 
   // Function to unsave a campaign
   const unsaveCampaign = async (campaignId: string) => {
+    if (authLoading) {
+      toast({
+        title: "Cargando",
+        description: "Por favor espera mientras verificamos tu sesión",
+      });
+      return false;
+    }
+
     if (!session) {
       toast({
         title: "Error",
-        description: "You must be logged in to unsave campaigns",
+        description: "Debes iniciar sesión para eliminar campañas guardadas",
         variant: "destructive",
       });
       return false;
@@ -121,13 +162,19 @@ export function useSavedCampaigns() {
 
     try {
       setError(null);
+      console.log("Unsaving campaign:", campaignId);
+
       const response = await fetch("/api/saved-campaign", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
+        credentials: "include", // Include cookies for auth
         body: JSON.stringify({ campaignId }),
       });
+
+      console.log("Unsave response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
