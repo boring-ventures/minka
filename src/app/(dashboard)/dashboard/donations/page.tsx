@@ -134,8 +134,10 @@ export default async function DonationsPage() {
 
     return (
       <div className="space-y-6 p-4 md:p-6">
-        <h1 className="text-3xl font-bold text-gray-800">Mis Donaciones</h1>
-        <div className="bg-card rounded-lg p-4 md:p-6 border">
+        <h1 className="text-3xl font-bold text-gray-800">
+          Historial de donaciones
+        </h1>
+        <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm">
           <UserDonationTable donations={validUserDonations} />
         </div>
       </div>
