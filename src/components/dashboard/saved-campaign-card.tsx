@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Bookmark, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface SavedCampaignCardProps {
   id: string;
   title: string;
   imageUrl: string;
-  category: string;
+  category?: string;
   location: string;
   isInclusive?: boolean;
+  onUnsave?: (id: string) => Promise<void>;
 }
 
 export function SavedCampaignCard({
@@ -18,7 +21,16 @@ export function SavedCampaignCard({
   imageUrl,
   location,
   isInclusive = false,
-}: Omit<SavedCampaignCardProps, "category">) {
+  onUnsave,
+}: SavedCampaignCardProps) {
+  const handleUnsave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onUnsave) {
+      await onUnsave(id);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm flex overflow-hidden min-h-[120px] relative">
       <div className="relative w-[120px]">
@@ -43,6 +55,19 @@ export function SavedCampaignCard({
           />
         </div>
       </div>
+
+      {/* Unsave button */}
+      {onUnsave && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 hover:bg-white hover:text-red-500"
+          onClick={handleUnsave}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Eliminar de guardados</span>
+        </Button>
+      )}
 
       <div className="flex-1 p-5 flex flex-col justify-center">
         <h3 className="font-semibold text-gray-900">{title}</h3>

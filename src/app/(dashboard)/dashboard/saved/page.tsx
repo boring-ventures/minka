@@ -1,58 +1,63 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedCampaignCard } from "@/components/dashboard/saved-campaign-card";
+import { useSavedCampaigns } from "@/hooks/use-saved-campaigns";
+import { useAuth } from "@/hooks/use-auth";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-export default async function SavedCampaignsPage() {
-  const supabase = createServerComponentClient({ cookies });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+export default function SavedCampaignsPage() {
+  const router = useRouter();
+  const { session, loading: authLoading } = useAuth();
+  const { savedCampaigns, isLoading, error, unsaveCampaign } =
+    useSavedCampaigns();
 
-  if (!session) {
-    redirect("/sign-in");
+  const handleUnsave = async (campaignId: string) => {
+    await unsaveCampaign(campaignId);
+  };
+
+  // Show loading state while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
-  // In a real implementation, you would fetch saved campaigns from a database table
-  // For now, we'll use placeholder data to match the design in the image
-  const savedCampaigns = [
-    {
-      id: "1",
-      title: "Ayuda a Grecia a conseguir una silla de ruedas eléctrica",
-      imageUrl: "/images/campaigns/wheelchair.jpg", // This should be replaced with an actual image
-      category: "Salud",
-      location: "Bolivia, Santa Cruz",
-      isInclusive: true,
-    },
-    {
-      id: "2",
-      title: "Ayuda a Grecia a conseguir una silla de ruedas eléctrica",
-      imageUrl: "/images/campaigns/wheelchair.jpg", // This should be replaced with an actual image
-      category: "Salud",
-      location: "Bolivia, Santa Cruz",
-      isInclusive: true,
-    },
-    {
-      id: "3",
-      title: "Ayuda a Grecia a conseguir una silla de ruedas eléctrica",
-      imageUrl: "/images/campaigns/wheelchair.jpg", // This should be replaced with an actual image
-      category: "Salud",
-      location: "Bolivia, Santa Cruz",
-      isInclusive: true,
-    },
-  ];
-
-  // For testing empty state, uncomment the following line
-  // const savedCampaigns = [];
+  // If there was an error fetching saved campaigns
+  if (error) {
+    return (
+      <div className="bg-red-50 rounded-lg py-12 px-4 flex flex-col items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-6">
+          <Info className="h-6 w-6 text-red-500" />
+        </div>
+        <p className="text-gray-800 text-lg text-center mb-8">
+          Ocurrió un error al cargar tus campañas guardadas
+        </p>
+        <Button
+          className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3 text-base"
+          onClick={() => window.location.reload()}
+        >
+          Intentar de nuevo
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold text-gray-800">Campañas guardadas</h1>
 
-      {savedCampaigns && savedCampaigns.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center py-8">
+          <LoadingSpinner size="md" text="Cargando campañas guardadas..." />
+        </div>
+      ) : savedCampaigns && savedCampaigns.length > 0 ? (
         <div className="space-y-6">
           {savedCampaigns.map((campaign, index) => (
             <div key={campaign.id} className="space-y-6">
@@ -61,7 +66,8 @@ export default async function SavedCampaignsPage() {
                 title={campaign.title}
                 imageUrl={campaign.imageUrl}
                 location={campaign.location}
-                isInclusive={campaign.isInclusive}
+                isInclusive={campaign.category === "igualdad"}
+                onUnsave={() => handleUnsave(campaign.id)}
               />
               {index < savedCampaigns.length - 1 && (
                 <div className="h-px bg-gray-200" />

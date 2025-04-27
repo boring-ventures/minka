@@ -1,8 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Check, Clock, Share2, Bookmark } from "lucide-react";
+import { Check, Clock, Share2, Bookmark, BookmarkCheck } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { useSavedCampaigns } from "@/hooks/use-saved-campaigns";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CampaignProgressProps {
   isVerified: boolean;
@@ -27,12 +31,49 @@ export function CampaignProgress({
   campaignLocation = "",
   campaignId = "",
 }: CampaignProgressProps) {
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const { isCampaignSaved, saveCampaign, unsaveCampaign } = useSavedCampaigns();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isLoggedIn = !!session;
+  const isSaved = isCampaignSaved(campaignId);
+
   const safeCurrentAmount = currentAmount || 0;
   const safeTargetAmount = targetAmount || 1;
   const progress =
     safeTargetAmount > 0
       ? Math.min((safeCurrentAmount / safeTargetAmount) * 100, 100)
       : 0;
+
+  const handleSaveToggle = async () => {
+    if (!isLoggedIn) {
+      toast({
+        title: "Inicia sesión",
+        description: "Debes iniciar sesión para guardar campañas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        await unsaveCampaign(campaignId);
+      } else {
+        await saveCampaign(campaignId);
+      }
+    } catch (error) {
+      console.error("Error toggling saved state:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo completar la operación",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div
@@ -98,9 +139,15 @@ export function CampaignProgress({
         <Button
           variant="ghost"
           className="w-full hover:bg-gray-50 rounded-full py-6"
+          onClick={handleSaveToggle}
+          disabled={isSaving}
         >
-          <Bookmark className="mr-2 h-4 w-4" />
-          Guardar campaña
+          {isSaved ? (
+            <BookmarkCheck className="mr-2 h-4 w-4 text-[#2c6e49]" />
+          ) : (
+            <Bookmark className="mr-2 h-4 w-4" />
+          )}
+          {isSaved ? "Campaña guardada" : "Guardar campaña"}
         </Button>
       </div>
     </div>
