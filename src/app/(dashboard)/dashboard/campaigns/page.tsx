@@ -218,9 +218,9 @@ export default function ManageCampaignsPage() {
       ) : (
         <>
           {displayActiveCampaigns.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {displayActiveCampaigns.map((campaign: FormattedCampaign) => (
-                <div key={campaign.id} className="relative">
+                <div key={campaign.id} className="relative h-full">
                   <CampaignCard
                     id={campaign.id}
                     title={campaign.title}
@@ -233,15 +233,16 @@ export default function ManageCampaignsPage() {
                     status={campaign.status}
                     isVerified={campaign.isVerified}
                   />
-                  <div className="absolute top-2 right-2 z-10">
+                  <div className="absolute top-3 right-3 z-10">
                     <Link
                       href={`/dashboard/campaigns/${campaign.id}`}
-                      className="bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"
+                      className="bg-white rounded-full w-9 h-9 flex items-center justify-center shadow-md hover:bg-gray-100 transition-colors duration-200"
+                      aria-label="Edit campaign"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
+                        width="16"
+                        height="16"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -300,12 +301,13 @@ export default function ManageCampaignsPage() {
                         <div className="absolute top-4 right-4">
                           <Link
                             href={`/dashboard/campaigns/${campaign.id}`}
-                            className="bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"
+                            className="bg-white rounded-full w-9 h-9 flex items-center justify-center shadow-md hover:bg-gray-100 transition-colors duration-200"
+                            aria-label="Edit campaign"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              width="18"
-                              height="18"
+                              width="16"
+                              height="16"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"

@@ -70,7 +70,7 @@ export function CampaignCard({
   const imageSrc = imageUrl || "/amboro-main.jpg";
 
   return (
-    <div className="rounded-lg overflow-hidden bg-white border border-gray-100 hover:shadow-md transition-all h-[450px] grid grid-rows-[160px_1fr_50px]">
+    <div className="rounded-lg overflow-hidden bg-white border border-gray-100 hover:shadow-md transition-all h-[450px] grid grid-rows-[160px_1fr_auto]">
       {/* Image Section - Fixed height */}
       <div className="relative w-full h-full">
         <Image
@@ -135,29 +135,29 @@ export function CampaignCard({
         <div className="text-right text-sm text-gray-500">{progress}%</div>
       </div>
 
-      {/* Button Section - Fixed at bottom with fixed height */}
+      {/* Button Section - Auto height to accommodate stacked buttons */}
       <div className="p-4 pt-2 border-t border-gray-100">
         {/* Add verification action button if not verified and campaign is active */}
         {!isVerified && status === "active" ? (
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between">
             <Button
               variant="ghost"
               size="sm"
-              className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
+              className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-start w-full text-xs sm:text-sm px-1 py-1 h-auto font-medium"
               onClick={handleVerifyClick}
             >
-              Solicitar verificación
-              <CheckCircle className="ml-2 h-4 w-4" />
+              <span className="truncate">Solicitar verificación</span>
+              <CheckCircle className="ml-1 flex-shrink-0 h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
+              className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-start w-full text-xs sm:text-sm px-1 py-1 h-auto font-medium"
               asChild
             >
               <Link href={`/dashboard/campaigns/${id}`}>
-                Administrar Campaña
-                <Edit className="ml-2 h-4 w-4" />
+                <span className="truncate">Administrar Campaña</span>
+                <Edit className="ml-1 flex-shrink-0 h-3 w-3 sm:h-4 sm:w-4" />
               </Link>
             </Button>
           </div>
@@ -165,12 +165,12 @@ export function CampaignCard({
           <Button
             variant="ghost"
             size="sm"
-            className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-0 font-bold"
+            className="text-[#2c6e49] hover:bg-[#f0f7f1] flex items-center justify-center gap-2 px-1 py-1 h-auto text-xs sm:text-sm font-medium"
             asChild
           >
             <Link href={`/dashboard/campaigns/${id}`}>
-              Administrar Campaña
-              <Edit className="ml-2 h-4 w-4" />
+              <span className="truncate">Administrar Campaña</span>
+              <Edit className="ml-1 flex-shrink-0 h-3 w-3 sm:h-4 sm:w-4" />
             </Link>
           </Button>
         )}
