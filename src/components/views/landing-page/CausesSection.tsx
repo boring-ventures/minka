@@ -5,46 +5,51 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
 import { Region } from "@/lib/region-utils";
+import { useState, useEffect } from "react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export function CausesSection() {
-  const campaigns = [
-    {
-      id: 1,
-      title: "Protejamos juntos el Parque Nacional Amboró",
-      description:
-        "El Parque Nacional Amboró es uno de los lugares más biodiversos del mundo, hogar de especies únicas y ecosistemas vitales. Su conservación depende de todos nosotros.",
-      image: "/landing-page/dummies/Card/Imagen.png",
-      category: "Medio ambiente",
-      location: "santa_cruz" as Region,
-      progress: 80,
-      donorCount: 250,
-      amountRaised: "Bs. 1.200,00",
-    },
-    {
-      id: 2,
-      title: "Educación para niños en zonas rurales",
-      description:
-        "Ayúdanos a llevar educación de calidad a niños en zonas rurales de Bolivia que no tienen acceso a escuelas o materiales educativos adecuados.",
-      image: "/landing-page/dummies/Card/Imagen.png",
-      category: "Educación",
-      location: "cochabamba" as Region,
-      progress: 65,
-      donorCount: 180,
-      amountRaised: "Bs. 950,00",
-    },
-    {
-      id: 3,
-      title: "Agua potable para comunidades aisladas",
-      description:
-        "Contribuye a nuestro proyecto para instalar sistemas de agua potable en comunidades aisladas que actualmente no tienen acceso a agua limpia y segura.",
-      image: "/landing-page/dummies/Card/Imagen.png",
-      category: "Salud",
-      location: "la_paz" as Region,
-      progress: 45,
-      donorCount: 120,
-      amountRaised: "Bs. 750,00",
-    },
-  ];
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch top 3 featured campaigns on component mount
+  useEffect(() => {
+    const fetchFeaturedCampaigns = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch campaigns with limit=3 and sort by most popular
+        const url = new URL("/api/campaign/list", window.location.origin);
+        url.searchParams.append("limit", "3");
+        url.searchParams.append("sortBy", "popular");
+        url.searchParams.append("verified", "true");
+
+        const response = await fetch(url.toString());
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch campaigns");
+        }
+
+        const data = await response.json();
+
+        if (data.campaigns && Array.isArray(data.campaigns)) {
+          setCampaigns(data.campaigns);
+        } else {
+          console.error("Invalid campaigns data:", data);
+          setError("Error loading campaigns");
+          setCampaigns([]);
+        }
+      } catch (err) {
+        console.error("Error fetching featured campaigns:", err);
+        setError("Failed to load campaigns");
+        setCampaigns([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedCampaigns();
+  }, []);
 
   return (
     <section className="container mx-auto px-4 py-24">
@@ -58,34 +63,71 @@ export function CausesSection() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-        {campaigns.map((campaign) => (
-          <CampaignCard
-            key={campaign.id}
-            id={campaign.id}
-            title={campaign.title}
-            image={campaign.image}
-            category={campaign.category}
-            location={campaign.location}
-            progress={campaign.progress}
-            verified={true}
-            description={campaign.description}
-            donorCount={campaign.donorCount}
-            amountRaised={campaign.amountRaised}
-          />
-        ))}
-      </div>
-
-      <div className="flex justify-center mt-12">
-        <Link href="/campaign" target="_blank" rel="noopener noreferrer">
-          <Button
-            className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white text-xl shadow-none border-0 rounded-full"
-            size="lg"
+      {isLoading ? (
+        <div className="flex justify-center items-center h-96">
+          <LoadingSpinner size="lg" showText text="Cargando campañas..." />
+        </div>
+      ) : error ? (
+        <div className="text-center py-16">
+          <p className="text-xl text-gray-600 mb-6">
+            No se pudieron cargar las campañas. Por favor, intenta de nuevo más
+            tarde.
+          </p>
+          <Link href="/campaign" target="_blank" rel="noopener noreferrer">
+            <Button className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white rounded-full">
+              Ver todas las campañas
+            </Button>
+          </Link>
+        </div>
+      ) : campaigns.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-xl text-gray-600 mb-6">
+            No hay campañas disponibles en este momento.
+          </p>
+          <Link
+            href="/create-campaign"
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            Ver más campañas <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </Link>
-      </div>
+            <Button className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white rounded-full">
+              Crear una campaña
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {campaigns.map((campaign) => (
+            <CampaignCard
+              key={campaign.id}
+              id={campaign.id}
+              title={campaign.title}
+              image={
+                campaign.primaryImage || "/landing-page/dummies/Card/Imagen.png"
+              }
+              category={campaign.category}
+              location={campaign.location as Region}
+              progress={campaign.percentageFunded || 0}
+              verified={campaign.verified || false}
+              description={campaign.description}
+              donorCount={campaign.donorCount || 0}
+              amountRaised={`Bs. ${campaign.collectedAmount?.toLocaleString("es-BO") || "0,00"}`}
+            />
+          ))}
+        </div>
+      )}
+
+      {!isLoading && !error && campaigns.length > 0 && (
+        <div className="flex justify-center mt-12">
+          <Link href="/campaign" target="_blank" rel="noopener noreferrer">
+            <Button
+              className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white text-xl shadow-none border-0 rounded-full"
+              size="lg"
+            >
+              Ver más campañas <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

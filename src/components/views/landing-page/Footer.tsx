@@ -43,14 +43,6 @@ export function Footer() {
                 Donar
               </Link>
               <Link
-                href="/recursos"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white hover:text-gray-200 transition-colors underline underline-offset-4 text-lg font-bold"
-              >
-                Más recursos
-              </Link>
-              <Link
                 href="/about-us"
                 target="_blank"
                 rel="noopener noreferrer"
