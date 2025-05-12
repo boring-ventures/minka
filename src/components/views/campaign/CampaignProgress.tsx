@@ -38,6 +38,7 @@ export function CampaignProgress({
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
 
   const isLoggedIn = !!session;
+  console.log(session);
   const isSaved = isCampaignSaved(campaignId);
 
   // Debug session state

@@ -54,7 +54,7 @@ export function useAuth() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-        }
+        },
       });
 
       if (error) {
@@ -70,11 +70,11 @@ export function useAuth() {
         });
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         user: data.user,
         session: data.session,
-        error: null 
+        error: null,
       };
     } catch (error) {
       console.error("Sign up error:", error);
@@ -82,7 +82,7 @@ export function useAuth() {
         success: false,
         user: null,
         session: null,
-        error
+        error,
       };
     }
   };

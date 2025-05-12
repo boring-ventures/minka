@@ -28,24 +28,32 @@ export function Footer() {
             <nav className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
               <Link
                 href="/help"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white hover:text-gray-200 transition-colors underline underline-offset-4 text-lg font-bold"
               >
                 Centro de ayuda
               </Link>
               <Link
                 href="/campaign"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white hover:text-gray-200 transition-colors underline underline-offset-4 text-lg font-bold"
               >
                 Donar
               </Link>
               <Link
                 href="/recursos"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white hover:text-gray-200 transition-colors underline underline-offset-4 text-lg font-bold"
               >
                 Más recursos
               </Link>
               <Link
                 href="/about-us"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white hover:text-gray-200 transition-colors underline underline-offset-4 text-lg font-bold"
               >
                 Nosotros
@@ -62,6 +70,8 @@ export function Footer() {
             <div className="flex gap-6">
               <Link
                 href="#"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
                 aria-label="Síguenos en Facebook"
               >
@@ -69,6 +79,8 @@ export function Footer() {
               </Link>
               <Link
                 href="#"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
                 aria-label="Síguenos en Instagram"
               >
@@ -76,6 +88,8 @@ export function Footer() {
               </Link>
               <Link
                 href="#"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
                 aria-label="Contáctanos por WhatsApp"
               >
@@ -83,6 +97,8 @@ export function Footer() {
               </Link>
               <Link
                 href="#"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
                 aria-label="Síguenos en LinkedIn"
               >
@@ -97,6 +113,8 @@ export function Footer() {
             <p>© 2024 Minka. Todos los derechos reservados.</p>
             <Link
               href="/politicas-de-privacidad"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hover:text-white transition-colors underline underline-offset-4 mt-4 md:mt-0"
             >
               Políticas de privacidad

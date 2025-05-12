@@ -166,7 +166,11 @@ export function StartCampaignSection() {
                 Sigue estos sencillos pasos y empieza a recibir la ayuda que tu
                 proyecto merece.
               </p>
-              <Link href="/create-campaign">
+              <Link
+                href="/create-campaign"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button
                   className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] text-xl px-8 py-4 h-auto rounded-full"
                   size="lg"
@@ -217,7 +221,11 @@ export function StartCampaignSection() {
                 </p>
 
                 {/* Step button */}
-                <Link href={step.buttonLink}>
+                <Link
+                  href={step.buttonLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Button
                     className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-xl px-8 py-4 h-auto rounded-full"
                     size="lg"

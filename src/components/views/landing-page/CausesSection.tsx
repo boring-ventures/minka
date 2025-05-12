@@ -77,7 +77,7 @@ export function CausesSection() {
       </div>
 
       <div className="flex justify-center mt-12">
-        <Link href="/campaign">
+        <Link href="/campaign" target="_blank" rel="noopener noreferrer">
           <Button
             className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white text-xl shadow-none border-0 rounded-full"
             size="lg"

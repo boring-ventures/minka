@@ -108,6 +108,8 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className={`font-medium text-lg transition-colors ${
                   isScrolled
                     ? "text-white hover:text-gray-200"
@@ -120,7 +122,12 @@ export function Header() {
           </nav>
           <div className="flex items-center gap-4 ml-auto">
             {user ? (
-              <Link href="/dashboard" className="flex items-center gap-2">
+              <Link
+                href="/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2"
+              >
                 <User
                   className={`h-5 w-5 ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
                 />
@@ -131,32 +138,18 @@ export function Header() {
                 </span>
               </Link>
             ) : (
-              <>
-                <Link href="/sign-in">
-                  <Button
-                    variant="ghost"
-                    className={`text-lg ${
-                      isScrolled
-                        ? "text-white hover:text-gray-200"
-                        : "text-[#2c6e49] hover:text-[#1e4d33]"
-                    }`}
-                  >
-                    Ingresar
-                  </Button>
-                </Link>
-                <Link href="/sign-up">
-                  <Button
-                    variant="outline"
-                    className={`rounded-full text-lg px-6 py-2 ${
-                      isScrolled
-                        ? "border-white text-[#2c6e49] hover:bg-white hover:text-[#2c6e49]"
-                        : "border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
-                    }`}
-                  >
-                    Registrarse
-                  </Button>
-                </Link>
-              </>
+              <Link href="/sign-in" target="_blank" rel="noopener noreferrer">
+                <Button
+                  variant="outline"
+                  className={`rounded-full px-6 py-2 ${
+                    isScrolled
+                      ? "border-white bg-transparent text-white hover:bg-white hover:text-[#2c6e49]"
+                      : "border-[#2c6e49] bg-transparent text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white"
+                  }`}
+                >
+                  Ingresar
+                </Button>
+              </Link>
             )}
           </div>
         </div>
@@ -214,6 +207,8 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-4 py-4 text-[#2c6e49] font-medium text-lg border-b"
                 onClick={toggleMenu}
               >
@@ -225,7 +220,12 @@ export function Header() {
           {/* Mobile Menu Footer */}
           <div className="p-4 flex justify-center">
             {user ? (
-              <Link href="/dashboard" className="w-full">
+              <Link
+                href="/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full"
+              >
                 <Button
                   className="w-full flex items-center justify-center gap-2 bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
                   onClick={toggleMenu}
@@ -235,12 +235,17 @@ export function Header() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/sign-in" className="w-full">
+              <Link
+                href="/sign-in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full"
+              >
                 <Button
-                  className="w-full bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
+                  className="w-full bg-transparent border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
                   onClick={toggleMenu}
                 >
-                  Ingresar / Registrarse
+                  Ingresar
                 </Button>
               </Link>
             )}

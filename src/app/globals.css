@@ -38,6 +38,39 @@
 
   html {
     font-family: var(--font-quicksand), system-ui, sans-serif;
+    font-size: 14px; /* Reduced base font size from default 16px */
+  }
+
+  /* Adjusting heading sizes */
+  h1 {
+    font-size: 1.75rem; /* Smaller than default */
+  }
+
+  h2 {
+    font-size: 1.5rem; /* Smaller than default */
+  }
+
+  h3 {
+    font-size: 1.25rem; /* Smaller than default */
+  }
+
+  h4 {
+    font-size: 1.125rem; /* Smaller than default */
+  }
+
+  h5,
+  h6 {
+    font-size: 1rem; /* Smaller than default */
+  }
+
+  p,
+  span,
+  div,
+  button,
+  input,
+  select,
+  textarea {
+    font-size: 0.875rem; /* Smaller text for common elements */
   }
 }
 
@@ -137,4 +170,3 @@ html {
   background-color: #2c6e49;
   transform: scale(1.2);
 }
-

@@ -87,7 +87,12 @@ export function CampaignCard({
             <span className="text-base text-gray-600">{progress}%</span>
           </div>
         </div>
-        <Link href={campaignUrl} className="block">
+        <Link
+          href={campaignUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
           <Button className="w-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start">
             Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
@@ -153,7 +158,12 @@ export function CampaignCard({
           </div>
         </div>
 
-        <Link href={campaignUrl} className="block">
+        <Link
+          href={campaignUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
           <Button className="w-full bg-[#2c6e49] text-white hover:bg-[#1e4d33] text-lg shadow-none border-0 rounded-full justify-start">
             Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
