@@ -5,6 +5,10 @@ import Link from "next/link";
 import { Quicksand, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { Card } from "@/components/ui/card";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/providers/auth-provider";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const quicksand = Quicksand({
   variable: "--font-quicksand",
@@ -23,6 +27,21 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Redirect logged-in users away from auth pages
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+  // If loading or already authenticated, show minimal content
+  if (isLoading || user) {
+    return <LoadingScreen />;
+  }
+
   return (
     <div
       className={`${quicksand.variable} ${geistMono.variable} font-quicksand min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]`}

@@ -1,23 +1,30 @@
-import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+"use client";
+
+import { useEffect } from "react";
+import { useAuth } from "@/providers/auth-provider";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SignUpForm } from "@/components/auth/sign-up/components/sign-up-form";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-export const metadata: Metadata = {
-  title: "Regístrate",
-  description: "Crea una cuenta en Minka",
-};
+export default function SignUpPage() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
 
-export default async function SignUpPage() {
-  const supabase = createServerComponentClient({ cookies });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading, router]);
 
-  if (session) {
-    redirect("/dashboard");
+  // If loading or already authenticated, show loading state with the spinner
+  if (isLoading || user) {
+    return (
+      <div className="flex items-center justify-center h-[400px]">
+        <LoadingSpinner size="md" showText text="Cargando..." />
+      </div>
+    );
   }
 
   return (
@@ -44,4 +51,4 @@ export default async function SignUpPage() {
       </div>
     </div>
   );
-} 
+}

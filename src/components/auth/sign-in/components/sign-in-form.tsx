@@ -129,7 +129,7 @@ export function SignInForm() {
 
   // Show a simplified loading screen when loading
   if (isLoading || socialLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen message="Iniciando sesión..." />;
   }
 
   return (

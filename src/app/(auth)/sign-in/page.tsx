@@ -1,53 +1,21 @@
-import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { Suspense } from "react";
-
-// Use a loading boundary for the form component
-const SignInForm = dynamic(
-  () =>
-    import("@/components/auth/sign-in/components/sign-in-form").then((mod) => ({
-      default: mod.SignInForm,
-    })),
-  {
-    ssr: true,
-    loading: () => (
-      <div className="flex items-center justify-center h-[400px] animate-pulse">
-        Cargando formulario...
-      </div>
-    ),
-  }
-);
-
-export const metadata: Metadata = {
-  title: "Iniciar sesión",
-  description: "Inicia sesión en tu cuenta de Minka",
-};
+import { SignInClient } from "./sign-in-client";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // This function is used to safely get the registered status from searchParams
-function getRegistrationStatus(searchParams: { registered?: string }): boolean {
-  return searchParams?.registered === "true";
+function getRegistrationStatus(registered?: string): boolean {
+  return registered === "true";
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function SignInPage({ searchParams }: any) {
-  // We'll calculate the registration status once, outside of any components or hooks
-  const isRegistered = getRegistrationStatus(searchParams);
-
-  const supabase = createServerComponentClient({
-    cookies: () => cookies(),
-  });
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (session) {
-    redirect("/dashboard");
-  }
+// Define proper type for searchParams
+export default function SignInPage({
+  searchParams,
+}: {
+  searchParams: { registered?: string };
+}) {
+  // Get registration status directly from the param
+  const isRegistered = getRegistrationStatus(searchParams.registered);
 
   return (
     <div className="w-full">
@@ -68,12 +36,12 @@ export default async function SignInPage({ searchParams }: any) {
 
       <Suspense
         fallback={
-          <div className="flex items-center justify-center h-[400px] animate-pulse">
-            Cargando formulario...
+          <div className="flex items-center justify-center h-[400px]">
+            <LoadingSpinner size="md" showText text="Cargando formulario..." />
           </div>
         }
       >
-        <SignInForm />
+        <SignInClient />
       </Suspense>
 
       <div className="mt-8 text-center">

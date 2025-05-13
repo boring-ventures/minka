@@ -185,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData.error || "Authentication failed");
       }
 
-      // Fast-path: Start navigation immediately without waiting for session refresh
+      // Get the return URL if it exists
       const urlParams = new URLSearchParams(window.location.search);
       const returnUrl = urlParams.get("returnUrl");
       const redirectPath = returnUrl || "/dashboard";
@@ -193,27 +193,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Prefetch the dashboard page to make redirection faster
       router.prefetch(redirectPath);
 
-      // Navigate immediately
-      router.push(redirectPath);
+      // Keep isLoading true to show the spinner during the session refresh
+      // Don't navigate immediately, wait for the session to refresh first
 
-      // Session refresh can happen in the background after navigation starts
-      setTimeout(async () => {
-        try {
-          await supabase.auth.refreshSession();
+      try {
+        // Wait for session to refresh before navigation
+        await supabase.auth.refreshSession();
 
-          // Only fetch profile once on the dashboard page
-          // This avoids the duplicate profile fetches we were seeing
-          // The dashboard will load the profile directly if needed
-        } catch (err) {
-          console.error("Background session refresh error:", err);
-        }
-
-        // Show success message after navigation has started
+        // Show success message
         toast({
           title: "Éxito",
           description: "Has iniciado sesión correctamente.",
         });
-      }, 100);
+
+        // Navigate after session is refreshed
+        router.push(redirectPath);
+      } catch (err) {
+        console.error("Session refresh error:", err);
+        toast({
+          title: "Error",
+          description: "Error al actualizar la sesión.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Login error:", error);
       setProfile(null);
