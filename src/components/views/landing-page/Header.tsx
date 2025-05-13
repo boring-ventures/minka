@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useDb } from "@/hooks/use-db";
@@ -12,7 +12,7 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [profileName, setProfileName] = useState<string>("");
   const { getProfile } = useDb();
 
@@ -74,6 +74,19 @@ export function Header() {
     router.push("/");
   };
 
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      await signOut();
+      router.push("/");
+      if (isMenuOpen) {
+        toggleMenu();
+      }
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   const menuItems = [
     { href: "/campaign", label: "Donar" },
     { href: "/create-campaign", label: "Crear campaña" },
@@ -122,21 +135,35 @@ export function Header() {
           </nav>
           <div className="flex items-center gap-4 ml-auto">
             {user ? (
-              <Link
-                href="/dashboard"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2"
-              >
-                <User
-                  className={`h-5 w-5 ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
-                />
-                <span
-                  className={`font-medium ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
+              <>
+                <Link
+                  href="/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2"
                 >
-                  {profileName || "Usuario"}
-                </span>
-              </Link>
+                  <User
+                    className={`h-5 w-5 ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
+                  />
+                  <span
+                    className={`font-medium ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
+                  >
+                    {profileName || "Usuario"}
+                  </span>
+                </Link>
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className={`flex items-center gap-2 hover:bg-transparent ${
+                    isScrolled
+                      ? "text-white hover:text-gray-200"
+                      : "text-[#2c6e49] hover:text-[#1e4d33]"
+                  }`}
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="font-medium">Salir</span>
+                </Button>
+              </>
             ) : (
               <Link href="/sign-in" target="_blank" rel="noopener noreferrer">
                 <Button
@@ -218,22 +245,31 @@ export function Header() {
           </nav>
 
           {/* Mobile Menu Footer */}
-          <div className="p-4 flex justify-center">
+          <div className="p-4 flex flex-col gap-3">
             {user ? (
-              <Link
-                href="/dashboard"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full"
-              >
-                <Button
-                  className="w-full flex items-center justify-center gap-2 bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
-                  onClick={toggleMenu}
+              <>
+                <Link
+                  href="/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full"
                 >
-                  <User className="h-5 w-5" />
-                  <span>{profileName || "Usuario"}</span>
+                  <Button
+                    className="w-full flex items-center justify-center gap-2 bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
+                    onClick={toggleMenu}
+                  >
+                    <User className="h-5 w-5" />
+                    <span>{profileName || "Usuario"}</span>
+                  </Button>
+                </Link>
+                <Button
+                  className="w-full flex items-center justify-center gap-2 bg-[#f8f9fa] border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-full"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span>Cerrar sesión</span>
                 </Button>
-              </Link>
+              </>
             ) : (
               <Link
                 href="/sign-in"
