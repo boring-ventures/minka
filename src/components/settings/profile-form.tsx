@@ -24,8 +24,10 @@ export function ProfileForm() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      firstName: profile?.firstName || "",
-      lastName: profile?.lastName || "",
+      firstName:
+        typeof profile?.firstName === "string" ? profile.firstName : "",
+      lastName:
+        typeof profile?.lastName === "string" ? profile.lastName : "",
     },
   });
 

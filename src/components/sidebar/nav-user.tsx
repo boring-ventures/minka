@@ -9,11 +9,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +39,12 @@ export function NavUser() {
 
   const getInitials = () => {
     if (profile.firstName || profile.lastName) {
-      return [profile.firstName?.[0], profile.lastName?.[0]]
+      return [
+        typeof profile.firstName === "string"
+          ? profile.firstName[0]
+          : undefined,
+        typeof profile.lastName === "string" ? profile.lastName[0] : undefined,
+      ]
         .filter(Boolean)
         .join("")
         .toUpperCase();
@@ -61,9 +62,13 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg ring-2 ring-primary/10">
-                <AvatarImage 
-                  src={profile.avatarUrl || ""} 
-                  alt={displayName || user.email || "User"} 
+                <AvatarImage
+                  src={
+                    typeof profile.avatarUrl === "string"
+                      ? profile.avatarUrl
+                      : ""
+                  }
+                  alt={displayName || user.email || "User"}
                 />
                 <AvatarFallback className="rounded-lg bg-primary/10">
                   {getInitials()}
@@ -87,9 +92,13 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg ring-2 ring-primary/10">
-                  <AvatarImage 
-                    src={profile.avatarUrl || ""} 
-                    alt={displayName || user.email || "User"} 
+                  <AvatarImage
+                    src={
+                      typeof profile.avatarUrl === "string"
+                        ? profile.avatarUrl
+                        : ""
+                    }
+                    alt={displayName || user.email || "User"}
                   />
                   <AvatarFallback className="rounded-lg bg-primary/10">
                     {getInitials()}

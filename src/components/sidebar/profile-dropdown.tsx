@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { BadgeCheck, LogOut, Settings, User } from "lucide-react";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +28,12 @@ export function ProfileDropdown() {
   // Get initials for avatar fallback
   const getInitials = () => {
     if (profile.firstName || profile.lastName) {
-      return [profile.firstName?.[0], profile.lastName?.[0]]
+      return [
+        typeof profile.firstName === "string"
+          ? profile.firstName[0]
+          : undefined,
+        typeof profile.lastName === "string" ? profile.lastName[0] : undefined,
+      ]
         .filter(Boolean)
         .join("")
         .toUpperCase();
@@ -42,7 +43,7 @@ export function ProfileDropdown() {
 
   // Get role display name
   const getRoleDisplay = (role: string) => {
-    return role.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase());
+    return role.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   return (
@@ -50,9 +51,11 @@ export function ProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8 ring-2 ring-primary/10">
-            <AvatarImage 
-              src={profile.avatarUrl || ""} 
-              alt={displayName || user.email || "User"} 
+            <AvatarImage
+              src={
+                typeof profile.avatarUrl === "string" ? profile.avatarUrl : ""
+              }
+              alt={displayName || user.email || "User"}
             />
             <AvatarFallback className="bg-primary/10">
               {getInitials()}
@@ -65,7 +68,7 @@ export function ProfileDropdown() {
           <div className="flex flex-col space-y-1">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium leading-none">
-                {displayName || user.email?.split('@')[0]}
+                {displayName || user.email?.split("@")[0]}
               </p>
               <Badge variant="outline" className="ml-2 text-xs">
                 {getRoleDisplay(profile.role)}

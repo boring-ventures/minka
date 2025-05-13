@@ -32,8 +32,9 @@ export function ProfileForm() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      firstName: profile?.firstName || "",
-      lastName: profile?.lastName || "",
+      firstName:
+        typeof profile?.firstName === "string" ? profile.firstName : "",
+      lastName: typeof profile?.lastName === "string" ? profile.lastName : "",
     },
   });
 
@@ -84,8 +85,10 @@ export function ProfileForm() {
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           {profile && (
             <AvatarUpload
-              userId={profile.userId}
-              currentAvatarUrl={profile.avatarUrl}
+              userId={String(profile.userId)}
+              currentAvatarUrl={
+                typeof profile.avatarUrl === "string" ? profile.avatarUrl : null
+              }
               onUploadComplete={(url) => setNewAvatarUrl(url)}
               onUploadError={(error) => {
                 toast({
@@ -161,4 +164,4 @@ export function ProfileForm() {
       />
     </>
   );
-} 
+}
