@@ -65,9 +65,12 @@ export interface NotificationPreferences {
 
 // Simple request cache
 const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 30000; // 30 seconds in milliseconds
+const CACHE_DURATION = 60000; // 60 seconds in milliseconds
 
-// Helper to get/set cached data
+// Tracking in-flight requests to prevent duplicates
+const pendingRequests = new Map<string, Promise<any>>();
+
+// Enhanced cache helpers
 const getCachedData = (key: string) => {
   const cachedItem = cache.get(key);
   if (!cachedItem) return null;
@@ -88,6 +91,46 @@ const setCacheData = (key: string, data: any) => {
   });
 };
 
+// Helper to prevent duplicate in-flight requests
+async function debouncedRequest<T>(
+  cacheKey: string,
+  requestFn: () => Promise<T>
+): Promise<T> {
+  // Check cache first
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) {
+    console.log(`Cache hit for ${cacheKey}`);
+    return cachedData;
+  }
+
+  // Check if this request is already in flight
+  if (pendingRequests.has(cacheKey)) {
+    console.log(`Request already in flight for ${cacheKey}, reusing promise`);
+    return pendingRequests.get(cacheKey) as Promise<T>;
+  }
+
+  // Create and store the request promise
+  try {
+    console.log(`Making new request for ${cacheKey}`);
+    const requestPromise = requestFn();
+    pendingRequests.set(cacheKey, requestPromise);
+
+    // Execute the request
+    const data = await requestPromise;
+
+    // Cache the result
+    setCacheData(cacheKey, data);
+
+    return data;
+  } catch (error) {
+    console.error(`Error in debouncedRequest for ${cacheKey}:`, error);
+    throw error;
+  } finally {
+    // Clear the pending request indicator
+    pendingRequests.delete(cacheKey);
+  }
+}
+
 export function useDb() {
   const router = useRouter();
   const { toast } = useToast();
@@ -98,26 +141,20 @@ export function useDb() {
     data: { session: Session | null };
   }> => {
     const cacheKey = "session";
-    const cachedData = getCachedData(cacheKey);
-
-    if (cachedData) {
-      return cachedData;
-    }
 
     try {
-      const response = await fetch("/api/auth/session", {
-        credentials: "include",
+      return await debouncedRequest(cacheKey, async () => {
+        const response = await fetch("/api/auth/session", {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to get session");
+        }
+
+        const data = await response.json();
+        return { data: { session: data.session } };
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to get session");
-      }
-
-      const data = await response.json();
-      const result = { data: { session: data.session } };
-
-      setCacheData(cacheKey, result);
-      return result;
     } catch (error) {
       console.error("Error getting session:", error);
       return { data: { session: null } };
@@ -128,25 +165,27 @@ export function useDb() {
   const getProfile = useCallback(
     async (userId: string): Promise<ProfileData | null> => {
       const cacheKey = `profile:${userId}`;
-      const cachedData = getCachedData(cacheKey);
-
-      if (cachedData) {
-        return cachedData;
-      }
 
       setLoading(true);
       try {
-        const response = await fetch(`/api/profile/${userId}`, {
-          credentials: "include",
+        return await debouncedRequest(cacheKey, async () => {
+          console.log(`Fetching profile for user ${userId} (no cache hit)`);
+
+          const response = await fetch(`/api/profile/${userId}`, {
+            credentials: "include",
+            headers: {
+              "Cache-Control": "max-age=60",
+              Pragma: "no-cache",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch profile");
+          }
+
+          const data = await response.json();
+          return data.profile;
         });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile");
-        }
-
-        const data = await response.json();
-        setCacheData(cacheKey, data.profile);
-        return data.profile;
       } catch (error) {
         console.error("Error fetching profile:", error);
         return null;

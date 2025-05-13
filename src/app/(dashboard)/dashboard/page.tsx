@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { UserDashboardContent } from "@/components/dashboard/user-dashboard-content";
 import { AdminDashboardContent } from "@/components/dashboard/admin-dashboard-content";
@@ -11,11 +11,14 @@ import { toast } from "@/components/ui/use-toast";
 import { X } from "lucide-react";
 import { ProfileData } from "@/types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useAuth } from "@/providers/auth-provider";
+import { useAuth, Profile } from "@/providers/auth-provider";
 import { useDb } from "@/hooks/use-db";
 
+// Ensure ProfileData and Profile have compatible shapes for our purposes
+type DashboardProfile = ProfileData;
+
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -26,56 +29,100 @@ export default function DashboardPage() {
     address: "",
   });
   const router = useRouter();
-  const { user } = useAuth();
+  // Get auth context including the existing profile if available
+  const { user, profile: authProfile } = useAuth();
   const { getProfile, updateProfile } = useDb();
 
+  // Helper to convert any profile object to our consistent DashboardProfile format
+  const formatProfileData = useCallback(
+    (data: Profile | ProfileData | any): DashboardProfile => {
+      // Function to safely get ISO string
+      const getISOString = (dateVal: any): string => {
+        if (typeof dateVal === "string") return dateVal;
+        if (dateVal instanceof Date) return dateVal.toISOString();
+        return new Date().toISOString();
+      };
+
+      return {
+        id: data.id,
+        name: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        role: data.role || "user",
+        created_at: data.created_at || getISOString(data.createdAt),
+        // Include any other fields that might be expected
+        ...(data as object),
+      };
+    },
+    []
+  );
+
+  // Load profile data from auth context if available or fetch it if needed
+  const loadProfileData = useCallback(async () => {
+    if (!user) {
+      router.push("/sign-in");
+      return null;
+    }
+
+    // If we already have a profile in auth context, use it instead of fetching again
+    if (authProfile && Object.keys(authProfile).length > 0) {
+      console.log("Using profile from auth context:", authProfile);
+      return authProfile;
+    }
+
+    console.log("Fetching profile from API for user:", user.id);
+    // Otherwise fetch the profile
+    return await getProfile(user.id);
+  }, [user, authProfile, router, getProfile]);
+
   useEffect(() => {
-    async function getUser() {
-      if (!user) {
-        router.push("/sign-in");
-        return;
-      }
+    let isMounted = true;
 
-      // Get user profile and role
-      const prismaData = await getProfile(user.id);
+    async function initializeDashboard() {
+      try {
+        setIsLoading(true);
 
-      if (prismaData) {
-        // Function to safely get ISO string
-        const getISOString = (dateVal: any): string => {
-          if (typeof dateVal === "string") return dateVal;
-          if (dateVal instanceof Date) return dateVal.toISOString();
-          return new Date().toISOString();
-        };
+        // Try to use existing profile data first
+        const profileData = await loadProfileData();
 
-        // Convert Prisma profile to ProfileData
-        const profileData: ProfileData = {
-          id: prismaData.id,
-          name: prismaData.name,
-          email: prismaData.email,
-          phone: prismaData.phone,
-          address: prismaData.address || "",
-          role: prismaData.role,
-          created_at: getISOString(prismaData.createdAt),
-          // Add other fields as needed
-        };
+        if (!isMounted || !profileData) return;
 
-        setProfile(profileData);
-        setIsAdmin(prismaData.role === "admin");
+        // Format the profile data consistently
+        const formattedProfile = formatProfileData(profileData);
+
+        setProfile(formattedProfile);
+        setIsAdmin(formattedProfile.role === "admin");
 
         // Initialize form data with profile data
         setProfileForm({
-          name: prismaData.name || "",
-          email: prismaData.email || "",
-          phone: prismaData.phone || "",
-          address: prismaData.address || "",
+          name: formattedProfile.name || "",
+          email: formattedProfile.email || "",
+          phone: formattedProfile.phone || "",
+          address: formattedProfile.address || "",
         });
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
+        if (isMounted) {
+          toast({
+            title: "Error",
+            description: "No se pudo cargar el dashboard. Intenta nuevamente.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-
-      setIsLoading(false);
     }
 
-    getUser();
-  }, [user, router, getProfile]);
+    initializeDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, loadProfileData, formatProfileData]);
 
   const handleSaveChanges = async () => {
     try {

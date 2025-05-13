@@ -88,6 +88,7 @@ export function Header() {
   };
 
   const menuItems = [
+    { href: "/", label: "Inicio" },
     { href: "/campaign", label: "Donar" },
     { href: "/create-campaign", label: "Crear campaña" },
     { href: "/about-us", label: "Nosotros" },
@@ -188,7 +189,7 @@ export function Header() {
           type="button"
           onClick={toggleMenu}
           aria-label="Toggle menu"
-          className="text-[#2c6e49] p-1"
+          className="text-[#2c6e49] p-2 rounded-full border border-[#2c6e49] hover:bg-[#2c6e49] hover:text-white transition-colors"
         >
           <Menu size={24} />
         </button>

@@ -3,24 +3,25 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { z } from "zod";
-import {
-  Facebook,
-  Mail,
-  Calendar,
-  ChevronDown,
-  Apple,
-  Info,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { Mail, Calendar, ChevronDown, Info, Eye, EyeOff } from "lucide-react";
 import { signInWithSocial } from "@/lib/supabase-auth";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 // Improved validation schema with better error messages
 const signUpFormSchema = z
@@ -28,13 +29,10 @@ const signUpFormSchema = z
     firstName: z.string().min(1, "El nombre es requerido"),
     lastName: z.string().min(1, "Los apellidos son requeridos"),
     documentId: z.string().min(1, "El número de DNI es requerido"),
-    birthDate: z
-      .string()
-      .min(1, "La fecha de nacimiento es requerida")
-      .regex(
-        /^\d{2}\/\d{2}\/\d{4}$/,
-        "La fecha debe tener el formato DD/MM/AAAA"
-      ),
+    birthDate: z.date({
+      required_error: "La fecha de nacimiento es requerida",
+      invalid_type_error: "La fecha debe ser válida",
+    }),
     email: z
       .string()
       .min(1, "El correo electrónico es requerido")
@@ -89,7 +87,7 @@ export function SignUpForm() {
       firstName: "",
       lastName: "",
       documentId: "",
-      birthDate: "",
+      birthDate: undefined,
       email: "",
       phone: "",
       password: "",
@@ -105,13 +103,16 @@ export function SignUpForm() {
       setIsLoading(true);
       setIsSubmitting(true);
 
+      // Format the date to YYYY-MM-DD or DD/MM/YYYY as needed by your API
+      const formattedBirthDate = format(data.birthDate, "dd/MM/yyyy");
+
       await signUp({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
         documentId: data.documentId,
-        birthDate: data.birthDate,
+        birthDate: formattedBirthDate,
         phone: data.phone,
       });
 
@@ -267,20 +268,72 @@ export function SignUpForm() {
         <label htmlFor="birthDate" className="block text-sm font-medium mb-2">
           Fecha de nacimiento
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Calendar className="h-5 w-5 text-gray-400" />
-          </div>
-          <Input
-            id="birthDate"
-            type="text"
-            {...register("birthDate")}
-            placeholder="DD/MM/AAAA"
-            className="pl-10 border-black"
-            aria-invalid={errors.birthDate ? "true" : "false"}
-            disabled={isLoading || isSubmitting}
-          />
-        </div>
+        <Controller
+          control={control}
+          name="birthDate"
+          render={({ field }) => (
+            <div className="relative">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="birthDate"
+                    type="button"
+                    variant={"outline"}
+                    className={cn(
+                      "w-full h-10 justify-start text-left relative pl-10 border-black rounded-md bg-white hover:bg-gray-50",
+                      !field.value && "text-gray-400",
+                      errors.birthDate && "border-red-500"
+                    )}
+                    disabled={isLoading || isSubmitting}
+                  >
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    {field.value
+                      ? format(field.value, "dd/MM/yyyy", { locale: es })
+                      : "DD/MM/AAAA"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto p-0 bg-white border border-gray-200 rounded-lg shadow-lg"
+                  align="start"
+                >
+                  <CalendarComponent
+                    mode="single"
+                    selected={field.value}
+                    onSelect={(date) => {
+                      field.onChange(date);
+                      // Auto-close the popover after selection
+                      setTimeout(() => document.body.click(), 100);
+                    }}
+                    disabled={(date) => {
+                      // Disable future dates and dates more than 100 years ago
+                      const hundredYearsAgo = new Date();
+                      hundredYearsAgo.setFullYear(
+                        hundredYearsAgo.getFullYear() - 100
+                      );
+                      return date > new Date() || date < hundredYearsAgo;
+                    }}
+                    captionLayout="dropdown"
+                    fromYear={new Date().getFullYear() - 100}
+                    toYear={new Date().getFullYear()}
+                    initialFocus
+                    className="rounded-md border-none p-3"
+                    classNames={{
+                      caption_dropdowns: "flex gap-1",
+                      dropdown:
+                        "p-1 bg-white border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-[#2c6e49]",
+                      caption_label: "text-sm font-medium hidden",
+                      nav_button:
+                        "h-8 w-8 bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-full",
+                      day_selected:
+                        "bg-[#2c6e49] text-white hover:bg-[#2c6e49] hover:text-white focus:bg-[#2c6e49] focus:text-white",
+                      day_today: "bg-gray-100 text-gray-900",
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        />
         {errors.birthDate && (
           <p className="text-sm text-red-500 mt-1 flex items-center">
             <Info className="h-3 w-3 mr-1" />
@@ -482,7 +535,12 @@ export function SignUpForm() {
           onClick={() => handleSocialSignIn("facebook")}
           disabled={!!socialLoading || isLoading || isSubmitting}
         >
-          <Facebook className="h-5 w-5 text-blue-600" />
+          <Image
+            src="/social-icons/Facebook.svg"
+            alt="Facebook"
+            width={20}
+            height={20}
+          />
           <span className="ml-2">
             {socialLoading === "facebook" ? "Cargando..." : "Facebook"}
           </span>
@@ -494,30 +552,12 @@ export function SignUpForm() {
           onClick={() => handleSocialSignIn("google")}
           disabled={!!socialLoading || isLoading || isSubmitting}
         >
-          <svg
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-labelledby="googleIconTitle"
-          >
-            <title id="googleIconTitle">Google</title>
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
+          <Image
+            src="/social-icons/Google.svg"
+            alt="Google"
+            width={20}
+            height={20}
+          />
           <span className="ml-2">
             {socialLoading === "google" ? "Cargando..." : "Google"}
           </span>
@@ -529,7 +569,12 @@ export function SignUpForm() {
           onClick={() => handleSocialSignIn("apple")}
           disabled={!!socialLoading || isLoading || isSubmitting}
         >
-          <Apple className="h-5 w-5" />
+          <Image
+            src="/social-icons/Apple.svg"
+            alt="Apple"
+            width={20}
+            height={20}
+          />
           <span className="ml-2">
             {socialLoading === "apple" ? "Cargando..." : "Apple"}
           </span>

@@ -76,6 +76,7 @@ export default {
         "shimmer-slide":
           "shimmer-slide var(--speed) ease-in-out infinite alternate",
         "spin-around": "spin-around calc(var(--speed) * 2) infinite linear",
+        fadeIn: "fadeIn 0.3s ease-in-out",
       },
       keyframes: {
         "shiny-text": {
@@ -114,6 +115,14 @@ export default {
           },
           "100%": {
             transform: "translateZ(0) rotate(360deg)",
+          },
+        },
+        fadeIn: {
+          "0%": {
+            opacity: "0",
+          },
+          "100%": {
+            opacity: "1",
           },
         },
       },

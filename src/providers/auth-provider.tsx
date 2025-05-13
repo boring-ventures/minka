@@ -4,8 +4,22 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { User, Session } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
-import type { Profile } from "@/types/profile";
 import { toast } from "@/components/ui/use-toast";
+
+// Explicitly define Profile type to match ProfileData structure used in the app
+export interface Profile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string | null;
+  role: string;
+  created_at: string;
+  identity_number?: string;
+  birth_date?: string;
+  profile_picture?: string;
+  [key: string]: string | boolean | number | null | undefined;
+}
 
 type SignUpData = {
   email: string;
@@ -42,18 +56,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileFetchInProgress, setProfileFetchInProgress] = useState(false);
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  // Fetch profile function
+  // Debounced profile fetch to prevent multiple simultaneous calls
   const fetchProfile = async (userId: string) => {
+    // Skip if a fetch is already in progress for the same user
+    if (profileFetchInProgress) {
+      console.log("Profile fetch already in progress, skipping redundant call");
+      return null;
+    }
+
     try {
-      const response = await fetch(`/api/profile/${userId}`);
+      setProfileFetchInProgress(true);
+      console.log("Fetching profile for user:", userId);
+
+      const response = await fetch(`/api/profile/${userId}`, {
+        // Add cache headers to prevent duplicate requests
+        headers: {
+          "Cache-Control": "max-age=60",
+          Pragma: "no-cache",
+        },
+      });
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Error fetching profile:", errorData);
         throw new Error(errorData.error || "Failed to fetch profile");
       }
+
       const data = await response.json();
       setProfile(data.profile);
       return data.profile;
@@ -61,17 +93,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Error fetching profile:", error);
       setProfile(null);
       return null;
+    } finally {
+      setProfileFetchInProgress(false);
     }
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
         setIsLoading(true);
         const {
           data: { session },
         } = await supabase.auth.getSession();
+
+        if (!isMounted) return;
 
         setSession(session);
         setUser(session?.user ?? null);
@@ -81,28 +119,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        toast({
-          title: "Error",
-          description: "Error initializing authentication.",
-          variant: "destructive",
-        });
+        if (isMounted) {
+          toast({
+            title: "Error",
+            description: "Error initializing authentication.",
+            variant: "destructive",
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     initAuth();
 
+    // Set up auth state change listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!isMounted) return;
 
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
+      // Only update if the session actually changed to prevent redundant updates
+      const currentUserId = session?.user?.id;
+      const newUserId = newSession?.user?.id;
+
+      if (currentUserId !== newUserId) {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          await fetchProfile(newSession.user.id);
+        } else {
+          setProfile(null);
+        }
       }
 
       if (event === "SIGNED_OUT") {
@@ -111,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [router, supabase]);
@@ -133,47 +185,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData.error || "Authentication failed");
       }
 
-      // Explicitly refresh the client-side session after successful API login
-      // This ensures the Supabase client is aware of the session set by the API's cookies
-      await supabase.auth.refreshSession();
-
-      // Fetch profile immediately after ensuring session is refreshed
-      const {
-        data: { session: refreshedSession },
-      } = await supabase.auth.getSession();
-      if (refreshedSession?.user) {
-        await fetchProfile(refreshedSession.user.id);
-      } else {
-        // This case should ideally not happen after a successful login and refresh
-        console.warn(
-          "Session was null even after successful login and refresh."
-        );
-        setProfile(null);
-      }
-
-      // Show success message
-      toast({
-        title: "Éxito",
-        description: "Has iniciado sesión correctamente.",
-      });
-
-      // Check for returnUrl in the URL (for redirecting back after sign-in)
+      // Fast-path: Start navigation immediately without waiting for session refresh
       const urlParams = new URLSearchParams(window.location.search);
       const returnUrl = urlParams.get("returnUrl");
+      const redirectPath = returnUrl || "/dashboard";
 
-      if (returnUrl) {
-        // Redirect to the originally requested URL
-        router.push(returnUrl);
-      } else {
-        // Default redirect to dashboard
-        router.push("/dashboard");
-      }
+      // Prefetch the dashboard page to make redirection faster
+      router.prefetch(redirectPath);
 
-      // We don't really need to return data from the API call itself anymore
-      // return data;
+      // Navigate immediately
+      router.push(redirectPath);
+
+      // Session refresh can happen in the background after navigation starts
+      setTimeout(async () => {
+        try {
+          await supabase.auth.refreshSession();
+
+          // Only fetch profile once on the dashboard page
+          // This avoids the duplicate profile fetches we were seeing
+          // The dashboard will load the profile directly if needed
+        } catch (err) {
+          console.error("Background session refresh error:", err);
+        }
+
+        // Show success message after navigation has started
+        toast({
+          title: "Éxito",
+          description: "Has iniciado sesión correctamente.",
+        });
+      }, 100);
     } catch (error) {
       console.error("Login error:", error);
-      // Make sure profile is cleared on login error
       setProfile(null);
       throw error;
     } finally {

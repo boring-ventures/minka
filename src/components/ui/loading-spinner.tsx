@@ -39,7 +39,7 @@ export function LoadingSpinner({
           <div
             className="w-full h-full rounded-full animate-spin"
             style={{
-              animationDuration: "1.5s",
+              animationDuration: "1s",
               backgroundImage:
                 "conic-gradient(from 0deg, #356945 0deg, #7fb78a 20%, transparent 100%)",
               maskImage:
@@ -52,8 +52,11 @@ export function LoadingSpinner({
           ></div>
         </div>
 
-        {/* Minka Icon in center */}
-        <div className="absolute inset-0 flex items-center justify-center">
+        {/* Pulsating effect for the logo */}
+        <div
+          className="absolute inset-0 flex items-center justify-center animate-pulse"
+          style={{ animationDuration: "1.2s" }}
+        >
           <svg
             width="36%"
             height="36%"

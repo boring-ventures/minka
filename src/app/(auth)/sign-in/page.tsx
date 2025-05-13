@@ -3,7 +3,24 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
-import { SignInForm } from "@/components/auth/sign-in/components/sign-in-form";
+import dynamic from "next/dynamic";
+import { Suspense } from "react";
+
+// Use a loading boundary for the form component
+const SignInForm = dynamic(
+  () =>
+    import("@/components/auth/sign-in/components/sign-in-form").then((mod) => ({
+      default: mod.SignInForm,
+    })),
+  {
+    ssr: true,
+    loading: () => (
+      <div className="flex items-center justify-center h-[400px] animate-pulse">
+        Cargando formulario...
+      </div>
+    ),
+  }
+);
 
 export const metadata: Metadata = {
   title: "Iniciar sesión",
@@ -49,7 +66,15 @@ export default async function SignInPage({ searchParams }: any) {
         </div>
       )}
 
-      <SignInForm />
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center h-[400px] animate-pulse">
+            Cargando formulario...
+          </div>
+        }
+      >
+        <SignInForm />
+      </Suspense>
 
       <div className="mt-8 text-center">
         <p className="text-black">
@@ -57,6 +82,7 @@ export default async function SignInPage({ searchParams }: any) {
           <Link
             href="/sign-up"
             className="text-[#2c6e49] font-medium hover:underline"
+            prefetch={true}
           >
             Regístrate
           </Link>
