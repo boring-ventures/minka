@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const type = requestUrl.searchParams.get("type");
 
   if (code) {
     try {
@@ -25,6 +26,11 @@ export async function GET(request: NextRequest) {
             request.url
           )
         );
+      }
+
+      // For password reset flows, redirect to the reset-password page
+      if (type === "recovery") {
+        return NextResponse.redirect(new URL("/reset-password", request.url));
       }
 
       if (!data.user) {

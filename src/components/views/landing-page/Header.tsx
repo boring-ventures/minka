@@ -77,8 +77,18 @@ export function Header() {
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
     try {
+      // Immediately clear local state before the actual sign-out
+      setProfileName("");
+
+      // Wait for sign-out to complete
       await signOut();
-      router.push("/");
+
+      // Use pushState to clear URL state
+      window.history.pushState({}, "", "/");
+
+      // Navigate after sign-out completes
+      router.replace("/");
+
       if (isMenuOpen) {
         toggleMenu();
       }

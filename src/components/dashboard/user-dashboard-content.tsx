@@ -6,11 +6,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Camera, FileText, Bell, Bookmark, LogOut, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ProfileData } from "@/types";
+import { useAuth } from "@/providers/auth-provider";
+import { toast } from "@/components/ui/use-toast";
 
 interface UserDashboardContentProps {
   profile: ProfileData | null;
@@ -23,7 +24,7 @@ export function UserDashboardContent({
 }: UserDashboardContentProps) {
   const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const { signOut } = useAuth();
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -35,8 +36,28 @@ export function UserDashboardContent({
   const birthDate = formatDate(profile?.birth_date);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
+    try {
+      await signOut();
+
+      // Use history API to clean up URL state
+      window.history.pushState({}, "", "/");
+
+      // Force redirect to homepage
+      router.replace("/");
+
+      // Show toast notification
+      toast({
+        title: "Éxito",
+        description: "Has cerrado sesión correctamente.",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar sesión. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

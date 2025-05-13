@@ -279,6 +279,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true);
+
+      // Immediately clear state, even before the API call completes
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+
       console.log("Attempting sign out via API...");
 
       // Call the server-side logout endpoint
@@ -308,19 +314,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // The server has initiated the sign-out and cleared the cookie.
       console.log("Logout API call successful.");
 
-      // Manually clear user state
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-
       // Show success toast
       toast({
         title: "Éxito",
         description: "Has cerrado sesión correctamente.",
       });
 
-      // Manually redirect to sign-in page
-      router.push("/sign-in");
+      // We don't need to redirect here, let the component handle it
     } catch (error) {
       // Catch errors from the fetch call or the explicit throw above
       console.error("Sign out process error:", error);
@@ -332,6 +332,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           variant: "destructive",
         });
       }
+
+      // Even if there's an error, make sure we clear the state
+      setUser(null);
+      setSession(null);
+      setProfile(null);
     } finally {
       setIsLoading(false);
     }

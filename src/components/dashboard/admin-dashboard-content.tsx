@@ -3,12 +3,45 @@
 import React from "react";
 import Link from "next/link";
 import { ProfileData } from "@/types";
+import { useAuth } from "@/providers/auth-provider";
+import { toast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 interface AdminDashboardContentProps {
   profile: ProfileData | null;
 }
 
 export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
+  const router = useRouter();
+  const { signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+
+      // Use history API to clean up URL state
+      window.history.pushState({}, "", "/");
+
+      // Force redirect to homepage
+      router.replace("/");
+
+      // Show toast notification
+      toast({
+        title: "Éxito",
+        description: "Has cerrado sesión correctamente.",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar sesión. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="bg-card rounded-lg p-6">
@@ -58,6 +91,17 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
             View Analytics →
           </Link>
         </div>
+      </div>
+
+      <div className="flex justify-end mt-4">
+        <Button
+          onClick={handleSignOut}
+          variant="outline"
+          className="flex items-center gap-2 text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+        >
+          <LogOut size={16} />
+          Cerrar sesión
+        </Button>
       </div>
     </div>
   );
