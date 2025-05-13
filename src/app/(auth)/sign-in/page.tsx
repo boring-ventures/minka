@@ -8,14 +8,17 @@ function getRegistrationStatus(registered?: string): boolean {
   return registered === "true";
 }
 
-// Define proper type for searchParams
-export default function SignInPage({
-  searchParams,
-}: {
-  searchParams: { registered?: string };
-}) {
+// Define proper type for page props according to Next.js 15 standards
+export interface PageProps {
+  params: Promise<Record<string, string>>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function SignInPage({ searchParams }: PageProps) {
   // Get registration status directly from the param
-  const isRegistered = getRegistrationStatus(searchParams.registered);
+  const params = await searchParams;
+  const registered = params.registered as string | undefined;
+  const isRegistered = getRegistrationStatus(registered);
 
   return (
     <div className="w-full">
