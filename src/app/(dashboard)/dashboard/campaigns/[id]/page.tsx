@@ -491,70 +491,86 @@ export default function CampaignDetailPage() {
 
         {/* Tab Content */}
         <div className="bg-white w-full min-h-[500px]">
-          <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
-            {activeTab === "editar" && (
-              <div className="space-y-12 max-w-6xl mx-auto">
-                <div className="py-8">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                    Editar campaña
-                  </h2>
-                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
-                    Modifica los detalles de tu campaña para mejorar su alcance
-                    e impacto. Actualiza la información, imágenes o metas según
-                    sea necesario.
-                  </p>
-                  <div className="border-b border-[#478C5C]/20 my-8"></div>
-                </div>
-                <EditCampaignTab campaign={campaign} />
+          {activeTab === "editar" && (
+            <div className="w-full">
+              <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                  Editar campaña
+                </h2>
+                <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                  Modifica los detalles de tu campaña para mejorar su alcance e
+                  impacto. Actualiza la información, imágenes o metas según sea
+                  necesario.
+                </p>
+                <div className="border-b border-[#478C5C]/20 my-8"></div>
               </div>
-            )}
-            {activeTab === "anuncios" && <AdsTab campaign={campaign} />}
-            {activeTab === "comentarios" && (
-              <div className="space-y-12 max-w-6xl mx-auto">
-                <div className="py-8">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                    Comentarios
-                  </h2>
-                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
-                    Revisa y responde a los comentarios de tus donadores para
-                    mantener una comunicación activa.
-                  </p>
-                  <div className="border-b border-[#478C5C]/20 my-8"></div>
-                </div>
-                <CommentsTab campaign={campaign} />
+              <EditCampaignTab campaign={campaign} />
+            </div>
+          )}
+
+          {activeTab === "anuncios" && (
+            <div className="w-full">
+              <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                  Publicar anuncios
+                </h2>
+                <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                  Mantén a tus donadores informados sobre los avances y logros
+                  de tu campaña.
+                </p>
+                <div className="border-b border-[#478C5C]/20 my-8"></div>
               </div>
-            )}
-            {activeTab === "donaciones" && (
-              <div className="space-y-12 max-w-6xl mx-auto">
-                <div className="py-8">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                    Donaciones
-                  </h2>
-                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
-                    Monitorea las donaciones recibidas y agradece a tus
-                    donadores por su apoyo.
-                  </p>
-                  <div className="border-b border-[#478C5C]/20 my-8"></div>
-                </div>
-                <DonationsTab campaign={campaign} />
+              <AdsTab campaign={campaign} />
+            </div>
+          )}
+
+          {activeTab === "comentarios" && (
+            <div className="w-full">
+              <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                  Comentarios
+                </h2>
+                <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                  Revisa y responde a los comentarios de tus donadores para
+                  mantener una comunicación activa.
+                </p>
+                <div className="border-b border-[#478C5C]/20 my-8"></div>
               </div>
-            )}
-            {activeTab === "transferir" && (
-              <div className="space-y-12 max-w-6xl mx-auto">
-                <div className="py-8">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                    Transferir fondos
-                  </h2>
-                  <p className="text-xl text-gray-600 leading-relaxed mb-10">
-                    Transfiere los fondos recolectados a la cuenta designada
-                    para el proyecto.
-                  </p>
-                  <div className="border-b border-[#478C5C]/20 my-8"></div>
-                </div>
-                <TransferFundsTab campaign={campaign} />
+              <CommentsTab campaign={campaign} />
+            </div>
+          )}
+
+          {activeTab === "donaciones" && (
+            <div className="w-full">
+              <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                  Donaciones
+                </h2>
+                <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                  Monitorea las donaciones recibidas y agradece a tus donadores
+                  por su apoyo.
+                </p>
+                <div className="border-b border-[#478C5C]/20 my-8"></div>
               </div>
-            )}
-          </div>
+              <DonationsTab campaign={campaign} />
+            </div>
+          )}
+
+          {activeTab === "transferir" && (
+            <div className="w-full">
+              <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                  Transferir fondos
+                </h2>
+                <p className="text-xl text-gray-600 leading-relaxed mb-10">
+                  Transfiere los fondos recolectados a la cuenta designada para
+                  el proyecto.
+                </p>
+                <div className="border-b border-[#478C5C]/20 my-8"></div>
+              </div>
+              <TransferFundsTab campaign={campaign} />
+            </div>
+          )}
         </div>
       </div>
     </div>

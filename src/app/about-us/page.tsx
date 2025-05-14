@@ -1,8 +1,10 @@
 import { FoundersCarousel } from "@/components/views/about-us/FounderCarousel";
-import { ContactForm } from "@/components/views/about-us/ContactForm";
 import { SuccessStory } from "@/components/views/about-us/SuccessStory";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default function AboutPage() {
   return (
@@ -12,8 +14,8 @@ export default function AboutPage() {
       <div className="h-20 md:h-28"></div>
       <main className="container mx-auto px-4 py-16 flex-grow">
         {/* Hero Section */}
-        <div className="max-w-4xl mx-auto text-center mb-32">
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8">
+        <div className="max-w-[95vw] lg:max-w-5xl mx-auto text-center mb-32">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-[#333333] mb-8 leading-tight">
             Impulsamos causas, transformamos vidas
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 leading-relaxed">
@@ -32,9 +34,21 @@ export default function AboutPage() {
           <FoundersCarousel />
         </section>
 
-        {/* Contact Form Section */}
-        <section className="mb-32">
-          <ContactForm />
+        {/* FAQ Section - Replacing Contact Form */}
+        <section className="mb-32 max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-[#2c6e49] mb-6">
+            ¿Tienes preguntas?
+          </h2>
+          <p className="text-lg text-gray-600 mb-8">
+            Consulta nuestra sección de preguntas frecuentes para obtener
+            respuestas a las dudas más comunes sobre donaciones, campañas y cómo
+            funciona nuestra plataforma.
+          </p>
+          <Link href="/help">
+            <Button className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-lg rounded-full px-8 py-6">
+              Ver preguntas frecuentes <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
         </section>
 
         {/* Success Story Section */}

@@ -366,325 +366,330 @@ export function EditCampaignTab({ campaign }: EditCampaignTabProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Información de la campaña</h2>
-        <p className="text-sm text-gray-500">
-          Modifica los detalles de tu campaña para mejorar su alcance e impacto
-        </p>
-      </div>
+    <div className="w-full">
+      <div className="px-6 md:px-8 lg:px-16 xl:px-24 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">Información de la campaña</h2>
+          <p className="text-sm text-gray-500">
+            Modifica los detalles de tu campaña para mejorar su alcance e
+            impacto
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-6">
-          <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Nombre de la campaña
-            </label>
-            <Input
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              placeholder="Ingresa el nombre de tu campaña"
-              className="w-full border-gray-300"
-              maxLength={60}
-              required
-            />
-            <div className="text-right text-xs text-gray-500 mt-1">
-              {formData.title.length}/60
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Detalle
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Ejemplo: Su conservación depende de nosotros"
-              className="w-full rounded-md border border-gray-300 p-3 min-h-[100px]"
-              maxLength={130}
-              required
-            />
-            <div className="text-right text-xs text-gray-500 mt-1">
-              {formData.description.length}/130
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Categoría
-            </label>
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleInputChange}
-              className="w-full rounded-md border border-gray-300 p-3"
-              required
-            >
-              <option value="">Selecciona una categoría</option>
-              <option value="cultura_arte">Cultura y Arte</option>
-              <option value="educacion">Educación</option>
-              <option value="emergencia">Emergencia</option>
-              <option value="igualdad">Igualdad</option>
-              <option value="medioambiente">Medio ambiente</option>
-              <option value="salud">Salud</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="goalAmount"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Meta de recaudación
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                Bs.
-              </span>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Nombre de la campaña
+              </label>
               <Input
-                id="goalAmount"
-                name="goalAmount"
-                type="number"
-                value={formData.goalAmount}
+                id="title"
+                name="title"
+                value={formData.title}
                 onChange={handleInputChange}
-                className="pl-10 w-full border-gray-300"
+                placeholder="Ingresa el nombre de tu campaña"
+                className="w-full border-gray-300"
+                maxLength={60}
                 required
               />
+              <div className="text-right text-xs text-gray-500 mt-1">
+                {formData.title.length}/60
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label
-              htmlFor="location"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Ubicación de la campaña
-            </label>
-            <select
-              id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              className="w-full rounded-md border border-gray-300 p-3"
-              required
-            >
-              <option value="">Selecciona una región</option>
-              <option value="la_paz">La Paz</option>
-              <option value="santa_cruz">Santa Cruz</option>
-              <option value="cochabamba">Cochabamba</option>
-              <option value="sucre">Sucre</option>
-              <option value="oruro">Oruro</option>
-              <option value="potosi">Potosí</option>
-              <option value="tarija">Tarija</option>
-              <option value="beni">Beni</option>
-              <option value="pando">Pando</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="endDate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Fecha de finalización
-            </label>
             <div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    formNoValidate
-                    id="date-picker-button"
-                    className={`flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left shadow-sm focus:border-[#478C5C] focus:outline-none focus:ring-1 focus:ring-[#478C5C] ${
-                      !formData.endDate ? "text-gray-400" : "text-gray-900"
-                    }`}
-                  >
-                    <span className="flex items-center">
-                      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
-                      {formData.endDate
-                        ? format(new Date(formData.endDate), "PPP")
-                        : "Selecciona una fecha"}
-                    </span>
-                    <span className="ml-auto">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="text-gray-500"
-                      >
-                        <path
-                          d="M2.5 4.5L6 8L9.5 4.5"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <div className="rounded-md border shadow-md">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        formData.endDate
-                          ? new Date(formData.endDate)
-                          : undefined
-                      }
-                      onSelect={(date) => {
-                        setFormData({
-                          ...formData,
-                          endDate: date ? format(date, "yyyy-MM-dd") : "",
-                        });
-                      }}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <label
+                htmlFor="category"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Categoría
+              </label>
+              <select
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleInputChange}
+                className="w-full rounded-md border border-gray-300 p-3"
+                required
+              >
+                <option value="">Selecciona una categoría</option>
+                <option value="cultura_arte">Cultura y Arte</option>
+                <option value="educacion">Educación</option>
+                <option value="emergencia">Emergencia</option>
+                <option value="igualdad">Igualdad</option>
+                <option value="medioambiente">Medio ambiente</option>
+                <option value="salud">Salud</option>
+              </select>
             </div>
-          </div>
 
-          <div className="border-t border-gray-200 pt-6 mt-6">
-            <h3 className="text-lg font-medium mb-4">Imágenes de la campaña</h3>
+            <div className="md:col-span-2">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Detalle
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Ejemplo: Su conservación depende de nosotros"
+                className="w-full rounded-md border border-gray-300 p-3 min-h-[100px]"
+                maxLength={130}
+                required
+              />
+              <div className="text-right text-xs text-gray-500 mt-1">
+                {formData.description.length}/130
+              </div>
+            </div>
 
-            {/* Display existing images */}
-            {campaignMedia.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {campaignMedia.map((media) => (
-                  <div
-                    key={media.id}
-                    className="relative border border-gray-200 rounded-lg overflow-hidden"
-                  >
-                    <div className="relative h-48 w-full">
-                      <Image
-                        src={media.mediaUrl || "/amboro-main.jpg"}
-                        alt="Campaign image"
-                        fill
-                        className="object-cover"
+            <div>
+              <label
+                htmlFor="goalAmount"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Meta de recaudación
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                  Bs.
+                </span>
+                <Input
+                  id="goalAmount"
+                  name="goalAmount"
+                  type="number"
+                  value={formData.goalAmount}
+                  onChange={handleInputChange}
+                  className="pl-10 w-full border-gray-300"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="location"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Ubicación de la campaña
+              </label>
+              <select
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                className="w-full rounded-md border border-gray-300 p-3"
+                required
+              >
+                <option value="">Selecciona una región</option>
+                <option value="la_paz">La Paz</option>
+                <option value="santa_cruz">Santa Cruz</option>
+                <option value="cochabamba">Cochabamba</option>
+                <option value="sucre">Sucre</option>
+                <option value="oruro">Oruro</option>
+                <option value="potosi">Potosí</option>
+                <option value="tarija">Tarija</option>
+                <option value="beni">Beni</option>
+                <option value="pando">Pando</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="endDate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Fecha de finalización
+              </label>
+              <div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      formNoValidate
+                      id="date-picker-button"
+                      className={`flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-left shadow-sm focus:border-[#478C5C] focus:outline-none focus:ring-1 focus:ring-[#478C5C] ${
+                        !formData.endDate ? "text-gray-400" : "text-gray-900"
+                      }`}
+                    >
+                      <span className="flex items-center">
+                        <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                        {formData.endDate
+                          ? format(new Date(formData.endDate), "PPP")
+                          : "Selecciona una fecha"}
+                      </span>
+                      <span className="ml-auto">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="text-gray-500"
+                        >
+                          <path
+                            d="M2.5 4.5L6 8L9.5 4.5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="rounded-md border shadow-md">
+                      <Calendar
+                        mode="single"
+                        selected={
+                          formData.endDate
+                            ? new Date(formData.endDate)
+                            : undefined
+                        }
+                        onSelect={(date) => {
+                          setFormData({
+                            ...formData,
+                            endDate: date ? format(date, "yyyy-MM-dd") : "",
+                          });
+                        }}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
                       />
                     </div>
-                    <div className="absolute top-2 right-2 flex space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => handleSetPrimary(media.id)}
-                        className={`p-1.5 rounded-full ${
-                          media.isPrimary
-                            ? "bg-green-100 text-green-600"
-                            : "bg-white text-gray-600"
-                        }`}
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteImage(media.id)}
-                        className="bg-white p-1.5 rounded-full text-red-500"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    {media.isPrimary && (
-                      <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                        Principal
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="md:col-span-2 border-t border-gray-200 pt-6 mt-6">
+              <h3 className="text-lg font-medium mb-4">
+                Imágenes de la campaña
+              </h3>
+
+              {/* Display existing images */}
+              {campaignMedia.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {campaignMedia.map((media) => (
+                    <div
+                      key={media.id}
+                      className="relative border border-gray-200 rounded-lg overflow-hidden"
+                    >
+                      <div className="relative h-48 w-full">
+                        <Image
+                          src={media.mediaUrl || "/amboro-main.jpg"}
+                          alt="Campaign image"
+                          fill
+                          className="object-cover"
+                        />
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                      <div className="absolute top-2 right-2 flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimary(media.id)}
+                          className={`p-1.5 rounded-full ${
+                            media.isPrimary
+                              ? "bg-green-100 text-green-600"
+                              : "bg-white text-gray-600"
+                          }`}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteImage(media.id)}
+                          className="bg-white p-1.5 rounded-full text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {media.isPrimary && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                          Principal
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {/* Upload new image */}
-            <div
-              onClick={handleFileSelect}
-              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50"
-            >
-              <div className="flex flex-col items-center justify-center">
-                {isUploadingImage ? (
-                  <LoadingSpinner size="md" />
-                ) : (
-                  <>
-                    <UploadCloud className="h-10 w-10 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 mb-2">
-                      Arrastra o carga tus fotos aquí
-                    </p>
-                    <p className="text-xs text-gray-400 mb-4">
-                      Deben ser archivos JPG o PNG, no mayor a 2 MB.
-                    </p>
-                  </>
-                )}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/jpeg,image/png"
-                  onChange={handleFileChange}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="bg-white border-gray-300"
-                  onClick={handleFileSelect}
-                  disabled={isUploadingImage}
-                >
-                  {isUploadingImage ? "Subiendo..." : "Seleccionar archivo"}
-                </Button>
+              {/* Upload new image */}
+              <div
+                onClick={handleFileSelect}
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50"
+              >
+                <div className="flex flex-col items-center justify-center">
+                  {isUploadingImage ? (
+                    <LoadingSpinner size="md" />
+                  ) : (
+                    <>
+                      <UploadCloud className="h-10 w-10 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500 mb-2">
+                        Arrastra o carga tus fotos aquí
+                      </p>
+                      <p className="text-xs text-gray-400 mb-4">
+                        Deben ser archivos JPG o PNG, no mayor a 2 MB.
+                      </p>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/jpeg,image/png"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-white border-gray-300"
+                    onClick={handleFileSelect}
+                    disabled={isUploadingImage}
+                  >
+                    {isUploadingImage ? "Subiendo..." : "Seleccionar archivo"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Enlaces de YouTube
+              </label>
+              <YouTubeLinks
+                links={formData.youtubeUrls}
+                onChange={handleYouTubeLinksChange}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label
+                htmlFor="beneficiariesDescription"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Beneficiarios
+              </label>
+              <textarea
+                id="beneficiariesDescription"
+                name="beneficiariesDescription"
+                value={formData.beneficiariesDescription}
+                onChange={handleInputChange}
+                placeholder="Describe quiénes se beneficiarán de esta campaña..."
+                className="w-full rounded-md border border-gray-300 p-3 min-h-[100px]"
+                maxLength={300}
+                required
+              />
+              <div className="text-right text-xs text-gray-500 mt-1">
+                {formData.beneficiariesDescription.length}/300
               </div>
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Enlaces de YouTube
-            </label>
-            <YouTubeLinks
-              links={formData.youtubeUrls}
-              onChange={handleYouTubeLinksChange}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="beneficiariesDescription"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Beneficiarios
-            </label>
-            <textarea
-              id="beneficiariesDescription"
-              name="beneficiariesDescription"
-              value={formData.beneficiariesDescription}
-              onChange={handleInputChange}
-              placeholder="Describe quiénes se beneficiarán de esta campaña..."
-              className="w-full rounded-md border border-gray-300 p-3 min-h-[100px]"
-              maxLength={300}
-              required
-            />
-            <div className="text-right text-xs text-gray-500 mt-1">
-              {formData.beneficiariesDescription.length}/300
-            </div>
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
 
       {/* Save Changes Bar */}
       {showSaveBar && (
