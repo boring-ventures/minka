@@ -10,7 +10,7 @@ export interface ProfileData {
   created_at: string;
   identity_number?: string;
   birth_date?: string;
-  profile_picture?: string;
+  profile_picture?: string | null;
   [key: string]: string | boolean | number | null | undefined;
 }
 
