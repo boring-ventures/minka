@@ -51,6 +51,7 @@ export default function DashboardPage() {
         address: data.address || "",
         role: data.role || "user",
         created_at: data.created_at || getISOString(data.createdAt),
+        profile_picture: data.profile_picture || data.profilePicture || null,
         // Include any other fields that might be expected
         ...(data as object),
       };
@@ -75,6 +76,36 @@ export default function DashboardPage() {
     // Otherwise fetch the profile
     return await getProfile(user.id);
   }, [user, authProfile, router, getProfile]);
+
+  // Function to refresh profile data
+  const refreshProfileData = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+
+      // Always fetch fresh data from the API
+      const freshProfileData = await getProfile(user.id);
+
+      if (freshProfileData) {
+        const formattedProfile = formatProfileData(freshProfileData);
+        setProfile(formattedProfile);
+        setIsAdmin(formattedProfile.role === "admin");
+
+        // Update form data with fresh profile data
+        setProfileForm({
+          name: formattedProfile.name || "",
+          email: formattedProfile.email || "",
+          phone: formattedProfile.phone || "",
+          address: formattedProfile.address || "",
+        });
+      }
+    } catch (error) {
+      console.error("Error refreshing profile data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, getProfile, formatProfileData]);
 
   useEffect(() => {
     let isMounted = true;
@@ -130,21 +161,14 @@ export default function DashboardPage() {
 
       const { error } = await updateProfile(profile.id, {
         name: profileForm.name,
-        email: profileForm.email,
         phone: profileForm.phone,
         address: profileForm.address,
       });
 
       if (error) throw error;
 
-      // Update local profile state
-      setProfile({
-        ...profile,
-        name: profileForm.name,
-        email: profileForm.email,
-        phone: profileForm.phone,
-        address: profileForm.address,
-      });
+      // Refresh profile data after update
+      await refreshProfileData();
 
       setIsEditModalOpen(false);
 
@@ -178,6 +202,7 @@ export default function DashboardPage() {
         <UserDashboardContent
           profile={profile}
           onEditProfile={() => setIsEditModalOpen(true)}
+          onProfileUpdated={refreshProfileData}
         />
       )}
 
@@ -215,11 +240,9 @@ export default function DashboardPage() {
                 id="email"
                 type="email"
                 value={profileForm.email}
-                onChange={(e) =>
-                  setProfileForm({ ...profileForm, email: e.target.value })
-                }
-                placeholder="Ingresa tu nombre"
-                className="w-full border border-black bg-transparent"
+                readOnly
+                disabled
+                className="w-full border border-black bg-transparent opacity-70 cursor-not-allowed"
               />
             </div>
 

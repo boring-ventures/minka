@@ -97,7 +97,7 @@ export async function PATCH(
       data: {
         name: json.name,
         phone: json.phone,
-        profilePicture: json.profilePicture,
+        profilePicture: json.profilePicture || json.profile_picture,
         address: json.address,
         bio: json.bio,
         location: json.location,

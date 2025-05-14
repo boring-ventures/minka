@@ -121,35 +121,13 @@ export function SignUpForm() {
     } catch (error) {
       console.error("Error during sign up:", error);
 
-      // Extract the error message
-      const errorMessage =
-        error instanceof Error ? error.message : "No se pudo crear la cuenta.";
-
-      // Handle field-specific errors if possible
-      if (
-        errorMessage.toLowerCase().includes("email") ||
-        errorMessage.toLowerCase().includes("correo")
-      ) {
-        setError("email", { type: "manual", message: errorMessage });
-      } else if (
-        errorMessage.toLowerCase().includes("password") ||
-        errorMessage.toLowerCase().includes("contraseña")
-      ) {
-        setError("password", { type: "manual", message: errorMessage });
-      } else if (
-        errorMessage.toLowerCase().includes("identity") ||
-        errorMessage.toLowerCase().includes("documento") ||
-        errorMessage.toLowerCase().includes("dni")
-      ) {
-        setError("documentId", { type: "manual", message: errorMessage });
-      } else {
-        // Display general error toast
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
+      // Use toast notification for errors instead of field errors
+      toast({
+        title: "Error",
+        description:
+          "No se pudo crear la cuenta. Por favor, verifica tus datos e intenta nuevamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
       setIsSubmitting(false);

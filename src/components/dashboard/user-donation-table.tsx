@@ -14,6 +14,7 @@ import { PaymentStatus } from "@prisma/client";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 // Define a simplified donation interface for user donations
 export interface UserDonationData {
@@ -124,7 +125,12 @@ export function UserDonationTable({ donations }: UserDonationTableProps) {
             currentItems.map((donation) => (
               <TableRow key={donation.id} className="border-b border-gray-100">
                 <TableCell className="py-4 font-medium text-gray-700">
-                  {donation.campaign?.title || "N/A"}
+                  <Link
+                    href={`/campaign/${donation.campaign?.id}`}
+                    className="text-green-600 hover:underline"
+                  >
+                    {donation.campaign?.title || "N/A"}
+                  </Link>
                 </TableCell>
                 <TableCell className="py-4 text-gray-600">
                   {format(new Date(donation.created_at), "d/MM/yyyy", {

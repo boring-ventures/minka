@@ -73,39 +73,18 @@ export function SignInForm() {
       } catch (error) {
         console.error("Error during sign in:", error);
 
-        // Set field-specific errors if possible
-        const errorMessage =
-          error instanceof Error ? error.message : "Credenciales inválidas.";
-
-        if (
-          errorMessage.toLowerCase().includes("email") ||
-          errorMessage.toLowerCase().includes("correo")
-        ) {
-          setError("email", {
-            type: "manual",
-            message: errorMessage,
-          });
-        } else if (
-          errorMessage.toLowerCase().includes("password") ||
-          errorMessage.toLowerCase().includes("contraseña")
-        ) {
-          setError("password", {
-            type: "manual",
-            message: errorMessage,
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: errorMessage,
-            variant: "destructive",
-          });
-        }
+        // Show a toast with the generic error message in Spanish
+        toast({
+          title: "Error",
+          description: "Credenciales inválidas",
+          variant: "destructive",
+        });
 
         // Only set isLoading to false if there was an error
         setIsLoading(false);
       }
     },
-    [signIn, setError]
+    [signIn, toast]
   );
 
   const handleSocialSignIn = useCallback(

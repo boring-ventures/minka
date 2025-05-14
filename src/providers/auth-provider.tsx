@@ -242,14 +242,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const errorData = await response.json();
         console.error("Registration API error:", errorData);
 
-        // Enhanced error message that includes the details if available
-        const errorMessage = errorData.error
-          ? errorData.details
-            ? `${errorData.error}: ${errorData.details}`
-            : errorData.error
-          : "Registration failed";
+        // Use a simplified error message instead of exposing details
+        const errorType = errorData.error?.toLowerCase() || "";
 
-        throw new Error(errorMessage);
+        if (errorType.includes("email")) {
+          throw new Error("email_error");
+        } else if (
+          errorType.includes("document") ||
+          errorType.includes("identity")
+        ) {
+          throw new Error("document_error");
+        } else if (errorType.includes("password")) {
+          throw new Error("password_error");
+        } else {
+          throw new Error("Registration failed");
+        }
       }
 
       const responseData = await response.json();
@@ -264,12 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return responseData;
     } catch (error) {
       console.error("Registration error:", error);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Registration failed",
-        variant: "destructive",
-      });
+      // Let the form component handle detailed errors
       throw error;
     } finally {
       setIsLoading(false);

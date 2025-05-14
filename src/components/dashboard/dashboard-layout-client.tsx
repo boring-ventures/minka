@@ -5,10 +5,10 @@ import { SearchProvider } from "@/context/search-context";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import SkipToMain from "@/components/skip-to-main";
-import { Header } from "@/components/sidebar/header";
 import { Search } from "@/components/sidebar/search";
 import { ThemeSwitch } from "@/components/sidebar/theme-switch";
 import { ProfileDropdown } from "@/components/sidebar/profile-dropdown";
+import { Header } from "@/components/views/landing-page/Header";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -19,7 +19,8 @@ export function DashboardLayoutClient({ children }: DashboardLayoutProps) {
     <SearchProvider>
       <SidebarProvider defaultOpen={true}>
         <SkipToMain />
-        <AppSidebar className="fixed inset-y-0 left-0 z-20" />
+        <Header />
+        <AppSidebar className="fixed inset-y-0 left-0 z-20 mt-28" />
         <div
           id="content"
           className={cn(
@@ -29,19 +30,20 @@ export function DashboardLayoutClient({ children }: DashboardLayoutProps) {
             "transition-[width] duration-200 ease-linear",
             "flex min-h-screen flex-col",
             "group-data-[scroll-locked=1]/body:h-full",
-            "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:min-h-screen"
+            "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:min-h-screen",
+            "mt-28"
           )}
         >
-          <Header>
-            <div className="ml-auto flex items-center space-x-4">
+          <div className="p-4 flex items-center justify-end border-b">
+            <div className="flex items-center space-x-4">
               <Search />
               <ThemeSwitch />
               <ProfileDropdown />
             </div>
-          </Header>
+          </div>
           {children}
         </div>
       </SidebarProvider>
     </SearchProvider>
   );
-} 
+}

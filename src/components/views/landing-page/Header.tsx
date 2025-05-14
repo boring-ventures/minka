@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useDb } from "@/hooks/use-db";
@@ -11,8 +11,9 @@ import { useDb } from "@/hooks/use-db";
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isLoading } = useAuth();
   const [profileName, setProfileName] = useState<string>("");
   const { getProfile } = useDb();
 
@@ -34,7 +35,10 @@ export function Header() {
 
   // Memoize the fetchUserProfile function to prevent recreating it on each render
   const fetchUserProfile = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setProfileName("");
+      return;
+    }
 
     try {
       const data = await getProfile(user.id);
@@ -50,7 +54,7 @@ export function Header() {
   // Fetch user profile data from Prisma
   useEffect(() => {
     fetchUserProfile();
-  }, [fetchUserProfile]); // Only depends on the memoized function
+  }, [fetchUserProfile, user]); // Re-fetch when user changes
 
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
@@ -77,11 +81,13 @@ export function Header() {
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
     try {
-      // Immediately clear local state before the actual sign-out
-      setProfileName("");
+      setIsSigningOut(true);
 
       // Wait for sign-out to complete
       await signOut();
+
+      // Note: The state updates will happen automatically through the auth context
+      // because of the auth state change subscription in the auth provider
 
       // Use pushState to clear URL state
       window.history.pushState({}, "", "/");
@@ -94,6 +100,8 @@ export function Header() {
       }
     } catch (error) {
       console.error("Error signing out:", error);
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -165,14 +173,21 @@ export function Header() {
                 <Button
                   variant="ghost"
                   onClick={handleSignOut}
+                  disabled={isSigningOut}
                   className={`flex items-center gap-2 hover:bg-transparent ${
                     isScrolled
                       ? "text-white hover:text-gray-200"
                       : "text-[#2c6e49] hover:text-[#1e4d33]"
                   }`}
                 >
-                  <LogOut className="h-5 w-5" />
-                  <span className="font-medium">Salir</span>
+                  {isSigningOut ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <LogOut className="h-5 w-5" />
+                  )}
+                  <span className="font-medium">
+                    {isSigningOut ? "Cerrando sesión..." : "Salir"}
+                  </span>
                 </Button>
               </>
             ) : (
@@ -276,9 +291,16 @@ export function Header() {
                 <Button
                   className="w-full flex items-center justify-center gap-2 bg-[#f8f9fa] border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-full"
                   onClick={handleSignOut}
+                  disabled={isSigningOut}
                 >
-                  <LogOut className="h-5 w-5" />
-                  <span>Cerrar sesión</span>
+                  {isSigningOut ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <LogOut className="h-5 w-5" />
+                  )}
+                  <span>
+                    {isSigningOut ? "Cerrando sesión..." : "Cerrar sesión"}
+                  </span>
                 </Button>
               </>
             ) : (

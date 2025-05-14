@@ -182,14 +182,6 @@ export function CampaignCard({
             </Button>
           )}
         </div>
-
-        {/* Add a verification badge if verified */}
-        {isVerified && (
-          <div className="absolute top-2 right-2 bg-[#4caf50] text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
-            <CheckCircle size={12} />
-            <span>Verificada</span>
-          </div>
-        )}
       </div>
     </Link>
   );

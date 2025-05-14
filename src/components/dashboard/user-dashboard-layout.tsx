@@ -9,6 +9,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowLeft, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Footer } from "@/components/views/landing-page/Footer";
+import { Header } from "@/components/views/landing-page/Header";
 import { ProfileData } from "@/types";
 
 interface UserDashboardLayoutProps {
@@ -62,45 +63,14 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-white to-[#f5f7e9] flex flex-col">
-      {/* Header - without background */}
-      <header className="py-4">
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          {/* Left: Back button */}
-          <Button
-            variant="ghost"
-            className="text-[#2c6e49] hover:text-[#1e4d33] font-medium flex items-center text-base"
-            onClick={handleBack}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
-
-          {/* Center: Minka logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/brand/logo.svg"
-              alt="MINKA"
-              width={140}
-              height={40}
-              className="h-10 w-auto"
-            />
-          </Link>
-
-          {/* Right: User profile */}
-          <div className="flex items-center">
-            <User className="h-5 w-5 text-[#2c6e49] mr-2" />
-            <span className="text-[#2c6e49] font-medium text-base">
-              {profile?.name || "Usuario"}
-            </span>
-          </div>
-        </div>
-      </header>
+      {/* Use the landing page Header */}
+      <Header />
 
       <main
         className={
           isCampaignPage
-            ? "flex-grow w-full"
-            : "flex-grow container mx-auto px-4 py-8"
+            ? "flex-grow w-full mt-28" // Add margin-top to account for fixed header
+            : "flex-grow container mx-auto px-4 py-8 mt-28" // Add margin-top to account for fixed header
         }
       >
         <div className={isCampaignPage ? "w-full" : "max-w-[80%] mx-auto"}>

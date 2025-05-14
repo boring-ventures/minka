@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { Header } from "@/components/views/landing-page/Header";
 
 const quicksand = Quicksand({
   variable: "--font-quicksand",
@@ -46,6 +47,9 @@ export default function AuthLayout({
     <div
       className={`${quicksand.variable} ${geistMono.variable} font-quicksand min-h-screen bg-gradient-to-r from-white to-[#f5f7e9]`}
     >
+      {/* Add Header component */}
+      <Header />
+
       {/* Background SVG covering the screen width */}
       <div className="fixed bottom-0 left-0 right-0 z-0">
         <Image
@@ -58,8 +62,8 @@ export default function AuthLayout({
         />
       </div>
 
-      {/* Content container */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center">
+      {/* Content container - adjusted to account for header */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center pt-28">
         <div className="flex w-full max-w-6xl items-center justify-between px-4">
           {/* Logo on the left - much larger and with link */}
           <div className="hidden lg:block">
