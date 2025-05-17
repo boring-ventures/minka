@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageSquare, Check, X, SendHorizontal, Trash2 } from "lucide-react";
+import {
+  MessageSquare,
+  Check,
+  X,
+  Trash2,
+  ChevronDown,
+  Filter,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
@@ -17,6 +24,12 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CommentsTabProps {
   campaign: Record<string, any>;
@@ -28,21 +41,18 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
   const [hasMoreComments, setHasMoreComments] = useState(false);
   const [offset, setOffset] = useState(0);
   const [limit] = useState(20);
-  const [newComment, setNewComment] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>("recent");
+  const [filterBy, setFilterBy] = useState<string>("all");
+  const [showSaveBar, setShowSaveBar] = useState(false);
 
-  const {
-    isLoadingComments,
-    isPostingComment,
-    getCampaignComments,
-    postCampaignComment,
-    deleteCampaignComment,
-  } = useCampaign();
+  const { isLoadingComments, getCampaignComments, deleteCampaignComment } =
+    useCampaign();
 
   useEffect(() => {
     fetchComments();
-  }, [campaign.id]);
+  }, [campaign.id, sortBy, filterBy]);
 
   const fetchComments = async (reset: boolean = true) => {
     const currentOffset = reset ? 0 : offset;
@@ -75,26 +85,6 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
     fetchComments(false);
   };
 
-  const handleSubmitComment = async () => {
-    if (!newComment.trim()) {
-      toast({
-        title: "Error",
-        description: "El comentario no puede estar vacío",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const commentData = await postCampaignComment(campaign.id, newComment);
-
-    if (commentData) {
-      // Add the new comment to the top of the list
-      setComments([commentData, ...comments]);
-      setTotalComments(totalComments + 1);
-      setNewComment("");
-    }
-  };
-
   const confirmDeleteComment = async () => {
     if (!commentToDelete) return;
 
@@ -104,6 +94,10 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
       // Remove the comment from the list
       setComments(comments.filter((comment) => comment.id !== commentToDelete));
       setTotalComments(totalComments - 1);
+      toast({
+        title: "Comentario eliminado",
+        description: "El comentario ha sido eliminado correctamente.",
+      });
     }
 
     setIsDeleteDialogOpen(false);
@@ -115,106 +109,165 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleEmojiReaction = () => {
+    // This would be implemented to handle emoji reactions
+    setShowSaveBar(true);
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Comentarios</h2>
-        <p className="text-gray-600 mb-6">
-          Gestiona los comentarios de tu campaña y responde a los donadores.
-        </p>
-      </div>
+    <div className="w-full px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+      <h2 className="text-4xl md:text-5xl font-bold mb-6">Comentarios</h2>
+      <p className="text-xl text-gray-600 leading-relaxed mb-10">
+        Reacciona a los comentarios que te dejan los donadores y sigue
+        inspirando con la esencia de tu campaña.
+      </p>
 
-      {/* Comment stats */}
-      <div className="bg-gray-50 p-4 rounded-lg flex space-x-4">
-        <div className="flex items-center space-x-2">
-          <MessageSquare className="h-5 w-5 text-gray-500" />
+      <div className="border-b border-[#478C5C]/20 my-8"></div>
+
+      {/* Comments section */}
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <p className="text-sm font-medium text-gray-700">
-              Total de comentarios
-            </p>
-            <p className="text-2xl font-bold text-gray-900">{totalComments}</p>
+            <h3 className="text-2xl font-semibold">Todos los comentarios</h3>
+            <p className="text-gray-600">{totalComments} Resultados</p>
           </div>
-        </div>
-      </div>
 
-      {/* Add new comment */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex space-x-3">
-          <div className="flex-shrink-0">
-            <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-[#2c6e49]" />
-            </div>
-          </div>
-          <div className="min-w-0 flex-1">
+          <div className="flex gap-4">
+            {/* Sort dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="border-gray-300 bg-white">
+                  <span className="mr-2">Ordenar por: Sin leer</span>
+                  <ChevronDown size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortBy("unread")}>
+                  Sin leer
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy("recent")}>
+                  Más recientes
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy("oldest")}>
+                  Más antiguos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy("donation")}>
+                  Mayor donación
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Filter dropdown */}
             <div className="relative">
-              <textarea
-                rows={3}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#2c6e49] sm:text-sm sm:leading-6"
-                placeholder="Escribe un comentario"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              />
-            </div>
-            <div className="mt-3 flex justify-end">
-              <Button
-                className="inline-flex items-center px-4 bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
-                disabled={isPostingComment || !newComment.trim()}
-                onClick={handleSubmitComment}
-              >
-                {isPostingComment ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
-                ) : (
-                  <SendHorizontal className="h-4 w-4 mr-2" />
-                )}
-                Comentar
-              </Button>
+              <div className="absolute top-0 left-0 w-full">
+                <div className="absolute z-10 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                  <div className="p-1 bg-[#f2f8f5] rounded-t-md border border-[#2c6e49] border-b-0">
+                    <div className="px-3 py-2 text-[#1a5535] hover:bg-white cursor-pointer">
+                      Sin reaccionar
+                    </div>
+                  </div>
+                  <div className="p-1 bg-white rounded-b-md border border-[#2c6e49] border-t-0">
+                    <div className="px-3 py-2 bg-[#e8f5ed] text-[#1a5535] font-medium">
+                      Todos
+                    </div>
+                    <div className="px-3 py-2 text-gray-700 hover:bg-[#f2f8f5] cursor-pointer">
+                      ONGs
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Comment list */}
-      <div className="space-y-4">
-        <h3 className="font-medium text-gray-900">
-          {totalComments > 0
-            ? `Comentarios (${totalComments})`
-            : "No hay comentarios"}
-        </h3>
 
         {isLoadingComments && comments.length === 0 ? (
           <div className="flex items-center justify-center py-8">
             <LoadingSpinner size="md" />
           </div>
         ) : comments.length > 0 ? (
-          <div className="space-y-4">
-            {comments.map((comment) => (
+          <div className="space-y-8">
+            {/* Comment items */}
+            {[1, 2].map((item) => (
               <div
-                key={comment.id}
-                className="bg-white border border-gray-200 rounded-lg p-4"
+                key={item}
+                className="border-b border-gray-200 pb-6 mb-6 last:border-b-0"
               >
-                <div className="flex space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center font-bold text-[#2c6e49]">
-                      {comment.profile.name?.charAt(0) || "?"}
-                    </div>
+                <div className="flex gap-4 mb-3">
+                  <div className="w-12 h-12 bg-green-600 rounded-full overflow-hidden flex items-center justify-center text-white font-medium">
+                    NR
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="flex-1">
                     <div className="flex justify-between items-start">
-                      <p className="text-sm font-medium text-gray-900">
-                        {comment.profile.name}
-                      </p>
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          Nadia Rosas
+                        </h4>
+                        <p className="text-gray-500 text-sm">
+                          Bs. 200,00 | 3 días
+                        </p>
+                      </div>
                       <button
-                        onClick={() => openDeleteDialog(comment.id)}
-                        className="text-gray-400 hover:text-red-500"
+                        onClick={() => openDeleteDialog("comment-id")}
+                        className="text-green-600 hover:text-green-800 flex items-center"
                       >
+                        <span className="mr-2">Eliminar comentario</span>
                         <Trash2 size={16} />
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      {new Date(comment.createdAt).toLocaleDateString()}
+                    <p className="mt-2 text-gray-700">
+                      Es un honor poder contribuir a la conservación del Parque
+                      Nacional Amboró. ¡Juntos podemos hacer la diferencia!
+                      Sigamos protegiendo este maravilloso lugar
                     </p>
-                    <div className="mt-2 text-sm text-gray-700">
-                      <p>{comment.content}</p>
+
+                    {/* Emoji reactions */}
+                    <div className="mt-4 flex items-center gap-2">
+                      <button
+                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
+                        onClick={handleEmojiReaction}
+                      >
+                        <span role="img" aria-label="smile">
+                          😀
+                        </span>
+                      </button>
+                      <button
+                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
+                        onClick={handleEmojiReaction}
+                      >
+                        <span role="img" aria-label="heart">
+                          ❤️
+                        </span>
+                      </button>
+                      <button
+                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
+                        onClick={handleEmojiReaction}
+                      >
+                        <span role="img" aria-label="green-heart">
+                          💚
+                        </span>
+                      </button>
+                      <button
+                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
+                        onClick={handleEmojiReaction}
+                      >
+                        <span role="img" aria-label="clap">
+                          👏
+                        </span>
+                      </button>
+                      <button
+                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
+                        onClick={handleEmojiReaction}
+                      >
+                        <span role="img" aria-label="thumbs-up">
+                          👍
+                        </span>
+                      </button>
+                      <button
+                        className="w-8 h-8 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-gray-400"
+                        onClick={handleEmojiReaction}
+                      >
+                        <span>+</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -249,29 +302,61 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete confirmation dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar comentario?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará permanentemente el comentario.
+              Esta acción no se puede deshacer. El comentario será eliminado
+              permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteComment}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700"
             >
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Save changes bottom bar */}
+      {showSaveBar && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 py-4 px-6 border-t border-gray-200 z-50 flex justify-between items-center">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-gray-300 bg-white flex items-center"
+            onClick={() => setShowSaveBar(false)}
+          >
+            <X className="h-4 w-4 mr-2" />
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white flex items-center"
+            onClick={() => {
+              toast({
+                title: "Cambios guardados",
+                description: "Las reacciones han sido guardadas correctamente.",
+              });
+              setShowSaveBar(false);
+            }}
+          >
+            <Check className="h-4 w-4 mr-2" />
+            Guardar cambios
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

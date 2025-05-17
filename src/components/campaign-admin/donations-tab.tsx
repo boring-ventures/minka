@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, Search, Heart, CheckCircle, XCircle } from "lucide-react";
+import {
+  Download,
+  Search,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,15 +29,11 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
   const [totalDonations, setTotalDonations] = useState(0);
   const [hasMoreDonations, setHasMoreDonations] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [limit] = useState(20);
-  const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
+  const [limit] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const {
-    isLoadingDonations,
-    isUpdatingDonation,
-    getCampaignDonations,
-    updateDonationStatus,
-  } = useCampaign();
+  const { isLoadingDonations, getCampaignDonations } = useCampaign();
 
   useEffect(() => {
     fetchDonations();
@@ -39,128 +41,67 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
-      setFilteredDonations(donations);
+      setFilteredDonations(donations || []);
     } else {
-      const filtered = donations.filter(
+      const filtered = (donations || []).filter(
         (donation) =>
           donation.donor.name
             .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          donation.amount.toString().includes(searchTerm) ||
-          (donation.message &&
-            donation.message.toLowerCase().includes(searchTerm.toLowerCase()))
+          donation.amount.toString().includes(searchTerm)
       );
       setFilteredDonations(filtered);
     }
   }, [searchTerm, donations]);
 
-  const fetchDonations = async (reset: boolean = true) => {
-    const currentOffset = reset ? 0 : offset;
+  const fetchDonations = async (pageNumber: number = 1) => {
+    const newOffset = (pageNumber - 1) * limit;
 
     const donationsData = await getCampaignDonations(
       campaign.id,
       limit,
-      currentOffset
+      newOffset
     );
 
     if (donationsData) {
-      if (reset) {
-        setDonations(donationsData.donations);
-      } else {
-        setDonations([...donations, ...donationsData.donations]);
-      }
-
-      setTotalDonations(donationsData.total);
-      setTotalAmount(donationsData.totalAmount);
-      setHasMoreDonations(donationsData.hasMore);
-
-      if (!reset) {
-        setOffset(currentOffset + limit);
-      } else {
-        setOffset(limit);
-      }
+      setDonations(donationsData.donations || []);
+      setTotalDonations(donationsData.total || 0);
+      setTotalAmount(donationsData.totalAmount || 0);
+      setHasMoreDonations(donationsData.hasMore || false);
+      setCurrentPage(pageNumber);
+      setTotalPages(Math.ceil((donationsData.total || 0) / limit));
     }
   };
 
-  const loadMoreDonations = () => {
-    fetchDonations(false);
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    fetchDonations(page);
   };
 
-  const handleUpdateDonationStatus = async (
-    donationId: string,
-    status: "pending" | "active" | "rejected"
-  ) => {
-    setIsUpdating({
-      ...isUpdating,
-      [donationId]: true,
-    });
-
-    try {
-      const success = await updateDonationStatus(
-        campaign.id,
-        donationId,
-        status
-      );
-
-      if (success) {
-        // Update the donation in the local state
-        const updatedDonations = donations.map((donation) => {
-          if (donation.id === donationId) {
-            return {
-              ...donation,
-              status,
-            };
-          }
-          return donation;
-        });
-
-        setDonations(updatedDonations);
-        setFilteredDonations(updatedDonations);
-
-        // Refresh donations to get updated total amount
-        fetchDonations();
-      }
-    } finally {
-      setIsUpdating({
-        ...isUpdating,
-        [donationId]: false,
-      });
-    }
+  const formatCurrency = (amount: number) => {
+    return `Bs. ${amount.toLocaleString()}`;
   };
 
   const handleExportCSV = () => {
+    // Check if donations exist before proceeding
+    if (!filteredDonations || filteredDonations.length === 0) {
+      return;
+    }
+
     // Creating CSV content
-    const headers = [
-      "Fecha",
-      "Nombre del donador",
-      "Email",
-      "Monto",
-      "Mensaje",
-      "Anónimo",
-      "Estado",
-    ];
+    const headers = ["Fecha", "Nombre del donador", "Email", "Monto"];
 
     const csvRows = [
       headers.join(","),
-      ...filteredDonations.map((donation) => {
-        const date = new Date(donation.createdAt).toLocaleDateString();
-        const name = donation.donor.name.replace(/,/g, " ");
-        const email = donation.donor.email || "No disponible";
-        const amount = donation.amount;
-        const message = donation.message
-          ? `"${donation.message.replace(/"/g, '""')}"`
-          : "";
-        const anonymous = donation.isAnonymous ? "Sí" : "No";
-        const status =
-          donation.status === "active"
-            ? "Completada"
-            : donation.status === "pending"
-              ? "Pendiente"
-              : "Rechazada";
+      ...(filteredDonations || []).map((donation) => {
+        const date = new Date(
+          donation.createdAt || new Date()
+        ).toLocaleDateString();
+        const name = (donation.donor?.name || "Unknown").replace(/,/g, " ");
+        const email = donation.donor?.email || "No disponible";
+        const amount = `Bs. ${donation.amount || 0}`;
 
-        return [date, name, email, amount, message, anonymous, status].join(
-          ","
-        );
+        return [date, name, email, amount].join(",");
       }),
     ];
 
@@ -175,7 +116,7 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `donaciones_${campaign.title.replace(/\s+/g, "_").toLowerCase()}_${
+      `donaciones_${(campaign.title || "campaign").replace(/\s+/g, "_").toLowerCase()}_${
         new Date().toISOString().split("T")[0]
       }.csv`
     );
@@ -184,255 +125,166 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
     document.body.removeChild(link);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-BO", {
-      style: "currency",
-      currency: "BOB",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  // Format the amount with the donation's specific currency
-  const formatDonationAmount = (donation: CampaignDonation) => {
-    return new Intl.NumberFormat("es-BO", {
-      style: "currency",
-      currency: getCurrency(donation),
-      minimumFractionDigits: 0,
-    }).format(donation.amount);
-  };
-
-  // Add a helper to ensure we have a currency value
-  const getCurrency = (donation: CampaignDonation) => {
-    return donation.currency || "BOB"; // Default to BOB if currency field is missing
-  };
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Donaciones recibidas</h2>
-        <p className="text-gray-600 mb-6">
-          Gestiona las donaciones recibidas para tu campaña y revisa los
-          mensajes de tus donadores.
-        </p>
-      </div>
+    <div className="w-full px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+      <h2 className="text-4xl md:text-5xl font-bold mb-6">Donaciones</h2>
+      <p className="text-xl text-gray-600 leading-relaxed mb-10">
+        Monitorea las donaciones recibidas y agradece a tus donadores por su
+        apoyo.
+      </p>
 
-      {/* Donation Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-50 p-4 rounded-lg space-y-1">
-          <p className="text-sm text-gray-500">Monto recaudado</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(totalAmount)}
-          </p>
-        </div>
-        <div className="bg-gray-50 p-4 rounded-lg space-y-1">
-          <p className="text-sm text-gray-500">Meta</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(campaign.goal_amount || 0)}
-          </p>
-        </div>
-        <div className="bg-gray-50 p-4 rounded-lg space-y-1">
-          <p className="text-sm text-gray-500">Número de donadores</p>
-          <p className="text-2xl font-bold text-gray-900">{totalDonations}</p>
-        </div>
-      </div>
+      <div className="border-b border-[#478C5C]/20 my-8"></div>
 
-      {/* Search and export */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="text"
-            placeholder="Buscar por nombre, monto o mensaje..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+      {/* Donations section */}
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 flex justify-between items-center">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              type="text"
+              placeholder="Buscar donador..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 border-gray-300"
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 border-gray-300"
+            onClick={handleExportCSV}
+            disabled={!donations || donations.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Exportar a CSV
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={handleExportCSV}
-          disabled={donations.length === 0}
-        >
-          <Download className="h-4 w-4" />
-          Exportar a CSV
-        </Button>
-      </div>
 
-      {/* Donation list */}
-      {isLoadingDonations && donations.length === 0 ? (
-        <div className="flex items-center justify-center py-8">
-          <LoadingSpinner size="md" />
-        </div>
-      ) : filteredDonations.length > 0 ? (
-        <div className="overflow-hidden border border-gray-200 sm:rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+        {isLoadingDonations && donations.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : filteredDonations.length > 0 ? (
+          <div>
+            {/* Simple table with header and rows */}
+            <div className="border-b border-gray-200">
+              <div className="grid grid-cols-3 py-3 text-sm font-medium text-gray-500">
+                <div className="px-4">Nombre del donador</div>
+                <div className="px-4">Monto donado</div>
+                <div className="px-4">Fecha</div>
+              </div>
+            </div>
+
+            <div className="divide-y divide-gray-100">
+              {(filteredDonations || []).map((donation, index) => (
+                <div
+                  key={donation.id || index}
+                  className={`grid grid-cols-3 py-4 ${index % 2 === 1 ? "bg-[#f9faf8]" : ""}`}
                 >
-                  Donador
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Monto
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Fecha
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Mensaje
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Estado
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDonations.map((donation) => (
-                <tr key={donation.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 relative">
-                        <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
-                          {donation.isAnonymous ? (
-                            <Heart className="h-5 w-5 text-[#2c6e49]" />
-                          ) : (
-                            <span className="text-[#2c6e49] font-bold">
-                              {donation.donor.name.charAt(0)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900 flex items-center">
-                          {donation.donor.name}
-                          {donation.isAnonymous && (
-                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              Anónimo
-                            </span>
-                          )}
-                        </div>
-                        {donation.donor.email && (
-                          <div className="text-sm text-gray-500">
-                            {donation.donor.email}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {formatDonationAmount(donation)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {new Date(donation.createdAt).toLocaleDateString()}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(donation.createdAt).toLocaleTimeString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 max-w-xs line-clamp-2">
-                      {donation.message || "—"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        donation.status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : donation.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {donation.status === "active"
-                        ? "Completada"
-                        : donation.status === "pending"
-                          ? "Pendiente"
-                          : "Rechazada"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {donation.status !== "active" && (
-                      <button
-                        className="text-green-600 hover:text-green-900 mr-3"
-                        onClick={() =>
-                          handleUpdateDonationStatus(donation.id, "active")
-                        }
-                        disabled={isUpdating[donation.id] || isUpdatingDonation}
-                      >
-                        <CheckCircle className="h-5 w-5" />
-                      </button>
-                    )}
-                    {donation.status !== "rejected" && (
-                      <button
-                        className="text-red-600 hover:text-red-900"
-                        onClick={() =>
-                          handleUpdateDonationStatus(donation.id, "rejected")
-                        }
-                        disabled={isUpdating[donation.id] || isUpdatingDonation}
-                      >
-                        <XCircle className="h-5 w-5" />
-                      </button>
-                    )}
-                    {(isUpdating[donation.id] || isUpdatingDonation) && (
-                      <LoadingSpinner size="sm" className="inline ml-2" />
-                    )}
-                  </td>
-                </tr>
+                  <div className="px-4 text-gray-700">
+                    {donation.donor?.name || "Unknown"}
+                  </div>
+                  <div className="px-4 text-gray-700">
+                    {formatCurrency(donation.amount || 0)}
+                  </div>
+                  <div className="px-4 text-gray-700">
+                    {new Date(
+                      donation.createdAt || new Date()
+                    ).toLocaleDateString()}
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
 
-          {hasMoreDonations && (
-            <div className="flex justify-center py-4">
+            {/* Pagination */}
+            <div className="flex justify-center items-center mt-8 space-x-2">
               <Button
-                variant="outline"
-                className="border-gray-300"
-                onClick={loadMoreDonations}
-                disabled={isLoadingDonations}
+                variant="ghost"
+                className="py-2 px-4 rounded-full text-gray-600 hover:text-gray-900 flex items-center disabled:opacity-50"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
               >
-                {isLoadingDonations ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
-                ) : null}
-                Cargar más donaciones
+                <ChevronLeft className="h-5 w-5 mr-1" />
+                Anterior
+              </Button>
+
+              {totalPages > 5 && currentPage > 3 && (
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
+                  onClick={() => goToPage(1)}
+                >
+                  1
+                </button>
+              )}
+
+              {totalPages > 5 && currentPage > 3 && (
+                <span className="px-2 text-gray-500">...</span>
+              )}
+
+              {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                let pageNum;
+
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                if (pageNum <= 0 || pageNum > totalPages) return null;
+
+                return (
+                  <button
+                    key={pageNum}
+                    className={`w-10 h-10 flex items-center justify-center rounded-full ${
+                      currentPage === pageNum
+                        ? "bg-[#2c6e49] text-white"
+                        : "hover:bg-gray-100 text-gray-600"
+                    }`}
+                    onClick={() => goToPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <span className="px-2 text-gray-500">...</span>
+              )}
+
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600"
+                  onClick={() => goToPage(totalPages)}
+                >
+                  {totalPages}
+                </button>
+              )}
+
+              <Button
+                variant="ghost"
+                className="py-2 px-4 rounded-full text-gray-600 hover:text-gray-900 flex items-center disabled:opacity-50"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                Siguiente
+                <ChevronRight className="h-5 w-5 ml-1" />
               </Button>
             </div>
-          )}
-        </div>
-      ) : (
-        <div className="text-center py-10 bg-gray-50 rounded-lg">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No hay donaciones aún
-          </h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto">
-            Tu campaña no ha recibido donaciones todavía.
-          </p>
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="text-center py-10 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No hay donaciones aún
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto">
+              Tu campaña no ha recibido donaciones todavía.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

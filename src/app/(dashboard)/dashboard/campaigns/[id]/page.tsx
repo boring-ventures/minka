@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Pencil, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "@/components/ui/use-toast";
@@ -197,13 +196,18 @@ export default function CampaignDetailPage() {
               <div className="flex space-x-5 mb-5">
                 <Link
                   href={`/campaign/${params.id}`}
-                  className="flex items-center text-[#2c6e49] gap-2 text-sm font-medium hover:underline"
+                  className="flex items-center text-[#1a5535] gap-2 text-sm font-medium hover:underline"
                 >
-                  <Eye size={16} />
                   <span>Ver campaña</span>
+                  <Image
+                    src="/icons/visibility.svg"
+                    alt="View"
+                    width={18}
+                    height={18}
+                  />
                 </Link>
                 <button
-                  className="flex items-center text-[#2c6e49] gap-2 text-sm font-medium hover:underline"
+                  className="flex items-center text-[#1a5535] gap-2 text-sm font-medium hover:underline"
                   onClick={() => {
                     // Create the URL to share
                     const shareUrl = `${window.location.origin}/campaign/${params.id}`;
@@ -248,51 +252,13 @@ export default function CampaignDetailPage() {
                     }
                   }}
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="text-[#2c6e49]"
-                  >
-                    <path
-                      d="M7.21701 10.907C6.97487 10.9208 6.73815 10.9937 6.52333 11.1206C6.30851 11.2475 6.12126 11.4254 5.97708 11.6391C5.8329 11.8528 5.73559 12.0973 5.69335 12.3544C5.65111 12.6114 5.66505 12.8741 5.73401 13.125C5.87401 13.705 6.33901 14.484 7.12601 15.278C7.91301 16.072 8.69201 16.537 9.27201 16.677C9.52255 16.7458 9.78475 16.7598 10.0414 16.7177C10.298 16.6756 10.5423 16.5785 10.7558 16.4347C10.9693 16.2908 11.1472 16.104 11.2742 15.8895C11.4013 15.6751 11.4745 15.4387 11.4886 15.197C11.4992 15.003 11.4753 14.8091 11.4181 14.6242C11.3609 14.4393 11.2718 14.2669 11.155 14.117C11.0853 14.0343 11.0302 13.9415 10.9922 13.842C11.112 13.755 11.224 13.658 11.325 13.558C11.436 13.455 11.549 13.348 11.662 13.241C11.8006 13.316 11.9502 13.3655 12.104 13.387C12.2217 13.4139 12.3422 13.4275 12.463 13.428C12.735 13.428 13.0035 13.3554 13.242 13.218C13.4805 13.0807 13.6807 12.8833 13.8212 12.6466C13.9617 12.4098 14.038 12.1423 14.0414 11.8701C14.0448 11.5979 13.9751 11.3287 13.8407 11.0887C13.7063 10.8487 13.5111 10.6466 13.2762 10.5037C13.0413 10.3608 12.7747 10.2818 12.5025 10.2739C12.2304 10.2661 11.9597 10.3296 11.717 10.4584C11.4743 10.5872 11.2682 10.7774 11.12 11.009C11.0352 11.1493 10.9748 11.3025 10.9411 11.462C10.835 11.4 10.731 11.342 10.629 11.29C10.5483 11.2476 10.4657 11.208 10.382 11.171C10.4283 11.0614 10.4608 10.9463 10.478 10.828C10.5091 10.6253 10.494 10.4184 10.4338 10.221C10.3736 10.0236 10.2696 9.84024 10.129 9.68302C9.98838 9.52581 9.81469 9.39877 9.61999 9.31104C9.42528 9.22331 9.21409 9.17701 9.00001 9.17504C8.78593 9.17307 8.57386 9.21548 8.37746 9.2997C8.18106 9.38392 8.0049 9.50785 7.86104 9.66258C7.71718 9.8173 7.60923 9.99884 7.54494 10.1953C7.48064 10.3918 7.46134 10.5987 7.48901 10.802C7.51134 10.8716 7.52835 10.9426 7.54001 11.015C7.23318 10.9333 6.91631 10.9021 6.60101 10.923C6.12001 10.866 7.21701 10.907 7.21701 10.907Z"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M21 5L12 14"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M8.5 18.5L3 14"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M15 12V18.5"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M8.5 9.5V18.5"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
                   <span>Compartir</span>
+                  <Image
+                    src="/icons/share.svg"
+                    alt="Share"
+                    width={18}
+                    height={18}
+                  />
                 </button>
               </div>
 
@@ -330,167 +296,87 @@ export default function CampaignDetailPage() {
       {/* Tabs */}
       <div className="w-full">
         {/* Custom Tab Navigation */}
-        <div className="flex flex-wrap px-6 md:px-8 lg:px-16 xl:px-24 gap-2">
+        <div className="flex justify-between px-4 md:px-8 lg:px-16 xl:px-24 gap-2 pb-0">
           <button
             onClick={() => setActiveTab("editar")}
-            className={`flex items-center gap-2 py-2 px-6 rounded-t-lg transition-colors min-w-[150px] justify-center ${
+            className={`relative flex items-center gap-2 py-3 px-3 sm:px-6 rounded-t-lg transition-colors flex-1 justify-center border border-[#2c6e49] border-b-0 ${
               activeTab === "editar"
-                ? "bg-white text-[#2c6e49] border-t border-l border-r border-[#2c6e49]"
-                : "bg-[#f2f8f5] text-[#2c6e49] hover:bg-[#e8f5ed]"
+                ? "bg-white text-[#1a5535] after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[1px] after:bg-white after:z-10"
+                : "bg-[#f2f8f5] text-[#1a5535] hover:bg-[#e8f5ed]"
             }`}
           >
-            <Pencil className="h-4 w-4" />
-            <span className="text-sm">Editar campaña</span>
+            <span className="text-xs sm:text-sm">Editar campaña</span>
+            <Image src="/icons/edit.svg" alt="Edit" width={16} height={16} />
           </button>
 
           <button
             onClick={() => setActiveTab("anuncios")}
-            className={`flex items-center gap-2 py-2 px-6 rounded-t-lg transition-colors min-w-[150px] justify-center ${
+            className={`relative flex items-center gap-2 py-3 px-3 sm:px-6 rounded-t-lg transition-colors flex-1 justify-center border border-[#2c6e49] border-b-0 ${
               activeTab === "anuncios"
-                ? "bg-white text-[#2c6e49] border-t border-l border-r border-[#2c6e49]"
-                : "bg-[#f2f8f5] text-[#2c6e49] hover:bg-[#e8f5ed]"
+                ? "bg-white text-[#1a5535] after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[1px] after:bg-white after:z-10"
+                : "bg-[#f2f8f5] text-[#1a5535] hover:bg-[#e8f5ed]"
             }`}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-[#2c6e49]"
-            >
-              <path
-                d="M12 4V20M4 12H20"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm">Publicar anuncios</span>
+            <span className="text-xs sm:text-sm">Publicar anuncios</span>
+            <Image src="/icons/add_2.svg" alt="Add" width={16} height={16} />
           </button>
 
           <button
             onClick={() => setActiveTab("comentarios")}
-            className={`flex items-center gap-2 py-2 px-6 rounded-t-lg transition-colors min-w-[150px] justify-center ${
+            className={`relative flex items-center gap-2 py-3 px-3 sm:px-6 rounded-t-lg transition-colors flex-1 justify-center border border-[#2c6e49] border-b-0 ${
               activeTab === "comentarios"
-                ? "bg-white text-[#2c6e49] border-t border-l border-r border-[#2c6e49]"
-                : "bg-[#f2f8f5] text-[#2c6e49] hover:bg-[#e8f5ed]"
+                ? "bg-white text-[#1a5535] after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[1px] after:bg-white after:z-10"
+                : "bg-[#f2f8f5] text-[#1a5535] hover:bg-[#e8f5ed]"
             }`}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-[#2c6e49]"
-            >
-              <path
-                d="M8 12H16M8 8H13M3 20.29V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 20.29Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm">Comentarios</span>
+            <span className="text-xs sm:text-sm">Comentarios</span>
+            <Image
+              src="/icons/chat.svg"
+              alt="Comments"
+              width={16}
+              height={16}
+            />
           </button>
 
           <button
             onClick={() => setActiveTab("donaciones")}
-            className={`flex items-center gap-2 py-2 px-6 rounded-t-lg transition-colors min-w-[150px] justify-center ${
+            className={`relative flex items-center gap-2 py-3 px-3 sm:px-6 rounded-t-lg transition-colors flex-1 justify-center border border-[#2c6e49] border-b-0 ${
               activeTab === "donaciones"
-                ? "bg-white text-[#2c6e49] border-t border-l border-r border-[#2c6e49]"
-                : "bg-[#f2f8f5] text-[#2c6e49] hover:bg-[#e8f5ed]"
+                ? "bg-white text-[#1a5535] after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[1px] after:bg-white after:z-10"
+                : "bg-[#f2f8f5] text-[#1a5535] hover:bg-[#e8f5ed]"
             }`}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-[#2c6e49]"
-            >
-              <path
-                d="M19 14C20.49 12.54 20.5 10.5 19 9C17.5 7.5 14.5 7.5 13 9"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M15.5 11.5C15.5 10 17 9 18.5 9"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M16.5 19H21"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M11 19C13.2091 19 15 17.2091 15 15C15 12.7909 13.2091 11 11 11C8.79086 11 7 12.7909 7 15C7 17.2091 8.79086 19 11 19Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M7 11L7 5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M3 11L11 11"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm">Donaciones</span>
+            <span className="text-xs sm:text-sm">Donaciones</span>
+            <Image
+              src="/icons/check_circle.svg"
+              alt="Donations"
+              width={16}
+              height={16}
+            />
           </button>
 
           <button
             onClick={() => setActiveTab("transferir")}
-            className={`flex items-center gap-2 py-2 px-6 rounded-t-lg transition-colors min-w-[150px] justify-center ${
+            className={`relative flex items-center gap-2 py-3 px-3 sm:px-6 rounded-t-lg transition-colors flex-1 justify-center border border-[#2c6e49] border-b-0 ${
               activeTab === "transferir"
-                ? "bg-white text-[#2c6e49] border-t border-l border-r border-[#2c6e49]"
-                : "bg-[#f2f8f5] text-[#2c6e49] hover:bg-[#e8f5ed]"
+                ? "bg-white text-[#1a5535] after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[1px] after:bg-white after:z-10"
+                : "bg-[#f2f8f5] text-[#1a5535] hover:bg-[#e8f5ed]"
             }`}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-[#2c6e49]"
-            >
-              <path
-                d="M5 12H19M19 12L13 6M19 12L13 18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm">Transferir fondos</span>
+            <span className="text-xs sm:text-sm">Transferir fondos</span>
+            <Image
+              src="/icons/east.svg"
+              alt="Transfer"
+              width={16}
+              height={16}
+            />
           </button>
         </div>
 
-        <div className="h-[1px] bg-[#2c6e49] w-full"></div>
+        <div className="h-[1px] bg-[#2c6e49] w-full relative z-0"></div>
 
         {/* Tab Content */}
-        <div className="bg-white w-full min-h-[500px]">
+        <div className="bg-white w-full min-h-[500px] mt-0 pt-0">
           {activeTab === "editar" && (
             <div className="w-full">
               <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
@@ -504,7 +390,360 @@ export default function CampaignDetailPage() {
                 </p>
                 <div className="border-b border-[#478C5C]/20 my-8"></div>
               </div>
-              <EditCampaignTab campaign={campaign} />
+              <div className="px-6 md:px-8 lg:px-16 xl:px-24">
+                <div className="max-w-4xl mx-auto bg-white rounded-lg border border-black p-8">
+                  <form className="space-y-8">
+                    {/* Nombre de la campaña */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Nombre de la campaña
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="Ingresa el nombre de tu campaña"
+                          defaultValue={campaign.title || ""}
+                        />
+                        <div className="absolute right-2 bottom-2 text-sm text-gray-500">
+                          0/60
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detalle */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Detalle
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px]"
+                          placeholder="Ejemplo: Su conservación depende de nosotros"
+                          defaultValue={campaign.description || ""}
+                        ></textarea>
+                        <div className="absolute right-2 bottom-2 text-sm text-gray-500">
+                          0/130
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Categoría */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Categoría
+                      </label>
+                      <div className="relative">
+                        <select
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none bg-white"
+                          defaultValue={campaign.category || ""}
+                        >
+                          <option value="salud">Salud</option>
+                          <option value="educacion">Educación</option>
+                          <option value="medioambiente">Medio ambiente</option>
+                          <option value="cultura_arte">Cultura y Arte</option>
+                          <option value="emergencia">Emergencia</option>
+                          <option value="igualdad">Igualdad</option>
+                        </select>
+                        <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
+                          <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <path
+                              d="M6 9L12 15L18 9"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Meta de recaudación */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Meta de recaudación
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="Bs. 2.000,00"
+                          defaultValue={
+                            campaign.goal_amount
+                              ? `Bs. ${campaign.goal_amount.toLocaleString()}`
+                              : ""
+                          }
+                        />
+                      </div>
+                      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start space-x-3 mt-2">
+                        <div className="bg-blue-500 rounded-full p-1 flex items-center justify-center text-white">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <path
+                              d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-blue-800 text-sm">
+                          Este es el monto objetivo de tu campaña.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-black my-6"></div>
+
+                    {/* Image Upload Section */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Imágenes de la campaña
+                      </label>
+                      <div className="border border-dashed border-gray-400 rounded-lg p-8 flex flex-col items-center justify-center text-center">
+                        <div className="mb-4">
+                          <svg
+                            width="48"
+                            height="48"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="text-gray-500 mx-auto"
+                          >
+                            <rect
+                              x="4"
+                              y="4"
+                              width="16"
+                              height="16"
+                              rx="2"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M12 8V16M8 12H16"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-700">
+                          Arrastra o carga tus fotos aquí
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1 mb-4">
+                          Deben ser archivos JPG o PNG, no mayor a 2 MB.
+                        </p>
+                        <button
+                          type="button"
+                          className="px-6 py-3 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-lg font-medium"
+                        >
+                          Seleccionar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center my-6">
+                      <div className="flex-grow h-px bg-gray-300"></div>
+                      <div className="mx-4 text-gray-500">o</div>
+                      <div className="flex-grow h-px bg-gray-300"></div>
+                    </div>
+
+                    {/* YouTube */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Agregar enlace de YouTube
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <path
+                              d="M14 9L19 4M19 4V9M19 4H14M10 15L5 20M5 20V15M5 20H10"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          className="w-full p-4 pl-12 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="Enlace de YouTube"
+                          defaultValue={campaign.youtube_url || ""}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Ubicación */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Ubicación de la campaña
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <path
+                              d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          className="w-full p-4 pl-12 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="¿Adónde irán los fondos?"
+                          defaultValue={campaign.location || ""}
+                        />
+                        <button className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <path
+                              d="M18 6L6 18M6 6L18 18"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-gray-500 text-sm flex items-center space-x-2">
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <path
+                            d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span>Campo opcional</span>
+                      </p>
+                    </div>
+
+                    {/* Fecha de finalización */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Fecha de finalización
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="DD/MM/AAAA"
+                          defaultValue={
+                            campaign.end_date
+                              ? new Date(campaign.end_date).toLocaleDateString()
+                              : ""
+                          }
+                        />
+                        <button className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-600">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <rect
+                              x="3"
+                              y="4"
+                              width="18"
+                              height="18"
+                              rx="2"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M16 2V6M8 2V6M3 10H21M8 14H8.01M12 14H12.01M16 14H16.01M8 18H8.01M12 18H12.01M16 18H16.01"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Presentación de la campaña */}
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-800">
+                        Presentación de la campaña
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px]"
+                          placeholder="Ejemplo: Su conservación depende de nosotros"
+                          defaultValue={
+                            campaign.beneficiaries_description || ""
+                          }
+                        ></textarea>
+                        <div className="absolute right-2 bottom-2 text-sm text-gray-500">
+                          0/600
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex justify-end space-x-4 pt-4">
+                      <button
+                        type="button"
+                        className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-3 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-lg font-medium"
+                      >
+                        Guardar cambios
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
           )}
 
@@ -526,32 +765,12 @@ export default function CampaignDetailPage() {
 
           {activeTab === "comentarios" && (
             <div className="w-full">
-              <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                  Comentarios
-                </h2>
-                <p className="text-xl text-gray-600 leading-relaxed mb-10">
-                  Revisa y responde a los comentarios de tus donadores para
-                  mantener una comunicación activa.
-                </p>
-                <div className="border-b border-[#478C5C]/20 my-8"></div>
-              </div>
               <CommentsTab campaign={campaign} />
             </div>
           )}
 
           {activeTab === "donaciones" && (
             <div className="w-full">
-              <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                  Donaciones
-                </h2>
-                <p className="text-xl text-gray-600 leading-relaxed mb-10">
-                  Monitorea las donaciones recibidas y agradece a tus donadores
-                  por su apoyo.
-                </p>
-                <div className="border-b border-[#478C5C]/20 my-8"></div>
-              </div>
               <DonationsTab campaign={campaign} />
             </div>
           )}
