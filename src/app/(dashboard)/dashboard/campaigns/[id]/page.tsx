@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "@/components/ui/use-toast";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, X, Check, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { AdsTab } from "@/components/campaign-admin/ads-tab";
 import { CommentsTab } from "@/components/campaign-admin/comments-tab";
 import { DonationsTab } from "@/components/campaign-admin/donations-tab";
 import { TransferFundsTab } from "@/components/campaign-admin/transfer-funds-tab";
+import { ImageEditor } from "@/components/views/create-campaign/ImageEditor";
 import {
   Popover,
   PopoverContent,
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { X, Check } from "lucide-react";
+import { uploadMedia } from "@/lib/supabase/upload-media";
 
 export default function CampaignDetailPage() {
   const params = useParams();
@@ -32,6 +33,7 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("editar");
   const supabase = createClientComponentClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add state variables for form fields
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
@@ -39,6 +41,19 @@ export default function CampaignDetailPage() {
     undefined
   );
   const [isFormModified, setIsFormModified] = useState(false);
+
+  // Add state variables for media handling
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaPreviewUrls, setMediaPreviewUrls] = useState<string[]>([]);
+  const [youtubeUrls, setYoutubeUrls] = useState<string[]>([]);
+  const [imageToEdit, setImageToEdit] = useState<string | null>(null);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(
+    null
+  );
+  const [newYoutubeUrl, setNewYoutubeUrl] = useState("");
 
   // Track original campaign state for reset functionality
   const [originalCampaign, setOriginalCampaign] = useState<Record<string, any>>(
@@ -60,16 +75,412 @@ export default function CampaignDetailPage() {
         ? new Date(originalCampaign.end_date)
         : undefined
     );
+    setYoutubeUrls(originalCampaign.youtube_urls || []);
+    setMediaPreviewUrls([]);
+    setMediaFiles([]);
     setIsFormModified(false);
+  };
+
+  // Function to handle file upload
+  // Add utility function to convert data URL to Blob
+  const dataURLtoBlob = (dataURL: string): Blob => {
+    try {
+      const arr = dataURL.split(",");
+      const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    } catch (error) {
+      console.error("Error converting dataURL to Blob:", error);
+      // Return a small empty blob as fallback
+      return new Blob([], { type: "image/jpeg" });
+    }
+  };
+
+  // Add handler for saving edited image
+  const handleSaveEditedImage = async (editedUrl: string) => {
+    try {
+      console.log("Saving edited image...");
+
+      // Create file from edited image dataURL first
+      const blob = dataURLtoBlob(editedUrl);
+      const fileName = uploadingFile
+        ? uploadingFile.name
+        : `edited-image-${Date.now()}.jpg`;
+      const file = new File([blob], fileName, {
+        type: "image/jpeg",
+      });
+
+      // Start upload
+      setIsUploading(true);
+      try {
+        const result = await uploadMedia(file);
+        if (result.success) {
+          if (editingImageIndex !== null) {
+            // If we're editing an existing image from campaign.media
+            if (editingImageIndex < (campaign.media?.length || 0)) {
+              // Update existing media
+              const updatedMedia = [...(campaign.media || [])];
+              updatedMedia[editingImageIndex] = {
+                ...updatedMedia[editingImageIndex],
+                media_url: result.url,
+              };
+
+              setCampaign((prev) => ({
+                ...prev,
+                media: updatedMedia,
+              }));
+            }
+            // If we're editing a newly added image that's not saved yet
+            else {
+              const localIndex =
+                editingImageIndex - (campaign.media?.length || 0);
+
+              // Clean up preview URLs if they exist
+              if (localIndex >= 0 && localIndex < mediaPreviewUrls.length) {
+                URL.revokeObjectURL(mediaPreviewUrls[localIndex]);
+
+                // Remove from preview arrays as we're adding to campaign.media
+                const newPreviewUrls = [...mediaPreviewUrls];
+                newPreviewUrls.splice(localIndex, 1);
+                setMediaPreviewUrls(newPreviewUrls);
+
+                const newMediaFiles = [...mediaFiles];
+                newMediaFiles.splice(localIndex, 1);
+                setMediaFiles(newMediaFiles);
+              }
+
+              // Add to campaign media
+              setCampaign((prev) => ({
+                ...prev,
+                media: [
+                  ...(prev.media || []),
+                  {
+                    media_url: result.url,
+                    is_primary: prev.media?.length === 0,
+                  },
+                ],
+              }));
+            }
+          } else {
+            // If adding a completely new image
+            // Don't add to preview arrays, only to campaign.media
+            setCampaign((prev) => ({
+              ...prev,
+              media: [
+                ...(prev.media || []),
+                {
+                  media_url: result.url,
+                  is_primary: prev.media?.length === 0,
+                },
+              ],
+            }));
+          }
+          handleFormChange();
+        } else {
+          throw new Error("Failed to upload media");
+        }
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        toast({
+          title: "Error de carga",
+          description: "Error al subir la imagen. Intenta nuevamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsUploading(false);
+      }
+
+      setUploadingFile(null);
+
+      // Reset editing state
+      setImageToEdit(null);
+      setEditingImageIndex(null);
+
+      // Show success toast
+      toast({
+        title: "Imagen subida",
+        description: "La imagen se ha subido correctamente.",
+      });
+    } catch (error) {
+      console.error("Error processing edited image:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar la imagen.",
+        variant: "destructive",
+      });
+
+      // Reset editing state even if there's an error
+      setImageToEdit(null);
+      setEditingImageIndex(null);
+    }
+  };
+
+  // Helper to convert Supabase URL to use proxy if needed
+  const getProxiedImageUrl = (url: string) => {
+    // Check if this is a Supabase storage URL
+    if (url.includes("supabase.co") || url.includes("supabase.in")) {
+      // For Supabase storage URLs, we can use them directly
+      // But we need to ensure CORS is handled properly
+      console.log("Using original Supabase URL:", url);
+      return url;
+    }
+    // Otherwise, return the original URL
+    return url;
+  };
+
+  // Add handler for editing existing image
+  const handleEditImage = (index: number) => {
+    // For existing campaign media
+    if (index < (campaign.media?.length || 0)) {
+      const media = campaign.media?.[index];
+      if (media && media.media_url) {
+        console.log("Editing existing campaign media at index:", index);
+        const imageUrl = getProxiedImageUrl(media.media_url);
+        console.log("Setting imageToEdit to:", imageUrl);
+        setImageToEdit(imageUrl);
+        setEditingImageIndex(index);
+        return;
+      }
+    }
+
+    // For newly added media (not yet saved)
+    const previewIndex = index - (campaign.media?.length || 0);
+    if (previewIndex >= 0 && previewIndex < mediaPreviewUrls.length) {
+      console.log("Editing newly added media at index:", previewIndex);
+      setImageToEdit(mediaPreviewUrls[previewIndex]);
+      setEditingImageIndex(index);
+    } else {
+      console.error("Invalid media index:", index);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      // 2MB limit
+      toast({
+        title: "Archivo muy grande",
+        description: "El archivo es demasiado grande. El tamaño máximo es 2MB.",
+      });
+      return null;
+    }
+
+    if (!file.type.includes("image/")) {
+      toast({
+        title: "Formato inválido",
+        description: "Solo se permiten archivos de imagen (JPEG, PNG).",
+      });
+      return null;
+    }
+
+    setIsUploading(true);
+    try {
+      const result = await uploadMedia(file);
+      if (result.success) {
+        return result.url;
+      } else {
+        throw new Error("Failed to upload media");
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Error de carga",
+        description: "Error al subir la imagen. Intenta nuevamente.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Function to handle file selection
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+
+    // Basic validation
+    if (file.size > 2 * 1024 * 1024) {
+      // 2MB limit
+      toast({
+        title: "Archivo muy grande",
+        description: "El archivo es demasiado grande. El tamaño máximo es 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!file.type.includes("image/")) {
+      toast({
+        title: "Formato inválido",
+        description: "Solo se permiten archivos de imagen (JPEG, PNG).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create a preview URL
+    const previewUrl = URL.createObjectURL(file);
+
+    console.log("Setting imageToEdit to", previewUrl);
+    // Set the image to edit
+    setImageToEdit(previewUrl);
+    setUploadingFile(file);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Function to remove media
+  const removeMedia = (index: number) => {
+    const newMedia = [...(campaign.media || [])];
+    newMedia.splice(index, 1);
+
+    // If we're removing the primary image, set the first remaining image as primary
+    if (newMedia.length > 0 && campaign.media?.[index]?.is_primary) {
+      newMedia[0].is_primary = true;
+    }
+
+    setCampaign({
+      ...campaign,
+      media: newMedia,
+    });
+
+    // Remove from preview URLs if it exists
+    if (index < mediaPreviewUrls.length) {
+      const newPreviewUrls = [...mediaPreviewUrls];
+      URL.revokeObjectURL(newPreviewUrls[index]); // Clean up object URL
+      newPreviewUrls.splice(index, 1);
+      setMediaPreviewUrls(newPreviewUrls);
+
+      // Also remove from files array
+      const newMediaFiles = [...mediaFiles];
+      newMediaFiles.splice(index, 1);
+      setMediaFiles(newMediaFiles);
+    }
+
+    handleFormChange();
+  };
+
+  // Function to set primary image
+  const setPrimaryImage = (index: number) => {
+    const newMedia = [...(campaign.media || [])].map((item, i) => ({
+      ...item,
+      is_primary: i === index,
+    }));
+
+    setCampaign({
+      ...campaign,
+      media: newMedia,
+    });
+
+    handleFormChange();
+  };
+
+  // Function to add YouTube URL
+  const addYoutubeUrl = () => {
+    if (!newYoutubeUrl || !newYoutubeUrl.includes("youtube.com")) {
+      toast({
+        title: "Enlace inválido",
+        description: "Por favor ingresa un enlace válido de YouTube.",
+      });
+      return;
+    }
+
+    const newUrls = [...youtubeUrls, newYoutubeUrl];
+    setYoutubeUrls(newUrls);
+    setCampaign({
+      ...campaign,
+      youtube_urls: newUrls,
+      youtube_url: newYoutubeUrl, // Set the first one as main
+    });
+    setNewYoutubeUrl("");
+    handleFormChange();
+  };
+
+  // Function to remove YouTube URL
+  const removeYoutubeUrl = (index: number) => {
+    const newUrls = [...youtubeUrls];
+    newUrls.splice(index, 1);
+    setYoutubeUrls(newUrls);
+    setCampaign({
+      ...campaign,
+      youtube_urls: newUrls,
+      youtube_url: newUrls.length > 0 ? newUrls[0] : "",
+    });
+    handleFormChange();
   };
 
   // Function to handle saving changes
   const handleSaveChanges = async () => {
     try {
-      // Here you would implement the actual save logic with Supabase
-      // For demonstration, we just reset the modified state
       setIsFormModified(false);
+
+      // Prepare the data to send to the API
+      const campaignData: {
+        title: any;
+        description: any;
+        category: any;
+        goalAmount: any;
+        location: any;
+        endDate: any;
+        story: any;
+        beneficiariesDescription: any;
+        youtubeUrl: any;
+        youtubeUrls: any;
+        media?: Array<{
+          mediaUrl: string;
+          type: string;
+          isPrimary: boolean;
+          orderIndex: number;
+        }>;
+      } = {
+        title: campaign.title,
+        description: campaign.description,
+        category: campaign.category,
+        goalAmount: campaign.goal_amount,
+        location: campaign.location,
+        endDate: campaign.end_date,
+        story: campaign.story,
+        beneficiariesDescription: campaign.beneficiaries_description,
+        youtubeUrl: campaign.youtube_url,
+        youtubeUrls: campaign.youtube_urls,
+      };
+
+      // If media was modified, include it in the update
+      if (campaign.media) {
+        campaignData.media = campaign.media.map((item: any) => ({
+          mediaUrl: item.media_url,
+          type: item.type || "image",
+          isPrimary: item.is_primary,
+          orderIndex: item.order_index || 0,
+        }));
+      }
+
+      // Make API call to update the campaign
+      const response = await fetch(`/api/campaign/${params.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(campaignData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al guardar los cambios");
+      }
+
+      // Update the original campaign state with the new values
       setOriginalCampaign({ ...campaign });
+
       toast({
         title: "Cambios guardados",
         description: "Los cambios han sido guardados exitosamente.",
@@ -179,6 +590,13 @@ export default function CampaignDetailPage() {
           setSelectedEndDate(new Date(enhancedCampaignData.end_date));
         }
 
+        // Initialize YouTube URLs from campaign data
+        if (enhancedCampaignData?.youtube_urls?.length > 0) {
+          setYoutubeUrls(enhancedCampaignData.youtube_urls);
+        } else if (enhancedCampaignData?.youtube_url) {
+          setYoutubeUrls([enhancedCampaignData.youtube_url]);
+        }
+
         setCampaign(enhancedCampaignData);
         setOriginalCampaign(enhancedCampaignData);
       } catch (error) {
@@ -219,6 +637,13 @@ export default function CampaignDetailPage() {
 
     getCampaignDetails();
   }, [params.id, router, supabase]);
+
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      mediaPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [mediaPreviewUrls]);
 
   if (loading) {
     return (
@@ -462,7 +887,7 @@ export default function CampaignDetailPage() {
                 <div className="border-b border-[#478C5C]/20 my-8"></div>
               </div>
               <div className="px-6 md:px-8 lg:px-16 xl:px-24">
-                <div className="max-w-4xl mx-auto bg-white rounded-lg border border-black p-8">
+                <div className="max-w-4xl mx-auto bg-white rounded-lg border border-black p-8 mb-28">
                   <form className="space-y-8">
                     {/* Nombre de la campaña */}
                     <div className="space-y-2">
@@ -515,6 +940,13 @@ export default function CampaignDetailPage() {
                         <select
                           className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none bg-white"
                           defaultValue={campaign.category || ""}
+                          onChange={(e) => {
+                            setCampaign({
+                              ...campaign,
+                              category: e.target.value,
+                            });
+                            handleFormChange();
+                          }}
                         >
                           <option value="salud">Salud</option>
                           <option value="educacion">Educación</option>
@@ -557,6 +989,20 @@ export default function CampaignDetailPage() {
                               ? `Bs. ${campaign.goal_amount.toLocaleString()}`
                               : ""
                           }
+                          onChange={(e) => {
+                            // Remove non-numeric characters for storage
+                            const numericValue = e.target.value.replace(
+                              /[^0-9]/g,
+                              ""
+                            );
+                            setCampaign({
+                              ...campaign,
+                              goal_amount: numericValue
+                                ? parseInt(numericValue)
+                                : 0,
+                            });
+                            handleFormChange();
+                          }}
                         />
                       </div>
                       <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start space-x-3 mt-2">
@@ -583,31 +1029,203 @@ export default function CampaignDetailPage() {
                     </div>
 
                     {/* Image Upload Section */}
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <label className="text-lg font-bold text-gray-800">
                         Imágenes de la campaña
                       </label>
-                      <div className="border border-dashed border-gray-400 rounded-lg p-8 flex flex-col items-center justify-center text-center">
-                        <div className="mb-4">
+
+                      {/* Display existing images */}
+                      {(campaign.media?.length > 0 ||
+                        mediaPreviewUrls.length > 0) && (
+                        <div className="mt-4">
+                          <h3 className="text-lg font-medium mb-3">
+                            Imágenes cargadas
+                          </h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Display campaign media (uploaded and saved images) */}
+                            {campaign.media?.map(
+                              (media: any, index: number) => (
+                                <div
+                                  key={`media-${index}`}
+                                  className={`relative rounded-lg overflow-hidden border ${media.is_primary ? "border-[#2c6e49] ring-2 ring-[#2c6e49]" : "border-gray-200"}`}
+                                >
+                                  <Image
+                                    src={media.media_url}
+                                    alt={`Campaign image ${index + 1}`}
+                                    width={200}
+                                    height={150}
+                                    className="w-full h-32 object-cover"
+                                  />
+                                  {media.is_primary && (
+                                    <div className="absolute top-2 left-2 bg-[#2c6e49] text-white text-xs px-2 py-1 rounded-full">
+                                      Imagen principal
+                                    </div>
+                                  )}
+                                  <div className="absolute top-2 right-2 flex gap-1">
+                                    <button
+                                      type="button"
+                                      className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                      onClick={() => {
+                                        handleEditImage(index);
+                                      }}
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-blue-500"
+                                      >
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                      </svg>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                      onClick={() => removeMedia(index)}
+                                    >
+                                      <X size={16} className="text-red-500" />
+                                    </button>
+                                  </div>
+                                  {!media.is_primary && (
+                                    <button
+                                      type="button"
+                                      className="absolute bottom-2 left-2 bg-white/80 text-[#2c6e49] text-xs px-2 py-1 rounded-full font-medium shadow-sm hover:bg-white"
+                                      onClick={() => setPrimaryImage(index)}
+                                    >
+                                      Hacer principal
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            )}
+
+                            {/* Preview URLs for newly uploaded images (not yet saved to campaign.media) */}
+                            {mediaPreviewUrls.length > 0 &&
+                              mediaPreviewUrls.map((url, index) => {
+                                // Calculate the actual index for editing (after campaign.media)
+                                const editIndex =
+                                  (campaign.media?.length || 0) + index;
+
+                                return (
+                                  <div
+                                    key={`preview-${index}`}
+                                    className="relative rounded-lg overflow-hidden border border-gray-200"
+                                  >
+                                    <Image
+                                      src={url}
+                                      alt={`New image ${index + 1}`}
+                                      width={200}
+                                      height={150}
+                                      className="w-full h-32 object-cover"
+                                    />
+                                    <div className="absolute top-2 right-2 flex gap-1">
+                                      <button
+                                        type="button"
+                                        className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                        onClick={() =>
+                                          handleEditImage(editIndex)
+                                        }
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="16"
+                                          height="16"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          className="text-blue-500"
+                                        >
+                                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                        onClick={() => {
+                                          const newPreviewUrls = [
+                                            ...mediaPreviewUrls,
+                                          ];
+                                          URL.revokeObjectURL(
+                                            newPreviewUrls[index]
+                                          );
+                                          newPreviewUrls.splice(index, 1);
+                                          setMediaPreviewUrls(newPreviewUrls);
+
+                                          const newMediaFiles = [...mediaFiles];
+                                          newMediaFiles.splice(index, 1);
+                                          setMediaFiles(newMediaFiles);
+
+                                          handleFormChange();
+                                        }}
+                                      >
+                                        <X size={16} className="text-red-500" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Upload new image */}
+                      <div
+                        className="border-2 border-dashed border-gray-400 rounded-lg p-10 text-center bg-white cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <div className="flex flex-col items-center justify-center">
                           <Image
                             src="/icons/add_ad.svg"
-                            alt="Add Image"
-                            width={48}
-                            height={48}
+                            alt="Add media"
+                            width={42}
+                            height={42}
+                            className="mb-4"
                           />
+                          <p className="text-sm text-gray-500 mb-4">
+                            Arrastra o carga tus fotos aquí
+                          </p>
+                          <p className="text-xs text-gray-400 mb-4">
+                            Sólo archivos en formato JPEG, PNG y máximo 2 MB
+                          </p>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/jpeg,image/png"
+                            onChange={handleFileChange}
+                            disabled={isUploading}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] border-0 rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fileInputRef.current?.click();
+                            }}
+                            disabled={isUploading}
+                          >
+                            {isUploading ? (
+                              <div className="flex items-center gap-2">
+                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                                <span>Subiendo...</span>
+                              </div>
+                            ) : (
+                              "Seleccionar"
+                            )}
+                          </Button>
                         </div>
-                        <h3 className="text-lg font-medium text-gray-700">
-                          Arrastra o carga tus fotos aquí
-                        </h3>
-                        <p className="text-sm text-gray-500 mt-1 mb-4">
-                          Deben ser archivos JPG o PNG, no mayor a 2 MB.
-                        </p>
-                        <button
-                          type="button"
-                          className="px-6 py-3 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-lg font-medium"
-                        >
-                          Seleccionar
-                        </button>
                       </div>
                     </div>
 
@@ -618,26 +1236,142 @@ export default function CampaignDetailPage() {
                     </div>
 
                     {/* YouTube */}
-                    <div className="space-y-2">
-                      <label className="text-lg font-bold text-gray-800">
+                    <div className="space-y-4">
+                      <label className="text-lg font-medium text-gray-800 mb-2">
                         Agregar enlace de YouTube
                       </label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                          <Image
-                            src="/icons/add_link.svg"
-                            alt="Add Link"
-                            width={20}
-                            height={20}
+
+                      {/* Add new YouTube link */}
+                      <div className="flex gap-2 mb-4">
+                        <div className="relative flex-1">
+                          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <svg
+                              width="22"
+                              height="22"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M10 13C10.4295 13.5741 10.9774 14.0492 11.6066 14.3929C12.2357 14.7367 12.9315 14.9411 13.6467 14.9923C14.3618 15.0435 15.0796 14.9404 15.7513 14.6898C16.4231 14.4392 17.0331 14.0471 17.54 13.54L20.54 10.54C21.4479 9.59699 21.9505 8.33397 21.9384 7.02299C21.9262 5.71201 21.4 4.45898 20.4741 3.53307C19.5482 2.60716 18.2951 2.08101 16.9842 2.06884C15.6732 2.05666 14.4102 2.55923 13.47 3.47L11.75 5.18"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M14 11C13.5705 10.4259 13.0226 9.95083 12.3935 9.60707C11.7643 9.26331 11.0685 9.05889 10.3534 9.00768C9.63821 8.95646 8.92041 9.05964 8.24866 9.31023C7.5769 9.56082 6.96689 9.95294 6.46 10.46L3.46 13.46C2.55209 14.403 2.04954 15.666 2.06165 16.977C2.07375 18.288 2.59998 19.541 3.5259 20.4669C4.45181 21.3928 5.70487 21.919 7.01581 21.9312C8.32675 21.9434 9.58979 21.4408 10.53 20.53L12.24 18.82"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
+                          <input
+                            type="text"
+                            className="w-full pl-11 pr-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            value={newYoutubeUrl}
+                            onChange={(e) => setNewYoutubeUrl(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                addYoutubeUrl();
+                              }
+                            }}
                           />
                         </div>
-                        <input
-                          type="text"
-                          className="w-full p-4 pl-12 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                          placeholder="Enlace de YouTube"
-                          defaultValue={campaign.youtube_url || ""}
-                        />
+                        <Button
+                          type="button"
+                          onClick={addYoutubeUrl}
+                          className="w-10 h-10 p-0 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full flex items-center justify-center min-w-10"
+                          aria-label="Agregar enlace de YouTube"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 5v14M5 12h14" />
+                          </svg>
+                        </Button>
                       </div>
+
+                      {/* Display existing YouTube links */}
+                      {youtubeUrls.length > 0 && (
+                        <div className="mt-5">
+                          <p className="text-base font-medium mb-2">
+                            Enlaces agregados:
+                          </p>
+                          <div className="grid grid-cols-2 gap-4">
+                            {youtubeUrls.map((url, index) => {
+                              // Extract video ID from URL
+                              const videoId =
+                                url.match(
+                                  /(?:\/|v=)([a-zA-Z0-9_-]{11})(?:\?|&|$)/
+                                )?.[1] || "";
+                              const thumbnailUrl = videoId
+                                ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                                : "/images/default-video-thumbnail.jpg";
+
+                              return (
+                                <div
+                                  key={`yt-${index}`}
+                                  className="border border-gray-200 rounded-lg overflow-hidden bg-white"
+                                >
+                                  <div className="relative aspect-video bg-gray-100">
+                                    <Image
+                                      src={thumbnailUrl}
+                                      alt={`YouTube video ${index + 1}`}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                                        <svg
+                                          width="24"
+                                          height="24"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                          <path
+                                            d="M5 3L19 12L5 21V3Z"
+                                            fill="white"
+                                            stroke="white"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                          />
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="p-2 flex justify-between items-center">
+                                    <div className="truncate text-sm text-gray-600">
+                                      {url}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeYoutubeUrl(index)}
+                                      className="text-red-500 hover:bg-red-50 p-1 rounded-full"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Ubicación */}
@@ -914,7 +1648,10 @@ export default function CampaignDetailPage() {
           <div className="container mx-auto">
             <div className="flex space-x-4 justify-start">
               <Button
-                onClick={handleSaveChanges}
+                onClick={() => {
+                  // Implement the actual save logic with Supabase
+                  handleSaveChanges();
+                }}
                 className="px-6 py-2 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full font-medium flex items-center"
               >
                 <Check className="w-4 h-4 mr-2" />
@@ -930,6 +1667,19 @@ export default function CampaignDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Editor Modal - Moved to root level for proper rendering */}
+      {imageToEdit && (
+        <ImageEditor
+          imageUrl={imageToEdit}
+          onSave={handleSaveEditedImage}
+          onCancel={() => {
+            setImageToEdit(null);
+            setEditingImageIndex(null);
+          }}
+          isLoading={isUploading}
+        />
       )}
     </div>
   );

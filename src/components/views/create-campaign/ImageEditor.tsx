@@ -452,6 +452,7 @@ export function ImageEditor({
                   transition: "transform 0.2s ease",
                 }}
                 onLoad={onImageLoad}
+                crossOrigin="anonymous"
                 className="object-contain max-h-full max-w-full"
               />
             </ReactCrop>
