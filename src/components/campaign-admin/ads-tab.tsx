@@ -373,7 +373,7 @@ export function AdsTab({ campaign }: AdsTabProps) {
   return (
     <div className="space-y-12 max-w-6xl mx-auto">
       <div className="py-8">
-        <h2 className="text-4xl md:text-5xl font-bold mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
           Publicar anuncios
         </h2>
         <p className="text-xl text-gray-600 leading-relaxed mb-10">
@@ -387,7 +387,9 @@ export function AdsTab({ campaign }: AdsTabProps) {
       <div className="py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="pt-4">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Título</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
+              Título
+            </h2>
             <p className="text-xl text-gray-600 leading-relaxed">
               Dale un título claro a tu anuncio para captar la atención de tus
               seguidores.
@@ -424,7 +426,7 @@ export function AdsTab({ campaign }: AdsTabProps) {
       <div className="py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="pt-4">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
               Mensaje del anuncio
             </h2>
             <p className="text-xl text-gray-600 leading-relaxed">
@@ -463,7 +465,7 @@ export function AdsTab({ campaign }: AdsTabProps) {
       <div className="py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="pt-4">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
               Agrega fotos o videos que ilustren tu anuncio
             </h2>
             <p className="text-xl text-gray-600 leading-relaxed">
@@ -613,7 +615,7 @@ export function AdsTab({ campaign }: AdsTabProps) {
       <div className="py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           <div className="pt-4">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
               Anuncios recientes
             </h2>
             <p className="text-xl text-gray-600 leading-relaxed">

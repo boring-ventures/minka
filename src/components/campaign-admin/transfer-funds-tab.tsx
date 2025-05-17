@@ -108,7 +108,9 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Transferir fondos</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+          Transferir fondos
+        </h2>
         <p className="text-gray-600 mb-6">
           Transfiere los fondos recaudados a tu cuenta bancaria. La
           transferencia puede tardar de 2 a 3 días hábiles en procesarse.

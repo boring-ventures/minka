@@ -6,7 +6,9 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "@/components/ui/use-toast";
-
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EditCampaignTab } from "@/components/campaign-admin/edit-campaign-tab";
@@ -14,6 +16,14 @@ import { AdsTab } from "@/components/campaign-admin/ads-tab";
 import { CommentsTab } from "@/components/campaign-admin/comments-tab";
 import { DonationsTab } from "@/components/campaign-admin/donations-tab";
 import { TransferFundsTab } from "@/components/campaign-admin/transfer-funds-tab";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { X, Check } from "lucide-react";
 
 export default function CampaignDetailPage() {
   const params = useParams();
@@ -22,6 +32,57 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("editar");
   const supabase = createClientComponentClient();
+
+  // Add state variables for form fields
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | undefined>(
+    undefined
+  );
+  const [isFormModified, setIsFormModified] = useState(false);
+
+  // Track original campaign state for reset functionality
+  const [originalCampaign, setOriginalCampaign] = useState<Record<string, any>>(
+    {}
+  );
+
+  // Function to handle form changes
+  const handleFormChange = () => {
+    setIsFormModified(true);
+  };
+
+  // Function to handle cancellation
+  const handleCancel = () => {
+    // Reset form to original values
+    setCampaign(originalCampaign);
+    setSelectedLocation(originalCampaign.location || null);
+    setSelectedEndDate(
+      originalCampaign.end_date
+        ? new Date(originalCampaign.end_date)
+        : undefined
+    );
+    setIsFormModified(false);
+  };
+
+  // Function to handle saving changes
+  const handleSaveChanges = async () => {
+    try {
+      // Here you would implement the actual save logic with Supabase
+      // For demonstration, we just reset the modified state
+      setIsFormModified(false);
+      setOriginalCampaign({ ...campaign });
+      toast({
+        title: "Cambios guardados",
+        description: "Los cambios han sido guardados exitosamente.",
+      });
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los cambios. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     async function getCampaignDetails() {
@@ -109,7 +170,17 @@ export default function CampaignDetailPage() {
           category_id: campaignData.categories?.id || "",
         };
 
+        // Initialize state variables with campaign data
+        if (enhancedCampaignData?.location) {
+          setSelectedLocation(enhancedCampaignData.location);
+        }
+
+        if (enhancedCampaignData?.end_date) {
+          setSelectedEndDate(new Date(enhancedCampaignData.end_date));
+        }
+
         setCampaign(enhancedCampaignData);
+        setOriginalCampaign(enhancedCampaignData);
       } catch (error) {
         // Suppress errors in development mode with dummy data
         if (process.env.NODE_ENV === "development") {
@@ -380,7 +451,7 @@ export default function CampaignDetailPage() {
           {activeTab === "editar" && (
             <div className="w-full">
               <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
                   Editar campaña
                 </h2>
                 <p className="text-xl text-gray-600 leading-relaxed mb-10">
@@ -395,7 +466,7 @@ export default function CampaignDetailPage() {
                   <form className="space-y-8">
                     {/* Nombre de la campaña */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Nombre de la campaña
                       </label>
                       <div className="relative">
@@ -404,33 +475,40 @@ export default function CampaignDetailPage() {
                           className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                           placeholder="Ingresa el nombre de tu campaña"
                           defaultValue={campaign.title || ""}
+                          onChange={(e) => {
+                            setCampaign({ ...campaign, title: e.target.value });
+                            handleFormChange();
+                          }}
                         />
-                        <div className="absolute right-2 bottom-2 text-sm text-gray-500">
-                          0/60
-                        </div>
                       </div>
+                      <div className="text-right text-sm text-black">0/60</div>
                     </div>
 
                     {/* Detalle */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Detalle
                       </label>
                       <div className="relative">
                         <textarea
-                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px]"
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px] resize-none"
                           placeholder="Ejemplo: Su conservación depende de nosotros"
                           defaultValue={campaign.description || ""}
+                          onChange={(e) => {
+                            setCampaign({
+                              ...campaign,
+                              description: e.target.value,
+                            });
+                            handleFormChange();
+                          }}
                         ></textarea>
-                        <div className="absolute right-2 bottom-2 text-sm text-gray-500">
-                          0/130
-                        </div>
                       </div>
+                      <div className="text-right text-sm text-black">0/130</div>
                     </div>
 
                     {/* Categoría */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Categoría
                       </label>
                       <div className="relative">
@@ -466,7 +544,7 @@ export default function CampaignDetailPage() {
 
                     {/* Meta de recaudación */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Meta de recaudación
                       </label>
                       <div className="relative">
@@ -504,40 +582,19 @@ export default function CampaignDetailPage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-black my-6"></div>
-
                     {/* Image Upload Section */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Imágenes de la campaña
                       </label>
                       <div className="border border-dashed border-gray-400 rounded-lg p-8 flex flex-col items-center justify-center text-center">
                         <div className="mb-4">
-                          <svg
-                            width="48"
-                            height="48"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="text-gray-500 mx-auto"
-                          >
-                            <rect
-                              x="4"
-                              y="4"
-                              width="16"
-                              height="16"
-                              rx="2"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                            />
-                            <path
-                              d="M12 8V16M8 12H16"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          <Image
+                            src="/icons/add_ad.svg"
+                            alt="Add Image"
+                            width={48}
+                            height={48}
+                          />
                         </div>
                         <h3 className="text-lg font-medium text-gray-700">
                           Arrastra o carga tus fotos aquí
@@ -562,25 +619,17 @@ export default function CampaignDetailPage() {
 
                     {/* YouTube */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Agregar enlace de YouTube
                       </label>
                       <div className="relative">
                         <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M14 9L19 4M19 4V9M19 4H14M10 15L5 20M5 20V15M5 20H10"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          <Image
+                            src="/icons/add_link.svg"
+                            alt="Add Link"
+                            width={20}
+                            height={20}
+                          />
                         </div>
                         <input
                           type="text"
@@ -593,55 +642,94 @@ export default function CampaignDetailPage() {
 
                     {/* Ubicación */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Ubicación de la campaña
                       </label>
                       <div className="relative">
-                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full h-12 justify-start text-left relative pl-10 border-black rounded-md bg-white hover:bg-gray-50",
+                                !(selectedLocation || campaign.location) &&
+                                  "text-gray-400"
+                              )}
+                            >
+                              <Image
+                                src="/icons/search.svg"
+                                alt="Search"
+                                width={20}
+                                height={20}
+                                className="absolute left-3"
+                              />
+                              {selectedLocation
+                                ? selectedLocation
+                                    .split("_")
+                                    .map(
+                                      (word: string) =>
+                                        word.charAt(0).toUpperCase() +
+                                        word.slice(1)
+                                    )
+                                    .join(" ")
+                                : campaign.location
+                                  ? campaign.location
+                                      .split("_")
+                                      .map(
+                                        (word: string) =>
+                                          word.charAt(0).toUpperCase() +
+                                          word.slice(1)
+                                      )
+                                      .join(" ")
+                                  : "¿Adónde irán los fondos?"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-full p-0 bg-white border border-gray-200 rounded-lg shadow-lg"
+                            align="start"
                           >
-                            <path
-                              d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </div>
-                        <input
-                          type="text"
-                          className="w-full p-4 pl-12 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                          placeholder="¿Adónde irán los fondos?"
-                          defaultValue={campaign.location || ""}
-                        />
-                        <button className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M18 6L6 18M6 6L18 18"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
+                            <div className="p-2">
+                              <div className="max-h-56 overflow-y-auto">
+                                {[
+                                  "la_paz",
+                                  "santa_cruz",
+                                  "cochabamba",
+                                  "sucre",
+                                  "oruro",
+                                  "potosi",
+                                  "tarija",
+                                  "beni",
+                                  "pando",
+                                ].map((region) => (
+                                  <Button
+                                    key={region}
+                                    variant="ghost"
+                                    className="w-full justify-start text-left rounded-md p-2 hover:bg-gray-100"
+                                    onClick={() => {
+                                      setSelectedLocation(region);
+                                      // Update campaign object
+                                      setCampaign({
+                                        ...campaign,
+                                        location: region,
+                                      });
+                                      handleFormChange();
+                                      document.body.click();
+                                    }}
+                                  >
+                                    {region
+                                      .split("_")
+                                      .map(
+                                        (word: string) =>
+                                          word.charAt(0).toUpperCase() +
+                                          word.slice(1)
+                                      )
+                                      .join(" ")}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       <p className="text-gray-500 text-sm flex items-center space-x-2">
                         <svg
@@ -663,83 +751,110 @@ export default function CampaignDetailPage() {
 
                     {/* Fecha de finalización */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Fecha de finalización
                       </label>
                       <div className="relative">
-                        <input
-                          type="text"
-                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                          placeholder="DD/MM/AAAA"
-                          defaultValue={
-                            campaign.end_date
-                              ? new Date(campaign.end_date).toLocaleDateString()
-                              : ""
-                          }
-                        />
-                        <button className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-600">
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant={"outline"}
+                              className={cn(
+                                "w-full h-12 justify-start text-left relative pl-10 border-black rounded-md bg-white hover:bg-gray-50",
+                                !(selectedEndDate || campaign.end_date) &&
+                                  "text-gray-400"
+                              )}
+                            >
+                              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                              {selectedEndDate
+                                ? format(selectedEndDate, "dd/MM/yyyy", {
+                                    locale: es,
+                                  })
+                                : campaign.end_date
+                                  ? format(
+                                      new Date(campaign.end_date),
+                                      "dd/MM/yyyy",
+                                      { locale: es }
+                                    )
+                                  : "DD/MM/AAAA"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto p-0 bg-white border border-gray-200 rounded-lg shadow-lg"
+                            align="start"
                           >
-                            <rect
-                              x="3"
-                              y="4"
-                              width="18"
-                              height="18"
-                              rx="2"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                            <Calendar
+                              mode="single"
+                              selected={
+                                selectedEndDate ||
+                                (campaign.end_date
+                                  ? new Date(campaign.end_date)
+                                  : undefined)
+                              }
+                              onSelect={(date) => {
+                                if (date) {
+                                  setSelectedEndDate(date);
+                                  // Update campaign object
+                                  setCampaign({
+                                    ...campaign,
+                                    end_date: date.toISOString().split("T")[0],
+                                  });
+                                  handleFormChange();
+                                }
+                                setTimeout(() => document.body.click(), 100);
+                              }}
+                              disabled={(date) => {
+                                // Disable dates in the past
+                                return (
+                                  date <
+                                  new Date(new Date().setHours(0, 0, 0, 0))
+                                );
+                              }}
+                              initialFocus
+                              className="rounded-md border-none p-3"
+                              captionLayout="dropdown"
+                              fromYear={new Date().getFullYear()}
+                              toYear={new Date().getFullYear() + 5}
+                              classNames={{
+                                caption_dropdowns: "flex gap-1",
+                                dropdown:
+                                  "p-1 bg-white border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-[#2c6e49]",
+                                caption_label: "text-sm font-medium hidden",
+                                nav_button:
+                                  "h-8 w-8 bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-full",
+                                day_selected:
+                                  "bg-[#2c6e49] text-white hover:bg-[#2c6e49] hover:text-white focus:bg-[#2c6e49] focus:text-white",
+                                day_today: "bg-gray-100 text-gray-900",
+                              }}
                             />
-                            <path
-                              d="M16 2V6M8 2V6M3 10H21M8 14H8.01M12 14H12.01M16 14H16.01M8 18H8.01M12 18H12.01M16 18H16.01"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
 
                     {/* Presentación de la campaña */}
                     <div className="space-y-2">
-                      <label className="text-lg font-medium text-gray-800">
+                      <label className="text-lg font-bold text-gray-800">
                         Presentación de la campaña
                       </label>
                       <div className="relative">
                         <textarea
-                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px]"
+                          className="w-full p-4 border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px] resize-none"
                           placeholder="Ejemplo: Su conservación depende de nosotros"
                           defaultValue={
                             campaign.beneficiaries_description || ""
                           }
+                          onChange={(e) => {
+                            setCampaign({
+                              ...campaign,
+                              beneficiaries_description: e.target.value,
+                            });
+                            handleFormChange();
+                          }}
                         ></textarea>
-                        <div className="absolute right-2 bottom-2 text-sm text-gray-500">
-                          0/600
-                        </div>
                       </div>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex justify-end space-x-4 pt-4">
-                      <button
-                        type="button"
-                        className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-6 py-3 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-lg font-medium"
-                      >
-                        Guardar cambios
-                      </button>
+                      <div className="text-right text-sm text-black">0/600</div>
                     </div>
                   </form>
                 </div>
@@ -792,6 +907,30 @@ export default function CampaignDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Bottom action bar that appears when form is modified */}
+      {isFormModified && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-200 shadow-md z-50 py-4 px-6">
+          <div className="container mx-auto">
+            <div className="flex space-x-4 justify-start">
+              <Button
+                onClick={handleSaveChanges}
+                className="px-6 py-2 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full font-medium flex items-center"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Guardar cambios
+              </Button>
+              <Button
+                onClick={handleCancel}
+                className="px-6 py-2 bg-transparent hover:bg-transparent text-[#2c6e49] rounded-md font-medium flex items-center shadow-none"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

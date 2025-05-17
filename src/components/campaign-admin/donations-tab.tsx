@@ -127,7 +127,9 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
 
   return (
     <div className="w-full px-6 md:px-8 lg:px-16 xl:px-24 py-6">
-      <h2 className="text-4xl md:text-5xl font-bold mb-6">Donaciones</h2>
+      <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
+        Donaciones
+      </h2>
       <p className="text-xl text-gray-600 leading-relaxed mb-10">
         Monitorea las donaciones recibidas y agradece a tus donadores por su
         apoyo.
