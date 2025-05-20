@@ -351,7 +351,19 @@ export function CampaignForm() {
   } = useUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Format currency helper
+  const formatCurrency = (amount: string | number) => {
+    if (!amount) return "Bs. 0.00";
+    const num = typeof amount === "string" ? parseFloat(amount) : amount;
+    return `Bs. ${num.toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const [currentStep, setCurrentStep] = useState(1);
+  // Add new state for animation
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
+    "next"
+  );
   const [formData, setFormData] = useState<CampaignFormData>({
     title: "",
     description: "",
@@ -428,9 +440,17 @@ export function CampaignForm() {
           throw new Error("Failed to update campaign recipient");
         }
 
-        // Move to step 3 after successful selection and update
-        setCurrentStep(3);
-        window.scrollTo(0, 0);
+        // Move to step 3 after successful selection and update with animation
+        setAnimationDirection("next");
+        setIsAnimating(true);
+        setTimeout(() => {
+          setCurrentStep(3);
+          window.scrollTo(0, 0);
+          // Reset animation state after a short delay
+          setTimeout(() => {
+            setIsAnimating(false);
+          }, 50);
+        }, 500);
       } else {
         // This should not happen if the workflow is correct, but just in case
         toast({
@@ -522,8 +542,8 @@ export function CampaignForm() {
       // Set redirect flag to true
       setRedirectToVerification(true);
 
-      // Redirect to verification page
-      router.push("/campaign-verification");
+      // Redirect to verification page with campaign ID in the URL query parameter
+      router.push(`/campaign-verification?id=${campaignId}`);
     } catch (error) {
       console.error("Error preparing for verification:", error);
       toast({
@@ -577,6 +597,7 @@ export function CampaignForm() {
     return uploadedUrls.length > 0;
   };
 
+  // Update the nextStep function to include animations
   const nextStep = async () => {
     if (currentStep === 1) {
       if (!validateForm()) {
@@ -663,9 +684,18 @@ export function CampaignForm() {
 
         console.log("Campaign draft saved with ID:", newCampaignId);
 
-        // Proceed to next step
-        setCurrentStep(currentStep + 1);
-        window.scrollTo(0, 0);
+        // Start fade out animation before changing step
+        setAnimationDirection("next");
+        setIsAnimating(true);
+        setTimeout(() => {
+          // Proceed to next step
+          setCurrentStep(currentStep + 1);
+          window.scrollTo(0, 0);
+          // Reset animation state after a short delay
+          setTimeout(() => {
+            setIsAnimating(false);
+          }, 50);
+        }, 500); // Wait for fade out animation to complete
       } catch (error) {
         console.error("Error saving draft:", error);
         toast({
@@ -700,9 +730,18 @@ export function CampaignForm() {
           }
         }
 
-        // Move to step 3
-        setCurrentStep(3);
-        window.scrollTo(0, 0);
+        // Start fade out animation before changing step
+        setAnimationDirection("next");
+        setIsAnimating(true);
+        setTimeout(() => {
+          // Move to step 3
+          setCurrentStep(3);
+          window.scrollTo(0, 0);
+          // Reset animation state after a short delay
+          setTimeout(() => {
+            setIsAnimating(false);
+          }, 50);
+        }, 500); // Wait for fade out animation to complete
       } catch (error) {
         console.error("Error saving beneficiaries description:", error);
         toast({
@@ -717,13 +756,31 @@ export function CampaignForm() {
       return;
     }
 
-    setCurrentStep(currentStep + 1);
-    window.scrollTo(0, 0);
+    // General case for other steps
+    setAnimationDirection("next");
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrentStep(currentStep + 1);
+      window.scrollTo(0, 0);
+      // Reset animation state after a short delay
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 50);
+    }, 500);
   };
 
+  // Update the prevStep function to include animations
   const prevStep = () => {
-    setCurrentStep(currentStep - 1);
-    window.scrollTo(0, 0);
+    setAnimationDirection("prev");
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrentStep(currentStep - 1);
+      window.scrollTo(0, 0);
+      // Reset animation state after a short delay
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 50);
+    }, 500);
   };
 
   // Handle file input change
@@ -966,6 +1023,7 @@ export function CampaignForm() {
     return Object.keys(errors).length === 0;
   };
 
+  // Add style block for transitions at the beginning of the component return statement
   return (
     <>
       <style jsx global>{`
@@ -1017,11 +1075,48 @@ export function CampaignForm() {
           background-color: #f0f7f1 !important;
           color: #2c6e49 !important;
         }
+
+        /* Animation styles */
+        .form-step {
+          opacity: 1;
+          transition: opacity 0.5s ease-in-out;
+        }
+
+        .form-step.fade-out {
+          opacity: 0;
+        }
+
+        .form-step.fade-in {
+          opacity: 1;
+        }
+
+        /* Modal animations */
+        .modal-overlay {
+          opacity: 0;
+          transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-overlay.visible {
+          opacity: 1;
+        }
+
+        .modal-content {
+          transform: translateY(20px);
+          opacity: 0;
+          transition: all 0.4s ease-in-out;
+        }
+
+        .modal-content.visible {
+          transform: translateY(0);
+          opacity: 1;
+        }
       `}</style>
 
       {/* STEP #1 */}
       {currentStep === 1 && (
-        <div className="max-w-6xl mx-auto space-y-16 md:space-y-24 px-4 sm:px-6 md:px-0">
+        <div
+          className={`form-step ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""} max-w-6xl mx-auto space-y-16 md:space-y-24 px-4 sm:px-6 md:px-0`}
+        >
           {/* Campaign Name */}
           <div className="py-6 md:py-12">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
@@ -1377,26 +1472,78 @@ export function CampaignForm() {
                   Ubicación de la campaña
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
                   <Select
                     value={formData.location}
                     onValueChange={(value) =>
                       setFormData({ ...formData, location: value as any })
                     }
                   >
-                    <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 pl-10 h-14 px-4">
-                      <SelectValue placeholder="Selecciona una ubicación" />
+                    <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4">
+                      <div className="flex items-center w-full">
+                        <MapPin className="h-5 w-5 mr-2 text-gray-400 shrink-0" />
+                        <SelectValue
+                          placeholder="Selecciona una ubicación"
+                          className="text-sm md:text-base"
+                        />
+                      </div>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="la_paz">La Paz</SelectItem>
-                      <SelectItem value="santa_cruz">Santa Cruz</SelectItem>
-                      <SelectItem value="cochabamba">Cochabamba</SelectItem>
-                      <SelectItem value="sucre">Sucre</SelectItem>
-                      <SelectItem value="oruro">Oruro</SelectItem>
-                      <SelectItem value="potosi">Potosí</SelectItem>
-                      <SelectItem value="tarija">Tarija</SelectItem>
-                      <SelectItem value="beni">Beni</SelectItem>
-                      <SelectItem value="pando">Pando</SelectItem>
+                    <SelectContent className="bg-white">
+                      <SelectGroup>
+                        <SelectItem
+                          value="la_paz"
+                          className="text-sm md:text-base py-2"
+                        >
+                          La Paz
+                        </SelectItem>
+                        <SelectItem
+                          value="santa_cruz"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Santa Cruz
+                        </SelectItem>
+                        <SelectItem
+                          value="cochabamba"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Cochabamba
+                        </SelectItem>
+                        <SelectItem
+                          value="sucre"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Sucre
+                        </SelectItem>
+                        <SelectItem
+                          value="oruro"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Oruro
+                        </SelectItem>
+                        <SelectItem
+                          value="potosi"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Potosí
+                        </SelectItem>
+                        <SelectItem
+                          value="tarija"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Tarija
+                        </SelectItem>
+                        <SelectItem
+                          value="beni"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Beni
+                        </SelectItem>
+                        <SelectItem
+                          value="pando"
+                          className="text-sm md:text-base py-2"
+                        >
+                          Pando
+                        </SelectItem>
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1608,7 +1755,9 @@ export function CampaignForm() {
 
       {/* STEP #2 */}
       {currentStep === 2 && (
-        <div className="max-w-6xl mx-auto space-y-24">
+        <div
+          className={`form-step ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""} max-w-6xl mx-auto space-y-24`}
+        >
           {/* Full-width header for "Destino de los fondos" */}
           <div className="w-screen relative left-[50%] right-[50%] ml-[-50vw] mr-[-50vw] h-[400px] mt-16">
             <Image
@@ -1655,7 +1804,7 @@ export function CampaignForm() {
                   <div className="flex items-center space-x-4">
                     <Image
                       src="/views/create-campaign/yourself.svg"
-                      alt="Tú mismo"
+                      alt="Tú mismo/a"
                       width={75}
                       height={75}
                     />
@@ -1731,7 +1880,9 @@ export function CampaignForm() {
 
       {/* STEP #3 */}
       {currentStep === 3 && (
-        <div className="max-w-6xl mx-auto space-y-24">
+        <div
+          className={`form-step ${isAnimating ? (animationDirection === "prev" ? "fade-out" : "fade-in") : ""} max-w-6xl mx-auto space-y-24`}
+        >
           {/* Preview Section - Full Width */}
           <div className="bg-[#478C5C] w-screen relative left-[50%] right-[50%] ml-[-50vw] mr-[-50vw] pt-8">
             <div className="max-w-6xl mx-auto px-4">
@@ -1877,8 +2028,8 @@ export function CampaignForm() {
       )}
 
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white max-w-xl w-full mx-4 relative shadow-lg">
+        <div className="modal-overlay visible fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="modal-content visible bg-white max-w-xl w-full mx-4 relative shadow-lg">
             <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative">
               <button
                 onClick={closeSuccessModal}
@@ -2016,18 +2167,19 @@ export function CampaignForm() {
       )}
 
       {showOtraPersonaModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white max-w-xl w-full mx-4 relative shadow-lg">
-            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative">
+        <div className="modal-overlay visible fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="modal-content visible bg-white max-w-xl w-full mx-4 max-h-[90vh] relative shadow-lg flex flex-col">
+            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative sticky top-0 z-10">
               <button
                 onClick={closeOtraPersonaModal}
                 className="text-[#478C5C] hover:text-[#2c6e49]"
+                aria-label="Cerrar"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-8">
+            <div className="p-8 overflow-y-auto flex-1">
               <div className="mb-6 text-center">
                 <h2 className="text-2xl font-bold">
                   Elige al beneficiario de tu campaña
@@ -2116,41 +2268,42 @@ export function CampaignForm() {
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-center">
-                <Button
-                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
-                  onClick={handleOtraPersonaSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <InlineSpinner className="text-white" />
-                      <span>Procesando...</span>
-                    </div>
-                  ) : (
-                    "Continuar"
-                  )}
-                </Button>
-              </div>
+            <div className="flex justify-center p-4 bg-white border-t border-gray-200 sticky bottom-0 z-10">
+              <Button
+                className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
+                onClick={handleOtraPersonaSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <InlineSpinner className="text-white" />
+                    <span>Procesando...</span>
+                  </div>
+                ) : (
+                  "Continuar"
+                )}
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {showONGsModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white max-w-xl w-full mx-4 relative shadow-lg">
-            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative">
+        <div className="modal-overlay visible fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="modal-content visible bg-white max-w-xl w-full mx-4 max-h-[90vh] relative shadow-lg flex flex-col">
+            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative sticky top-0 z-10">
               <button
                 onClick={closeONGsModal}
                 className="text-[#478C5C] hover:text-[#2c6e49]"
+                aria-label="Cerrar"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-8">
+            <div className="p-8 overflow-y-auto flex-1">
               <div className="mb-6 text-center">
                 <h2 className="text-2xl font-bold">
                   Organizaciones autenticadas en Minka
@@ -2176,7 +2329,7 @@ export function CampaignForm() {
                 </div>
               </div>
 
-              <div className="flex justify-center">
+              <div className="flex justify-center p-4 bg-white border-t border-gray-200 sticky bottom-0 z-10">
                 <Button
                   className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
                   onClick={handleONGSubmit}
@@ -2199,28 +2352,264 @@ export function CampaignForm() {
 
       {/* Image Editor Modal - Updated to show loading indicator */}
       {imageToEdit && (
-        <ImageEditor
-          imageUrl={imageToEdit}
-          onSave={handleSaveEditedImage}
-          onCancel={() => {
-            setImageToEdit(null);
-            setEditingImageIndex(null);
-          }}
-          isLoading={isUploading}
-        />
+        <div className="modal-overlay visible">
+          <ImageEditor
+            imageUrl={imageToEdit}
+            onSave={handleSaveEditedImage}
+            onCancel={() => {
+              setImageToEdit(null);
+              setEditingImageIndex(null);
+            }}
+            isLoading={isUploading}
+          />
+        </div>
       )}
 
       {/* Campaign Preview Modal */}
       {showPreview && (
-        <CampaignPreview
-          campaign={{
-            ...formData,
-            // If we need to add any additional properties for preview
-            goalAmount: formData.goalAmount || "0",
-          }}
-          onClose={() => setShowPreview(false)}
-          uploadedUrls={uploadedUrls}
-        />
+        <div
+          className={`modal-overlay visible fixed inset-0 bg-black/40 z-50 overflow-y-auto flex items-start justify-center pt-8`}
+        >
+          <div
+            className={`modal-content visible bg-[#fbfbf6] max-w-6xl w-full relative rounded-lg shadow-xl overflow-y-auto max-h-[90vh]`}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowPreview(false)}
+              className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md z-10"
+            >
+              <X className="h-5 w-5 text-gray-700" />
+            </button>
+
+            <div className="p-4 sm:p-6 md:p-8">
+              <h2 className="text-xl font-medium text-[#2c6e49] mb-4">
+                Vista previa
+              </h2>
+
+              {/* Campaign Header & Gallery - Grid layout from the campaign/[id] page */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-8">
+                  <h1 className="text-2xl md:text-3xl font-bold mb-4 text-[#333333]">
+                    {formData.title ||
+                      "Protejamos juntos el parque Nacional Amboró"}
+                  </h1>
+
+                  {/* Gallery Section */}
+                  <div className="space-y-4">
+                    <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-gray-200">
+                      <Image
+                        src={
+                          mediaPreviewUrls[0] ||
+                          "/landing-page/dummies/Card/Imagen.png"
+                        }
+                        alt={`${formData.title} - Imagen principal`}
+                        fill
+                        className="object-cover"
+                      />
+                      {/* Verification badge */}
+                      <div className="absolute bottom-3 right-3 bg-white rounded-full p-1.5 shadow-md">
+                        <Check className="h-5 w-5 text-[#2c6e49]" />
+                      </div>
+                    </div>
+
+                    {mediaPreviewUrls.length > 1 && (
+                      <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                        {mediaPreviewUrls.slice(0, 4).map((url, index) => (
+                          <div
+                            key={index}
+                            className={`relative aspect-[16/9] overflow-hidden rounded-lg border-2 ${
+                              index === 0
+                                ? "border-[#2c6e49]"
+                                : "border-transparent"
+                            }`}
+                          >
+                            <Image
+                              src={url}
+                              alt={`${formData.title} - Imagen ${index + 1}`}
+                              fill
+                              className="object-cover"
+                            />
+                            {index === 0 && (
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                <div className="bg-white/80 rounded-full p-1">
+                                  <Play className="h-5 w-5 text-[#2c6e49]" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Campaign Details Section - Similar to the campaign/[id] page */}
+                  <div className="mt-8 space-y-6">
+                    {/* Organizer Header */}
+                    <div className="flex items-center gap-3 py-4 border-b border-gray-200">
+                      <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+                        <span className="text-sm font-medium text-[#2c6e49]">
+                          A
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-[#2c6e49]">
+                          Andrés Martínez Saucedo
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Gestor de campaña | Santa Cruz de la Sierra, Bolivia
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Verification Badge */}
+                    <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/landing-page/step-2.png"
+                          alt="Verified"
+                          width={28}
+                          height={28}
+                          className="text-[#2c6e49]"
+                        />
+                        <span className="text-[#2c6e49] text-lg font-medium">
+                          Campaña verificada por Minka
+                        </span>
+                      </div>
+                      <a href="#" className="text-[#2c6e49] underline text-sm">
+                        Más información
+                      </a>
+                    </div>
+
+                    {/* Campaign Description */}
+                    <div className="space-y-3 py-4 border-b border-gray-200">
+                      <h2 className="text-xl font-semibold text-[#2c6e49]">
+                        Descripción de la campaña
+                      </h2>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {formData.description ||
+                          "El Parque Nacional Amboró es uno de los lugares más biodiversos del mundo, hogar de especies únicas y ecosistemas vitales. Su conservación depende de todos nosotros."}
+                      </p>
+                    </div>
+
+                    {/* Campaign Story */}
+                    <div className="space-y-3 py-4 border-b border-gray-200">
+                      <h2 className="text-xl font-semibold text-[#2c6e49]">
+                        Presentación de la campaña
+                      </h2>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {formData.story ||
+                          "El Parque Nacional Amboró es un tesoro natural incomparable, reconocido como uno de los lugares más biodiversos del planeta. En sus exuberantes paisajes, alberga especies únicas de flora y fauna que dependen de este ecosistema para sobrevivir..."}
+                      </p>
+                    </div>
+
+                    {/* Beneficiaries */}
+                    {formData.beneficiariesDescription && (
+                      <div className="space-y-3 py-4 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-[#2c6e49]">
+                          Beneficiarios
+                        </h2>
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          {formData.beneficiariesDescription}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Campaign Progress */}
+                <div className="lg:col-span-4">
+                  <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+                    <h2 className="text-lg font-semibold text-[#2c6e49] mb-1">
+                      Avances de la campaña
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Cada aporte cuenta. ¡Sé parte del cambio!
+                    </p>
+
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex items-center gap-1">
+                        <Check className="h-4 w-4 text-[#2c6e49]" />
+                        <span className="text-sm">Campaña verificada</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">Creada hace 6 días</span>
+                      </div>
+                    </div>
+
+                    {/* Separator */}
+                    <hr className="h-px w-full bg-gray-200 my-4" />
+
+                    <div className="space-y-3 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span>Recaudado Bs. 1.200,00</span>
+                        <span>250 donadores</span>
+                      </div>
+                      <div className="h-2 w-full bg-[#e8f0e9] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#2c6e49] rounded-full"
+                          style={{ width: "80%" }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#2c6e49]">80%</span>
+                        <span>
+                          Objetivo:{" "}
+                          {formatCurrency(formData.goalAmount || 4000)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Separator */}
+                    <hr className="h-px w-full bg-gray-200 my-4" />
+
+                    <div className="space-y-3">
+                      <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-4">
+                        Donar ahora
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-gray-200 hover:bg-gray-50 rounded-full py-4"
+                      >
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Compartir
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full hover:bg-gray-50 rounded-full py-4"
+                      >
+                        <Bookmark className="mr-2 h-4 w-4" />
+                        Guardar campaña
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Campaign Updates */}
+                  <div className="mt-6 bg-white p-5 rounded-lg border border-gray-200">
+                    <h2 className="text-lg font-medium text-[#2c6e49] mb-4">
+                      Anuncios de la campaña
+                    </h2>
+                    <p className="text-gray-600 text-sm">
+                      Aún no hay anuncios en esta campaña. Los anuncios se
+                      mostrarán aquí cuando el organizador los publique.
+                    </p>
+                  </div>
+
+                  {/* Comments */}
+                  <div className="mt-6 bg-white p-5 rounded-lg border border-gray-200">
+                    <h2 className="text-lg font-medium text-[#2c6e49] mb-4">
+                      Comentarios de donadores
+                    </h2>
+                    <p className="text-gray-600 text-sm">
+                      Aún no hay comentarios en esta campaña. Los donadores
+                      podrán dejar sus comentarios aquí.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

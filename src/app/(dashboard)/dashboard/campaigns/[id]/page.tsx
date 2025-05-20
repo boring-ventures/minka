@@ -1385,37 +1385,41 @@ export default function CampaignDetailPage() {
                             <Button
                               variant={"outline"}
                               className={cn(
-                                "w-full h-12 justify-start text-left relative pl-10 border-black rounded-md bg-white hover:bg-gray-50",
+                                "w-full h-12 justify-start text-left border-black rounded-md bg-white hover:bg-gray-50",
                                 !(selectedLocation || campaign.location) &&
                                   "text-gray-400"
                               )}
                             >
-                              <Image
-                                src="/icons/search.svg"
-                                alt="Search"
-                                width={20}
-                                height={20}
-                                className="absolute left-3"
-                              />
-                              {selectedLocation
-                                ? selectedLocation
-                                    .split("_")
-                                    .map(
-                                      (word: string) =>
-                                        word.charAt(0).toUpperCase() +
-                                        word.slice(1)
-                                    )
-                                    .join(" ")
-                                : campaign.location
-                                  ? campaign.location
-                                      .split("_")
-                                      .map(
-                                        (word: string) =>
-                                          word.charAt(0).toUpperCase() +
-                                          word.slice(1)
-                                      )
-                                      .join(" ")
-                                  : "¿Adónde irán los fondos?"}
+                              <div className="flex items-center w-full">
+                                <Image
+                                  src="/icons/search.svg"
+                                  alt="Search"
+                                  width={20}
+                                  height={20}
+                                  className="mr-2 shrink-0"
+                                />
+                                <span className="text-base">
+                                  {selectedLocation
+                                    ? selectedLocation
+                                        .split("_")
+                                        .map(
+                                          (word: string) =>
+                                            word.charAt(0).toUpperCase() +
+                                            word.slice(1)
+                                        )
+                                        .join(" ")
+                                    : campaign.location
+                                      ? campaign.location
+                                          .split("_")
+                                          .map(
+                                            (word: string) =>
+                                              word.charAt(0).toUpperCase() +
+                                              word.slice(1)
+                                          )
+                                          .join(" ")
+                                      : "¿Adónde irán los fondos?"}
+                                </span>
+                              </div>
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent

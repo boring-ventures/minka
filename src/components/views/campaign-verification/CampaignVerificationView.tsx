@@ -80,6 +80,11 @@ export function CampaignVerificationView({
 
   // Add state for verification steps
   const [verificationStep, setVerificationStep] = useState(1);
+  // Add animation states
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
+    "next"
+  );
 
   // Form states
   const [idDocumentFrontFile, setIdDocumentFrontFile] = useState<File | null>(
@@ -118,6 +123,7 @@ export function CampaignVerificationView({
     null
   );
   const [isIdDocumentEditing, setIsIdDocumentEditing] = useState(false);
+  const [isSupportingDocEditing, setIsSupportingDocEditing] = useState(false);
   const [editingIdDocumentSide, setEditingIdDocumentSide] = useState<
     "front" | "back" | null
   >(null);
@@ -153,12 +159,33 @@ export function CampaignVerificationView({
   useEffect(() => {
     const fetchCampaignData = async () => {
       try {
+        // First try to get campaign ID from props
         if (initialCampaignId) {
-          // If we have a campaign ID from props, fetch that specific campaign
+          console.log(
+            "Loading campaign from initialCampaignId:",
+            initialCampaignId
+          );
           await loadCampaignById(initialCampaignId);
         } else {
-          // Otherwise, fetch all unverified campaigns for selection
-          await fetchUnverifiedCampaigns();
+          // If not in props, check localStorage as fallback
+          const storedCampaignId = localStorage.getItem(
+            "verificationCampaignId"
+          );
+          if (storedCampaignId) {
+            console.log(
+              "Loading campaign from localStorage:",
+              storedCampaignId
+            );
+            await loadCampaignById(storedCampaignId);
+            // Clear from localStorage after using it to prevent stale data in future visits
+            localStorage.removeItem("verificationCampaignId");
+          } else {
+            // Otherwise, fetch all unverified campaigns for selection
+            console.log(
+              "No campaign ID found, fetching all unverified campaigns"
+            );
+            await fetchUnverifiedCampaigns();
+          }
         }
       } catch (error) {
         console.error("Error initializing campaign verification:", error);
@@ -229,7 +256,20 @@ export function CampaignVerificationView({
 
   // Function to load a specific campaign by ID
   const loadCampaignById = async (id: string) => {
+    console.log(`Attempting to load campaign with ID: ${id}`);
     try {
+      // First check if the ID is valid
+      if (!id || id.trim() === "") {
+        console.error("Invalid campaign ID provided:", id);
+        toast({
+          title: "Error",
+          description: "ID de campaña inválido.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log(`Fetching campaign details for ID: ${id}`);
       const response = await fetch(`/api/campaign/details?id=${id}`, {
         method: "GET",
         headers: {
@@ -238,20 +278,27 @@ export function CampaignVerificationView({
         credentials: "include",
       });
 
+      console.log(`API response status: ${response.status}`);
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch campaign");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("API error response:", errorData);
+        throw new Error(
+          errorData.error || `Failed to fetch campaign: ${response.statusText}`
+        );
       }
 
       const data = await response.json();
+      console.log("Campaign data received:", data);
 
       if (data.campaign) {
         setSelectedCampaignId(data.campaign.id);
         setCampaignTitle(data.campaign.title);
+        console.log(`Campaign loaded successfully: ${data.campaign.title}`);
 
         // Check verification status after setting the campaign
         await checkVerificationStatus(data.campaign.id);
       } else {
+        console.error("Campaign data not found in response:", data);
         throw new Error("Campaign data not found");
       }
     } catch (error) {
@@ -313,8 +360,20 @@ export function CampaignVerificationView({
       return;
     }
 
-    setVerificationStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Start animation
+    setAnimationDirection("next");
+    setIsAnimating(true);
+
+    // After animation fade-out completes, change step and reset animation
+    setTimeout(() => {
+      setVerificationStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Reset animation state after step change
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 50);
+    }, 500);
   };
 
   // Add the getImageType function back
@@ -539,7 +598,7 @@ export function CampaignVerificationView({
           if (e.target?.result) {
             setEditingImageType("support");
             setEditingImageUrl(e.target.result as string);
-            setIsImageEditorOpen(true);
+            setIsSupportingDocEditing(true);
           }
         };
         reader.readAsDataURL(nextImage);
@@ -586,7 +645,7 @@ export function CampaignVerificationView({
       // Close the editor
       setEditingImageIndex(null);
       setEditingImageUrl(null);
-      setIsImageEditorOpen(false);
+      setIsSupportingDocEditing(false);
       setEditingImageType(null);
 
       // Check if there are more images in the queue
@@ -612,7 +671,7 @@ export function CampaignVerificationView({
   const handleCancelSupportingDocEdit = () => {
     setEditingImageIndex(null);
     setEditingImageUrl(null);
-    setIsImageEditorOpen(false);
+    setIsSupportingDocEditing(false);
     setEditingImageType(null);
 
     // Check if there are more images in the queue
@@ -649,9 +708,20 @@ export function CampaignVerificationView({
       return;
     }
 
-    // Move to step 3 instead of submitting
-    setVerificationStep(3);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Start animation
+    setAnimationDirection("next");
+    setIsAnimating(true);
+
+    // After animation fade-out completes, change step and reset animation
+    setTimeout(() => {
+      setVerificationStep(3);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Reset animation state after step change
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 50);
+    }, 500);
   };
 
   // Separate function for sending verification from step 3
@@ -877,493 +947,555 @@ export function CampaignVerificationView({
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-24">
-      {/* Campaign Info Banner - Always displayed */}
-      <div className="py-8">
-        <div className="bg-[#f5f7e9] p-6 rounded-xl">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-xl font-medium text-[#478C5C]">
-                Campaña a verificar
-              </h3>
-              {isLoadingCampaigns ? (
-                <div className="flex items-center gap-2 mt-2">
-                  <InlineSpinner className="text-[#478C5C]" />
-                  <p className="text-lg">Cargando campañas...</p>
+    <div className="w-full pb-20">
+      {/* Add style block for animations */}
+      <style jsx global>{`
+        /* Animation styles */
+        .verification-step {
+          opacity: 1;
+          transition: opacity 0.5s ease-in-out;
+        }
+
+        .verification-step.fade-out {
+          opacity: 0;
+        }
+
+        .verification-step.fade-in {
+          opacity: 1;
+        }
+      `}</style>
+
+      {/* Campaign Info Banner - Always displayed outside steps */}
+      <div className="max-w-6xl mx-auto">
+        <div className="py-8">
+          <div className="bg-[#f5f7e9] p-6 rounded-xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-medium text-[#478C5C]">
+                  Campaña a verificar
+                </h3>
+                {isLoadingCampaigns ? (
+                  <div className="flex items-center gap-2 mt-2">
+                    <InlineSpinner className="text-[#478C5C]" />
+                    <p className="text-lg">Cargando campañas...</p>
+                  </div>
+                ) : selectedCampaignId ? (
+                  <p className="text-lg font-bold">{campaignTitle}</p>
+                ) : (
+                  <p className="text-lg text-gray-500">
+                    Selecciona una campaña para verificar
+                  </p>
+                )}
+              </div>
+
+              {!initialCampaignId && unverifiedCampaigns.length > 0 ? (
+                <div className="w-full sm:w-auto">
+                  <Select
+                    value={selectedCampaignId || ""}
+                    onValueChange={handleCampaignChange}
+                  >
+                    <SelectTrigger className="w-full sm:w-[250px]">
+                      <SelectValue placeholder="Selecciona una campaña" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unverifiedCampaigns.map((campaign) => (
+                        <SelectItem key={campaign.id} value={campaign.id}>
+                          {campaign.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : selectedCampaignId ? (
-                <p className="text-lg font-bold">{campaignTitle}</p>
               ) : (
-                <p className="text-lg text-gray-500">
-                  Selecciona una campaña para verificar
-                </p>
+                <Button
+                  variant="outline"
+                  className="border-[#478C5C] text-[#478C5C]"
+                  onClick={() => router.push("/dashboard/campaigns")}
+                >
+                  {initialCampaignId ? "Cambiar campaña" : "Ver mis campañas"}
+                </Button>
               )}
             </div>
 
-            {!initialCampaignId && unverifiedCampaigns.length > 0 ? (
-              <div className="w-full sm:w-auto">
-                <Select
-                  value={selectedCampaignId || ""}
-                  onValueChange={handleCampaignChange}
-                >
-                  <SelectTrigger className="w-full sm:w-[250px]">
-                    <SelectValue placeholder="Selecciona una campaña" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {unverifiedCampaigns.map((campaign) => (
-                      <SelectItem key={campaign.id} value={campaign.id}>
-                        {campaign.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                className="border-[#478C5C] text-[#478C5C]"
-                onClick={() => router.push("/dashboard/campaigns")}
+            {/* Display a message if no campaigns to verify */}
+            {!isLoadingCampaigns &&
+              unverifiedCampaigns.length === 0 &&
+              !selectedCampaignId && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-amber-800">
+                    No tienes campañas activas sin verificar. Puedes crear una
+                    nueva campaña o ir a tu dashboard para ver tus campañas
+                    existentes.
+                  </p>
+                  <div className="mt-3 flex gap-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-[#478C5C] text-[#478C5C]"
+                      onClick={() => router.push("/create-campaign")}
+                    >
+                      <Plus className="mr-1 h-4 w-4" /> Nueva campaña
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-[#478C5C] text-[#478C5C]"
+                      onClick={() => router.push("/dashboard/campaigns")}
+                    >
+                      Ver mis campañas
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+            {/* Display verification status info if available */}
+            {selectedCampaignId && verificationStatusInfo.status && (
+              <div
+                className={`mt-4 p-3 rounded-lg border ${
+                  verificationStatusInfo.status === "pending"
+                    ? "bg-blue-50 border-blue-200"
+                    : verificationStatusInfo.status === "approved"
+                      ? "bg-green-50 border-green-200"
+                      : "bg-red-50 border-red-200"
+                }`}
               >
-                {initialCampaignId ? "Cambiar campaña" : "Ver mis campañas"}
-              </Button>
+                <div className="flex items-start gap-3">
+                  {verificationStatusInfo.status === "pending" && (
+                    <Clock className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  )}
+                  {verificationStatusInfo.status === "approved" && (
+                    <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  )}
+                  {verificationStatusInfo.status === "rejected" && (
+                    <X className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  )}
+
+                  <div>
+                    <p
+                      className={`font-medium ${
+                        verificationStatusInfo.status === "pending"
+                          ? "text-blue-800"
+                          : verificationStatusInfo.status === "approved"
+                            ? "text-green-800"
+                            : "text-red-800"
+                      }`}
+                    >
+                      {verificationStatusInfo.status === "pending" &&
+                        "Verificación en progreso"}
+                      {verificationStatusInfo.status === "approved" &&
+                        "Campaña verificada"}
+                      {verificationStatusInfo.status === "rejected" &&
+                        "Verificación rechazada"}
+                    </p>
+
+                    <p
+                      className={`mt-1 ${
+                        verificationStatusInfo.status === "pending"
+                          ? "text-blue-700"
+                          : verificationStatusInfo.status === "approved"
+                            ? "text-green-700"
+                            : "text-red-700"
+                      }`}
+                    >
+                      {verificationStatusInfo.status === "pending" &&
+                        `Solicitud enviada el ${
+                          verificationStatusInfo.requestDate
+                            ? new Date(
+                                verificationStatusInfo.requestDate
+                              ).toLocaleDateString("es-BO")
+                            : "fecha desconocida"
+                        }. Estamos revisando tu solicitud.`}
+                      {verificationStatusInfo.status === "approved" &&
+                        `Verificación aprobada el ${
+                          verificationStatusInfo.approvalDate
+                            ? new Date(
+                                verificationStatusInfo.approvalDate
+                              ).toLocaleDateString("es-BO")
+                            : "fecha desconocida"
+                        }.`}
+                      {verificationStatusInfo.status === "rejected" &&
+                        `Motivo del rechazo: ${verificationStatusInfo.notes || "No especificado"}`}
+                    </p>
+
+                    {verificationStatusInfo.status === "rejected" && (
+                      <div className="mt-3">
+                        <Button
+                          onClick={startVerification}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Enviar nueva solicitud
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Display a message if no campaigns to verify */}
-          {!isLoadingCampaigns &&
-            unverifiedCampaigns.length === 0 &&
-            !selectedCampaignId && (
-              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-amber-800">
-                  No tienes campañas activas sin verificar. Puedes crear una
-                  nueva campaña o ir a tu dashboard para ver tus campañas
-                  existentes.
-                </p>
-                <div className="mt-3 flex gap-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-[#478C5C] text-[#478C5C]"
-                    onClick={() => router.push("/create-campaign")}
-                  >
-                    <Plus className="mr-1 h-4 w-4" /> Nueva campaña
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-[#478C5C] text-[#478C5C]"
-                    onClick={() => router.push("/dashboard/campaigns")}
-                  >
-                    Ver mis campañas
-                  </Button>
-                </div>
-              </div>
-            )}
-
-          {/* Display verification status info if available */}
-          {selectedCampaignId && verificationStatusInfo.status && (
-            <div
-              className={`mt-4 p-3 rounded-lg border ${
-                verificationStatusInfo.status === "pending"
-                  ? "bg-blue-50 border-blue-200"
-                  : verificationStatusInfo.status === "approved"
-                    ? "bg-green-50 border-green-200"
-                    : "bg-red-50 border-red-200"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                {verificationStatusInfo.status === "pending" && (
-                  <Clock className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                )}
-                {verificationStatusInfo.status === "approved" && (
-                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                )}
-                {verificationStatusInfo.status === "rejected" && (
-                  <X className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                )}
-
-                <div>
-                  <p
-                    className={`font-medium ${
-                      verificationStatusInfo.status === "pending"
-                        ? "text-blue-800"
-                        : verificationStatusInfo.status === "approved"
-                          ? "text-green-800"
-                          : "text-red-800"
-                    }`}
-                  >
-                    {verificationStatusInfo.status === "pending" &&
-                      "Verificación en progreso"}
-                    {verificationStatusInfo.status === "approved" &&
-                      "Campaña verificada"}
-                    {verificationStatusInfo.status === "rejected" &&
-                      "Verificación rechazada"}
-                  </p>
-
-                  <p
-                    className={`mt-1 ${
-                      verificationStatusInfo.status === "pending"
-                        ? "text-blue-700"
-                        : verificationStatusInfo.status === "approved"
-                          ? "text-green-700"
-                          : "text-red-700"
-                    }`}
-                  >
-                    {verificationStatusInfo.status === "pending" &&
-                      `Solicitud enviada el ${
-                        verificationStatusInfo.requestDate
-                          ? new Date(
-                              verificationStatusInfo.requestDate
-                            ).toLocaleDateString("es-BO")
-                          : "fecha desconocida"
-                      }. Estamos revisando tu solicitud.`}
-                    {verificationStatusInfo.status === "approved" &&
-                      `Verificación aprobada el ${
-                        verificationStatusInfo.approvalDate
-                          ? new Date(
-                              verificationStatusInfo.approvalDate
-                            ).toLocaleDateString("es-BO")
-                          : "fecha desconocida"
-                      }.`}
-                    {verificationStatusInfo.status === "rejected" &&
-                      `Motivo del rechazo: ${verificationStatusInfo.notes || "No especificado"}`}
-                  </p>
-
-                  {verificationStatusInfo.status === "rejected" && (
-                    <div className="mt-3">
-                      <Button
-                        onClick={startVerification}
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        Enviar nueva solicitud
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Benefits Section - Step 1 */}
-      {verificationStep === 1 && selectedCampaignId && (
-        <div className="py-12">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Beneficios</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Asegura mayor confianza y visibilidad para tu causa. La
-              verificación te ayuda a destacar y atraer más donaciones.
-            </p>
-          </div>
+      {/* Verification Introduction - Step 1 */}
+      {verificationStep === 1 && (
+        <div
+          className={`verification-step max-w-6xl mx-auto ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""}`}
+        >
+          {/* Benefits Section */}
+          {selectedCampaignId && (
+            <div className="py-12">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                  Beneficios
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Asegura mayor confianza y visibilidad para tu causa. La
+                  verificación te ayuda a destacar y atraer más donaciones.
+                </p>
+              </div>
 
-          <div className="grid md:grid-cols-2 gap-16">
-            <div className="space-y-8">
-              <div>
-                <div className="flex items-start gap-5 mb-3">
-                  <div className="flex-shrink-0 mt-1">
+              <div className="grid md:grid-cols-2 gap-16">
+                <div className="space-y-8">
+                  <div>
+                    <div className="flex items-start gap-5 mb-3">
+                      <div className="flex-shrink-0 mt-1">
+                        <Image
+                          src="/icons/verified.svg"
+                          alt="Verificación"
+                          width={32}
+                          height={32}
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
+                          Genera confianza
+                        </h3>
+                        <p className="text-lg text-gray-600">
+                          Los donadores se sienten más seguros al apoyar
+                          campañas verificadas.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border-b border-gray-300 mt-4"></div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-start gap-5 mb-3">
+                      <div className="flex-shrink-0 mt-1">
+                        <Image
+                          src="/icons/heart.svg"
+                          alt="Visibilidad"
+                          width={48}
+                          height={48}
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
+                          Mayor visibilidad
+                        </h3>
+                        <p className="text-lg text-gray-600">
+                          Tu campaña será más visible dentro de la plataforma.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border-b border-gray-300 mt-4"></div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-start gap-5 mb-3">
+                      <div className="flex-shrink-0 mt-1">
+                        <Image
+                          src="/icons/support.svg"
+                          alt="Apoyo"
+                          width={64}
+                          height={64}
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
+                          Más apoyo
+                        </h3>
+                        <p className="text-lg text-gray-600">
+                          Las campañas verificadas suelen recibir más
+                          contribuciones.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border-b border-gray-300 mt-4"></div>
+                  </div>
+
+                  {/* Start verification button - disabled if already pending or approved */}
+                  <div className="flex justify-center mt-10">
+                    <Button
+                      onClick={startVerification}
+                      className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-8 py-3 rounded-full text-lg"
+                      disabled={
+                        isLoadingVerificationStatus ||
+                        verificationStatusInfo.status === "pending" ||
+                        verificationStatusInfo.status === "approved"
+                      }
+                    >
+                      {isLoadingVerificationStatus ? (
+                        <>
+                          <InlineSpinner className="mr-2" /> Verificando
+                          estado...
+                        </>
+                      ) : verificationStatusInfo.status === "pending" ? (
+                        "Verificación en curso"
+                      ) : verificationStatusInfo.status === "approved" ? (
+                        "Campaña ya verificada"
+                      ) : (
+                        "Iniciar verificación"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-start justify-center">
+                  <Image
+                    src="/views/verify-campaign/benefits.svg"
+                    alt="Benefits illustration"
+                    width={450}
+                    height={450}
+                    className="h-auto w-auto object-contain"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-16 border-b border-[#478C5C]/20" />
+            </div>
+          )}
+
+          {/* Steps Section */}
+          <div className="py-12">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Pasos a seguir
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Verificar tu campaña es muy sencillo, solo debes seguir unos
+                pocos pasos.
+              </p>
+            </div>
+
+            <div className="relative max-w-4xl mx-auto pt-8 pb-12">
+              {/* Horizontal line connecting the circles */}
+              <div className="absolute top-16 left-[calc(12.5%+20px)] right-[calc(12.5%+20px)] h-[2px] bg-[#478C5C]"></div>
+
+              <div className="flex justify-between items-start">
+                {/* Step 1 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
                     <Image
-                      src="/icons/verified.svg"
-                      alt="Verificación"
+                      src="/icons/doc.svg"
+                      alt="Iniciar verificación"
                       width={32}
                       height={32}
                     />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
-                      Genera confianza
-                    </h3>
-                    <p className="text-lg text-gray-600">
-                      Los donadores se sienten más seguros al apoyar campañas
-                      verificadas.
-                    </p>
-                  </div>
+                  <h3 className="text-base font-medium">
+                    Iniciar verificación
+                  </h3>
                 </div>
-                <div className="border-b border-gray-300 mt-4"></div>
-              </div>
 
-              <div>
-                <div className="flex items-start gap-5 mb-3">
-                  <div className="flex-shrink-0 mt-1">
-                    <Image
-                      src="/icons/heart.svg"
-                      alt="Visibilidad"
-                      width={48}
-                      height={48}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
-                      Mayor visibilidad
-                    </h3>
-                    <p className="text-lg text-gray-600">
-                      Tu campaña será más visible dentro de la plataforma.
-                    </p>
-                  </div>
-                </div>
-                <div className="border-b border-gray-300 mt-4"></div>
-              </div>
-
-              <div>
-                <div className="flex items-start gap-5 mb-3">
-                  <div className="flex-shrink-0 mt-1">
-                    <Image
-                      src="/icons/support.svg"
-                      alt="Apoyo"
-                      width={64}
-                      height={64}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
-                      Más apoyo
-                    </h3>
-                    <p className="text-lg text-gray-600">
-                      Las campañas verificadas suelen recibir más
-                      contribuciones.
-                    </p>
-                  </div>
-                </div>
-                <div className="border-b border-gray-300 mt-4"></div>
-              </div>
-
-              {/* Start verification button - disabled if already pending or approved */}
-              <div className="flex justify-center mt-10">
-                <Button
-                  onClick={startVerification}
-                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-8 py-3 rounded-full text-lg"
-                  disabled={
-                    isLoadingVerificationStatus ||
-                    verificationStatusInfo.status === "pending" ||
-                    verificationStatusInfo.status === "approved"
-                  }
-                >
-                  {isLoadingVerificationStatus ? (
-                    <>
-                      <InlineSpinner className="mr-2" /> Verificando estado...
-                    </>
-                  ) : verificationStatusInfo.status === "pending" ? (
-                    "Verificación en curso"
-                  ) : verificationStatusInfo.status === "approved" ? (
-                    "Campaña ya verificada"
-                  ) : (
-                    "Iniciar verificación"
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-start justify-center">
-              <Image
-                src="/views/verify-campaign/benefits.svg"
-                alt="Benefits illustration"
-                width={450}
-                height={450}
-                className="h-auto w-auto object-contain"
-              />
-            </div>
-          </div>
-
-          <div className="mt-16 border-b border-[#478C5C]/20" />
-        </div>
-      )}
-
-      {/* Steps Section - Step 1 */}
-      {verificationStep === 1 && (
-        <div className="py-12">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Pasos a seguir
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Verificar tu campaña es muy sencillo, solo debes seguir unos pocos
-              pasos.
-            </p>
-          </div>
-
-          <div className="relative max-w-4xl mx-auto pt-8 pb-12">
-            {/* Horizontal line connecting the circles */}
-            <div className="absolute top-16 left-[calc(12.5%+20px)] right-[calc(12.5%+20px)] h-[2px] bg-[#478C5C]"></div>
-
-            <div className="flex justify-between items-start">
-              {/* Step 1 */}
-              <div className="flex flex-col items-center text-center w-1/4">
-                <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                  <Image
-                    src="/icons/doc.svg"
-                    alt="Iniciar verificación"
-                    width={32}
-                    height={32}
-                  />
-                </div>
-                <h3 className="text-base font-medium">Iniciar verificación</h3>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex flex-col items-center text-center w-1/4">
-                <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                  <Image
-                    src="/icons/file_present.svg"
-                    alt="Cargar documentación"
-                    width={32}
-                    height={32}
-                  />
-                </div>
-                <h3 className="text-base font-medium">Cargar documentación</h3>
-              </div>
-
-              {/* Step 3 */}
-              <div className="flex flex-col items-center text-center w-1/4">
-                <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                  <Image
-                    src="/icons/document_search.svg"
-                    alt="Enviar solicitud"
-                    width={32}
-                    height={32}
-                  />
-                </div>
-                <div className="text-center">
-                  <h3 className="text-base font-medium">Enviar solicitud</h3>
-                  <p className="text-sm">y esperar revisión</p>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="flex flex-col items-center text-center w-1/4">
-                <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                  <Image
-                    src="/icons/verified.svg"
-                    alt="Obtener sello"
-                    width={32}
-                    height={32}
-                  />
-                </div>
-                <div className="text-center">
-                  <h3 className="text-base font-medium">Obtener el sello</h3>
-                  <p className="text-sm">de verificación</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-8 border-b border-[#478C5C]/20" />
-        </div>
-      )}
-
-      {/* Requirements Section - Step 1 */}
-      {verificationStep === 1 && (
-        <div className="py-12">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Requisitos</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Revisa los documentos y detalles necesarios antes de solicitar la
-              verificación, para asegurar que tu campaña sea transparente y
-              confiable.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-16">
-            <div className="space-y-8">
-              <div>
-                <div className="flex items-start gap-5 mb-3">
-                  <div className="flex-shrink-0 mt-1">
-                    <Image
-                      src="/icons/badge.svg"
-                      alt="Identificación"
-                      width={48}
-                      height={48}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
-                      Identificación
-                    </h3>
-                    <p className="text-lg text-gray-600">
-                      Sube tu documento de identidad o el del responsable.
-                    </p>
-                  </div>
-                </div>
-                <div className="border-b border-gray-300 mt-4"></div>
-              </div>
-
-              <div>
-                <div className="flex items-start gap-5 mb-3">
-                  <div className="flex-shrink-0 mt-1">
+                {/* Step 2 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
                     <Image
                       src="/icons/file_present.svg"
-                      alt="Documentación"
-                      width={48}
-                      height={48}
+                      alt="Cargar documentación"
+                      width={32}
+                      height={32}
                     />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
-                      Documentación
-                    </h3>
-                    <p className="text-lg text-gray-600">
-                      Adjunta documentos adicionales según el tipo de campaña.
-                    </p>
-                  </div>
+                  <h3 className="text-base font-medium">
+                    Cargar documentación
+                  </h3>
                 </div>
-                <div className="border-b border-gray-300 mt-4"></div>
-              </div>
 
-              <div>
-                <div className="flex items-start gap-5 mb-3">
-                  <div className="flex-shrink-0 mt-1">
+                {/* Step 3 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
                     <Image
-                      src="/icons/schedule.svg"
-                      alt="Tiempo"
-                      width={48}
-                      height={48}
+                      src="/icons/document_search.svg"
+                      alt="Enviar solicitud"
+                      width={32}
+                      height={32}
                     />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
-                      Tiempo de verificación
-                    </h3>
-                    <p className="text-lg text-gray-600">
-                      La verificación toma entre 1 y 2 días. La campaña seguirá
-                      visible mientras se verifica.
-                    </p>
+                  <div className="text-center">
+                    <h3 className="text-base font-medium">Enviar solicitud</h3>
+                    <p className="text-sm">y esperar revisión</p>
                   </div>
                 </div>
-                <div className="border-b border-gray-300 mt-4"></div>
-              </div>
 
-              {/* Start verification button - disabled if already pending or approved */}
-              <div className="flex justify-center mt-10">
-                <Button
-                  onClick={startVerification}
-                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-8 py-3 rounded-full text-lg"
-                  disabled={
-                    isLoadingVerificationStatus ||
-                    verificationStatusInfo.status === "pending" ||
-                    verificationStatusInfo.status === "approved"
-                  }
-                >
-                  {isLoadingVerificationStatus ? (
-                    <>
-                      <InlineSpinner className="mr-2" /> Verificando estado...
-                    </>
-                  ) : verificationStatusInfo.status === "pending" ? (
-                    "Verificación en curso"
-                  ) : verificationStatusInfo.status === "approved" ? (
-                    "Campaña ya verificada"
-                  ) : (
-                    "Iniciar verificación"
-                  )}
-                </Button>
+                {/* Step 4 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
+                    <Image
+                      src="/icons/verified.svg"
+                      alt="Obtener sello"
+                      width={32}
+                      height={32}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base font-medium">Obtener el sello</h3>
+                    <p className="text-sm">de verificación</p>
+                  </div>
+                </div>
               </div>
             </div>
+            <div className="mt-8 border-b border-[#478C5C]/20" />
+          </div>
 
-            <div className="flex items-start justify-center">
-              <Image
-                src="/views/verify-campaign/computadora.svg"
-                alt="Requirements illustration"
-                width={450}
-                height={450}
-                className="h-auto w-auto object-contain"
-              />
+          {/* Requirements Section */}
+          <div className="py-12">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Requisitos
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Para verificar tu campaña, necesitarás tener a mano los
+                siguientes documentos.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-16">
+              <div className="space-y-8">
+                <div>
+                  <div className="flex items-start gap-5 mb-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <Image
+                        src="/icons/badge.svg"
+                        alt="Identificación"
+                        width={48}
+                        height={48}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
+                        Identificación
+                      </h3>
+                      <p className="text-lg text-gray-600">
+                        Sube tu documento de identidad o el del responsable.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-b border-gray-300 mt-4"></div>
+                </div>
+
+                <div>
+                  <div className="flex items-start gap-5 mb-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <Image
+                        src="/icons/file_present.svg"
+                        alt="Documentación"
+                        width={48}
+                        height={48}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
+                        Documentación
+                      </h3>
+                      <p className="text-lg text-gray-600">
+                        Adjunta documentos adicionales según el tipo de campaña.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-b border-gray-300 mt-4"></div>
+                </div>
+
+                <div>
+                  <div className="flex items-start gap-5 mb-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <Image
+                        src="/icons/schedule.svg"
+                        alt="Tiempo"
+                        width={48}
+                        height={48}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-medium mb-2 text-[#478C5C]">
+                        Tiempo de verificación
+                      </h3>
+                      <p className="text-lg text-gray-600">
+                        La verificación toma entre 1 y 2 días. La campaña
+                        seguirá visible mientras se verifica.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-b border-gray-300 mt-4"></div>
+                </div>
+
+                {/* Start verification button - disabled if already pending or approved */}
+                <div className="flex justify-center mt-10">
+                  <Button
+                    onClick={startVerification}
+                    className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-8 py-3 rounded-full text-lg"
+                    disabled={
+                      isLoadingVerificationStatus ||
+                      verificationStatusInfo.status === "pending" ||
+                      verificationStatusInfo.status === "approved"
+                    }
+                  >
+                    {isLoadingVerificationStatus ? (
+                      <>
+                        <InlineSpinner className="mr-2" /> Verificando estado...
+                      </>
+                    ) : verificationStatusInfo.status === "pending" ? (
+                      "Verificación en curso"
+                    ) : verificationStatusInfo.status === "approved" ? (
+                      "Campaña ya verificada"
+                    ) : (
+                      "Iniciar verificación"
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-start justify-center">
+                <Image
+                  src="/views/verify-campaign/computadora.svg"
+                  alt="Requirements illustration"
+                  width={450}
+                  height={450}
+                  className="h-auto w-auto object-contain"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* FAQ Section */}
+          <div className="py-12">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Preguntas frecuentes
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Respondemos las consultas más comunes sobre el proceso de
+                verificación.
+              </p>
+            </div>
+
+            <div className="max-w-3xl mx-auto">
+              <Accordion type="single" collapsible className="mb-16">
+                {faqs.map((faq) => (
+                  <AccordionItem
+                    key={faq.id}
+                    value={faq.id}
+                    className="border-b border-[#478C5C]/20"
+                  >
+                    <AccordionTrigger className="text-xl font-medium text-[#2c6e49] hover:text-[#2c6e49]/90 py-6">
+                      {faq.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-lg text-gray-600 py-4">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </div>
           </div>
         </div>
@@ -1371,8 +1503,10 @@ export function CampaignVerificationView({
 
       {/* Verification Form Section - Step 2 */}
       {verificationStep === 2 && (
-        <div className="py-12">
-          <div className="max-w-6xl mx-auto">
+        <div
+          className={`verification-step max-w-6xl mx-auto ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""}`}
+        >
+          <div className="py-12">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
                 Completa tu verificación
@@ -1409,9 +1543,9 @@ export function CampaignVerificationView({
 
                   {idDocumentFrontFile ? (
                     <div className="w-full">
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex justify-between items-center mb-4">
                         <span className="text-gray-700 font-medium">
-                          {idDocumentFrontFile.name}
+                          Anverso del documento
                         </span>
                         <div className="flex gap-2">
                           {getImageType(idDocumentFrontFile) === "image" && (
@@ -1423,21 +1557,55 @@ export function CampaignVerificationView({
                                 setEditingIdDocumentSide("front");
                                 setIsIdDocumentEditing(true);
                               }}
-                              className="text-blue-500 hover:text-blue-700"
+                              className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
                               title="Editar imagen"
                             >
-                              <FileText size={18} />
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="text-blue-500"
+                              >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
                             </button>
                           )}
                           <button
                             onClick={() => setIdDocumentFrontFile(null)}
-                            className="text-red-500 hover:text-red-700"
+                            className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
                             title="Eliminar documento"
                           >
-                            <X size={18} />
+                            <X size={16} className="text-red-500" />
                           </button>
                         </div>
                       </div>
+
+                      {getImageType(idDocumentFrontFile) === "image" ? (
+                        <div className="relative rounded-lg overflow-hidden border border-gray-200 mb-3">
+                          <Image
+                            src={URL.createObjectURL(idDocumentFrontFile)}
+                            alt="Anverso del documento"
+                            width={300}
+                            height={200}
+                            className="w-full h-48 object-contain bg-gray-100"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                          <FileText size={24} className="text-gray-500" />
+                          <span className="text-sm text-gray-800 truncate">
+                            {idDocumentFrontFile.name}
+                          </span>
+                        </div>
+                      )}
+
                       <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
                         <CheckCircle2 size={16} className="mr-2" />
                         <span className="text-sm">
@@ -1546,9 +1714,9 @@ export function CampaignVerificationView({
 
                   {idDocumentBackFile ? (
                     <div className="w-full">
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex justify-between items-center mb-4">
                         <span className="text-gray-700 font-medium">
-                          {idDocumentBackFile.name}
+                          Reverso del documento
                         </span>
                         <div className="flex gap-2">
                           {getImageType(idDocumentBackFile) === "image" && (
@@ -1560,21 +1728,55 @@ export function CampaignVerificationView({
                                 setEditingIdDocumentSide("back");
                                 setIsIdDocumentEditing(true);
                               }}
-                              className="text-blue-500 hover:text-blue-700"
+                              className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
                               title="Editar imagen"
                             >
-                              <FileText size={18} />
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="text-blue-500"
+                              >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
                             </button>
                           )}
                           <button
                             onClick={() => setIdDocumentBackFile(null)}
-                            className="text-red-500 hover:text-red-700"
+                            className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
                             title="Eliminar documento"
                           >
-                            <X size={18} />
+                            <X size={16} className="text-red-500" />
                           </button>
                         </div>
                       </div>
+
+                      {getImageType(idDocumentBackFile) === "image" ? (
+                        <div className="relative rounded-lg overflow-hidden border border-gray-200 mb-3">
+                          <Image
+                            src={URL.createObjectURL(idDocumentBackFile)}
+                            alt="Reverso del documento"
+                            width={300}
+                            height={200}
+                            className="w-full h-48 object-contain bg-gray-100"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                          <FileText size={24} className="text-gray-500" />
+                          <span className="text-sm text-gray-800 truncate">
+                            {idDocumentBackFile.name}
+                          </span>
+                        </div>
+                      )}
+
                       <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
                         <CheckCircle2 size={16} className="mr-2" />
                         <span className="text-sm">
@@ -1787,50 +1989,91 @@ export function CampaignVerificationView({
                   )}
 
                 {supportingDocs.length > 0 && (
-                  <div className="space-y-3">
-                    {/* Actual uploaded documents */}
-                    {supportingDocs.map((doc, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center bg-white border border-gray-200 rounded-lg p-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Image
-                            src="/icons/doc.svg"
-                            alt="Document"
-                            width={24}
-                            height={24}
-                          />
-                          <div>
-                            <p className="font-medium">{doc.name}</p>
-                            <p className="text-sm text-gray-500">
-                              {Math.round(doc.size / 1024)} KB
-                            </p>
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium mb-3">
+                      Documentos cargados
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {supportingDocs.map((doc, index) => (
+                        <div
+                          key={index}
+                          className="relative rounded-lg overflow-hidden border border-gray-200"
+                        >
+                          {getImageType(doc) === "image" ? (
+                            <>
+                              <div className="relative aspect-[4/3] w-full overflow-hidden">
+                                <Image
+                                  src={URL.createObjectURL(doc)}
+                                  alt={`Documento ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="p-2 bg-white">
+                                <p className="text-sm font-medium truncate">
+                                  {doc.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {Math.round(doc.size / 1024)} KB
+                                </p>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-3 bg-white p-3">
+                              <div className="flex-shrink-0">
+                                <FileText size={24} className="text-blue-500" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">
+                                  {doc.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {Math.round(doc.size / 1024)} KB
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            {getImageType(doc) === "image" && (
+                              <button
+                                onClick={() => {
+                                  const objectUrl = URL.createObjectURL(doc);
+                                  setEditingImageUrl(objectUrl);
+                                  setEditingImageIndex(index);
+                                  setIsSupportingDocEditing(true);
+                                }}
+                                className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                title="Editar imagen"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="text-blue-500"
+                                >
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeSupportingDoc(index)}
+                              className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                              title="Eliminar documento"
+                            >
+                              <X size={16} className="text-red-500" />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          {getImageType(doc) === "image" && (
-                            <button
-                              onClick={() => {
-                                const objectUrl = URL.createObjectURL(doc);
-                                setEditingImageUrl(objectUrl);
-                                setEditingImageIndex(index);
-                              }}
-                              className="text-blue-500 hover:text-blue-700"
-                              title="Editar imagen"
-                            >
-                              <FileText size={20} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => removeSupportingDoc(index)}
-                            className="text-gray-500 hover:text-red-500"
-                          >
-                            <X size={20} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1995,139 +2238,47 @@ export function CampaignVerificationView({
         </div>
       )}
 
-      {/* Success Section - Step 3 */}
+      {/* Final Review and Submit - Step 3 */}
       {verificationStep === 3 && (
-        <div className="py-12">
-          <div className="max-w-6xl mx-auto">
-            <div className="border-t border-[#478C5C]/20 pt-8 mb-8"></div>
-            <div className="flex flex-col lg:flex-row lg:items-start gap-12">
-              {/* Left side - Title and description */}
-              <div className="flex-1 text-left">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                  ¡Tu solicitud de verificación está lista!
-                </h2>
-                <p className="text-xl text-gray-600">
-                  Una vez enviada tu solicitud, la revisión de tu campaña y su
-                  documentación demorará un par de días. Mientras tanto, tu
-                  campaña seguirá activa y disponible para recibir apoyo.
-                </p>
-              </div>
-
-              {/* Right side - Verification card */}
-              <div className="lg:w-2/5">
-                <div className="w-full p-8 bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <div className="flex flex-col items-center justify-center mb-6">
-                    <div className="mb-4">
-                      <Image
-                        src="/icons/verified.svg"
-                        alt="Verificación completa"
-                        width={64}
-                        height={64}
-                      />
-                    </div>
-                    <p className="text-lg font-medium text-center">
-                      Tu solicitud ha sido completada correctamente
-                    </p>
-                  </div>
-
-                  <div className="border-t border-gray-200 my-4"></div>
-
-                  <div className="flex flex-col gap-3">
-                    <Button
-                      className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-3 px-8 w-full flex items-center justify-center"
-                      onClick={handleSendFinalVerification}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                          <InlineSpinner className="text-white" />
-                          <span>Enviando solicitud...</span>
-                        </div>
-                      ) : (
-                        <>
-                          Enviar solicitud
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            className="ml-2"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z"
-                              fill="currentColor"
-                            />
-                          </svg>
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="border-[#478C5C] text-[#478C5C] rounded-full py-3 px-8 w-full flex items-center justify-center"
-                      onClick={() => setVerificationStep(2)}
-                      disabled={isSubmitting}
-                    >
-                      Cancelar solicitud
-                    </Button>
-                  </div>
-                </div>
-              </div>
+        <div
+          className={`verification-step max-w-6xl mx-auto ${isAnimating ? (animationDirection === "prev" ? "fade-out" : "fade-in") : ""}`}
+        >
+          <div className="py-12">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Revisa tu información
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Verifica que toda la información proporcionada sea correcta
+                antes de enviar tu solicitud de verificación.
+              </p>
             </div>
-            <div className="border-b border-[#478C5C]/20 pt-8 mt-8"></div>
+
+            {/* Rest of step 3 content... */}
           </div>
         </div>
       )}
 
-      {/* FAQ Section */}
-      <div className="py-12">
-        <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold mb-4">Preguntas frecuentes</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Respuestas a las dudas más comunes sobre el proceso de verificación.
-          </p>
-        </div>
-
-        <div className="max-w-3xl mx-auto">
-          <Accordion type="single" collapsible className="mb-16">
-            {faqs.map((faq) => (
-              <AccordionItem
-                key={faq.id}
-                value={faq.id}
-                className="border-b border-[#478C5C]/20"
-              >
-                <AccordionTrigger className="text-xl font-medium text-[#2c6e49] hover:text-[#2c6e49]/90 py-6">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-lg text-gray-600 py-4">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </div>
-
       {/* Reference Contact Modal */}
       {showReferenceModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white max-w-xl w-full mx-4 relative shadow-lg">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30">
+          <div className="bg-white max-w-xl w-full mx-4 max-h-[90vh] relative shadow-lg flex flex-col overflow-hidden rounded-lg">
             {/* Cream-colored top bar with close button */}
-            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-between relative">
+            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-between relative sticky top-0 z-10">
               <h3 className="text-xl font-semibold">
                 Agregar contacto de referencia
               </h3>
               <button
                 onClick={() => setShowReferenceModal(false)}
                 className="text-[#478C5C] hover:text-[#2c6e49]"
+                aria-label="Cerrar"
               >
                 <X size={24} />
               </button>
             </div>
 
             {/* Main content area */}
-            <div className="p-8">
+            <div className="p-8 overflow-y-auto flex-1">
               <p className="text-gray-600 mb-6">
                 Proporciona los datos de una persona que pueda respaldar la
                 autenticidad de tu campaña.
@@ -2232,15 +2383,16 @@ export function CampaignVerificationView({
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-center mt-6">
-                <Button
-                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
-                  onClick={handleReferenceSubmit}
-                >
-                  Guardar
-                </Button>
-              </div>
+            {/* Button container - fixed at bottom */}
+            <div className="flex justify-center p-4 bg-white border-t border-gray-200 sticky bottom-0 z-10">
+              <Button
+                className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
+                onClick={handleReferenceSubmit}
+              >
+                Guardar
+              </Button>
             </div>
           </div>
         </div>
@@ -2248,20 +2400,21 @@ export function CampaignVerificationView({
 
       {/* Cancel Request Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white max-w-xl w-full mx-4 relative shadow-lg">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30">
+          <div className="bg-white max-w-xl w-full mx-4 max-h-[90vh] relative shadow-lg flex flex-col overflow-hidden rounded-lg">
             {/* Cream-colored top bar with close button */}
-            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative">
+            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative sticky top-0 z-10">
               <button
                 onClick={() => setShowCancelModal(false)}
                 className="text-[#478C5C] hover:text-[#2c6e49]"
+                aria-label="Cerrar"
               >
                 <X size={24} />
               </button>
             </div>
 
             {/* Main content area */}
-            <div className="p-8">
+            <div className="p-8 overflow-y-auto flex-1">
               <div className="flex flex-col items-center text-center">
                 <Image
                   src="/icons/info-icon.svg"
@@ -2293,22 +2446,23 @@ export function CampaignVerificationView({
         </div>
       )}
 
-      {/* Add back the success modal with handshake icon */}
+      {/* Success modal with handshake icon */}
       {showSubmitModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30">
-          <div className="bg-white max-w-xl w-full mx-4 relative shadow-lg rounded-lg overflow-hidden">
+          <div className="bg-white max-w-xl w-full mx-4 max-h-[90vh] relative shadow-lg flex flex-col overflow-hidden rounded-lg">
             {/* Cream-colored top bar with close button */}
-            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative">
+            <div className="bg-[#f5f7e9] py-3 px-6 flex justify-end relative sticky top-0 z-10">
               <button
                 onClick={handleReturnToCampaign}
                 className="text-[#478C5C] hover:text-[#2c6e49]"
+                aria-label="Cerrar"
               >
                 <X size={24} />
               </button>
             </div>
 
             {/* Main content area */}
-            <div className="p-8">
+            <div className="p-8 overflow-y-auto flex-1">
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 flex items-center justify-center bg-green-100 rounded-full mb-6">
                   <CheckCircle2 size={32} className="text-[#478C5C]" />
@@ -2317,36 +2471,19 @@ export function CampaignVerificationView({
                   ¡Solicitud enviada con éxito!
                 </h2>
                 <p className="text-gray-600 text-lg mb-4">
-                  Tu solicitud de verificación para{" "}
-                  <span className="font-semibold">{campaignTitle}</span> ha sido
-                  recibida.
+                  Tu solicitud ha sido recibida y está en proceso de revisión.
+                  Te notificaremos en 48 horas hábiles el resultado de tu
+                  verificación.
                 </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 w-full">
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 text-blue-500">
-                      <Clock size={24} />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm text-blue-800 font-semibold mb-1">
-                        Proceso de verificación en curso
-                      </p>
-                      <p className="text-sm text-blue-800">
-                        Estamos revisando tu campaña y documentación. Este
-                        proceso puede tomar hasta 2 días hábiles. Te enviaremos
-                        una notificación cuando la verificación esté completa.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-gray-600 mb-6">
-                  Mientras tanto, tu campaña seguirá activa y disponible en la
-                  plataforma para recibir apoyo.
+                <p className="text-gray-600 text-lg mb-8">
+                  Mientras tanto, tu campaña seguirá activa y recibiendo
+                  donaciones como siempre.
                 </p>
 
                 <div className="w-full border-t border-gray-300 my-6"></div>
 
                 <Button
-                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8"
+                  className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-2 px-8 mb-4"
                   onClick={handleReturnToCampaign}
                 >
                   Ver mi campaña
@@ -2358,7 +2495,7 @@ export function CampaignVerificationView({
       )}
 
       {/* Image editor modal */}
-      {(isIdDocumentEditing || isImageEditorOpen) && editingImageUrl && (
+      {(isIdDocumentEditing || isSupportingDocEditing) && editingImageUrl && (
         <ImageEditor
           imageUrl={editingImageUrl}
           onSave={

@@ -8,7 +8,6 @@ import SkipToMain from "@/components/skip-to-main";
 import { Search } from "@/components/sidebar/search";
 import { ThemeSwitch } from "@/components/sidebar/theme-switch";
 import { ProfileDropdown } from "@/components/sidebar/profile-dropdown";
-import { Header } from "@/components/views/landing-page/Header";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -19,8 +18,7 @@ export function DashboardLayoutClient({ children }: DashboardLayoutProps) {
     <SearchProvider>
       <SidebarProvider defaultOpen={true}>
         <SkipToMain />
-        <Header />
-        <AppSidebar className="fixed inset-y-0 left-0 z-20 mt-28" />
+        <AppSidebar className="fixed inset-y-0 left-0 z-20" />
         <div
           id="content"
           className={cn(
@@ -30,8 +28,7 @@ export function DashboardLayoutClient({ children }: DashboardLayoutProps) {
             "transition-[width] duration-200 ease-linear",
             "flex min-h-screen flex-col",
             "group-data-[scroll-locked=1]/body:h-full",
-            "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:min-h-screen",
-            "mt-28"
+            "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:min-h-screen"
           )}
         >
           <div className="p-4 flex items-center justify-end border-b">
