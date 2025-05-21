@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { getAuthSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
 // GET handler to retrieve transfer history for a campaign
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "10");
     const offset = parseInt(searchParams.get("offset") || "0");
@@ -86,15 +85,15 @@ export async function GET(
 // POST handler to create a new fund transfer request
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const data = await request.json();
 
     // Validate required fields
@@ -189,15 +188,15 @@ export async function POST(
 // PATCH handler to update fund transfer status (admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession();
     if (!session || !session.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const campaignId = params.id;
+    const campaignId = (await params).id;
     const data = await request.json();
     const { transferId, status, notes } = data;
 
