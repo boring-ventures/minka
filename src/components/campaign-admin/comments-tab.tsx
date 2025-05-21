@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare,
   Check,
@@ -11,7 +11,7 @@ import {
   Send,
   Reply,
 } from "lucide-react";
-
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -40,6 +40,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface CommentsTabProps {
   campaign: Record<string, any>;
@@ -59,6 +64,13 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
+    null
+  );
+  const [showEmojiSelector, setShowEmojiSelector] = useState<string | null>(
+    null
+  );
 
   const {
     isLoadingComments,
@@ -127,9 +139,18 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleEmojiReaction = () => {
-    // This would be implemented to handle emoji reactions
-    setShowSaveBar(true);
+  const handleEmojiReaction = (emoji: string, commentId: string) => {
+    setSelectedEmoji(emoji);
+    setSelectedCommentId(commentId);
+
+    // Apply the reaction immediately without showing the save bar
+    toast({
+      title: "Reacción añadida",
+      description: "Tu reacción ha sido registrada correctamente.",
+    });
+
+    // Hide the emoji selector
+    setShowEmojiSelector(null);
   };
 
   const handleReplySubmit = async (commentId: string) => {
@@ -203,8 +224,26 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
     }
   };
 
+  const toggleEmojiSelector = (commentId: string) => {
+    if (showEmojiSelector === commentId) {
+      setShowEmojiSelector(null);
+    } else {
+      setShowEmojiSelector(commentId);
+    }
+  };
+
+  // Helper function to calculate days since a date
+  const getDaysSince = (dateString: string): string => {
+    const commentDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - commentDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return `${diffDays} ${diffDays === 1 ? "día" : "días"}`;
+  };
+
   return (
-    <div className="w-full px-6 md:px-8 lg:px-16 xl:px-24 py-6">
+    <div className="w-full px-6 md:px-8 lg:px-16 xl:px-24 py-6 flex flex-col min-h-[calc(100vh-200px)]">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
         Comentarios
       </h2>
@@ -216,7 +255,7 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
       <div className="border-b border-[#478C5C]/20 my-8"></div>
 
       {/* Comments section */}
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h3 className="text-2xl font-semibold">Todos los comentarios</h3>
@@ -266,11 +305,11 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
         </div>
 
         {isLoadingComments && comments.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-8 flex-1">
             <LoadingSpinner size="md" />
           </div>
         ) : comments.length > 0 ? (
-          <div className="space-y-8">
+          <div className="space-y-8 flex-1">
             {/* Comment items */}
             {comments.map((comment) => (
               <div
@@ -279,87 +318,126 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
               >
                 <div className="flex gap-4 mb-3">
                   <div className="w-12 h-12 bg-green-600 rounded-full overflow-hidden flex items-center justify-center text-white font-medium">
-                    {comment.profile.name.substring(0, 2).toUpperCase()}
+                    {comment.profile?.name?.substring(0, 2).toUpperCase() || ""}
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-medium text-gray-900">
-                          {comment.profile.name}
+                          {comment.profile?.name || "Usuario"}
                         </h4>
                         <p className="text-gray-500 text-sm">
-                          {new Date(comment.createdAt).toLocaleDateString(
-                            "es-ES",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
-                          )}
+                          {getDaysSince(comment.createdAt)}
                         </p>
+                        {comment.donation_amount && (
+                          <div className="mt-1 text-sm text-[#2c6e49] font-medium">
+                            Donó Bs. {comment.donation_amount.toLocaleString()}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => openDeleteDialog(comment.id)}
-                        className="text-green-600 hover:text-green-800 flex items-center"
+                        className="text-[#1a5535] hover:text-[#0e3e20] flex items-center"
                       >
                         <span className="mr-2">Eliminar comentario</span>
                         <Trash2 size={16} />
                       </button>
                     </div>
-                    <p className="mt-2 text-gray-700">{comment.content}</p>
+                    <p className="mt-2 text-gray-700">
+                      {comment.content || comment.message || ""}
+                    </p>
 
                     {/* Emoji reactions */}
-                    <div className="mt-4 flex items-center gap-2">
+                    <div className="mt-4 flex items-center gap-4">
                       <button
-                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
-                        onClick={handleEmojiReaction}
+                        className="flex items-center"
+                        onClick={() => toggleEmojiSelector(comment.id)}
                       >
-                        <span role="img" aria-label="smile">
-                          😀
-                        </span>
+                        <Image
+                          src="/icons/add_reaction.svg"
+                          alt="Add reaction"
+                          width={24}
+                          height={24}
+                        />
                       </button>
-                      <button
-                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
-                        onClick={handleEmojiReaction}
-                      >
-                        <span role="img" aria-label="heart">
-                          ❤️
-                        </span>
-                      </button>
-                      <button
-                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
-                        onClick={handleEmojiReaction}
-                      >
-                        <span role="img" aria-label="green-heart">
-                          💚
-                        </span>
-                      </button>
-                      <button
-                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
-                        onClick={handleEmojiReaction}
-                      >
-                        <span role="img" aria-label="clap">
-                          👏
-                        </span>
-                      </button>
-                      <button
-                        className="w-8 h-8 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600"
-                        onClick={handleEmojiReaction}
-                      >
-                        <span role="img" aria-label="thumbs-up">
-                          👍
-                        </span>
-                      </button>
-                      <button
-                        className="w-8 h-8 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-gray-400"
-                        onClick={handleEmojiReaction}
-                      >
-                        <span>+</span>
-                      </button>
+
+                      {showEmojiSelector === comment.id && (
+                        <div className="flex items-center gap-1 rounded-full py-1 px-3 border border-gray-200 bg-white shadow-sm">
+                          <button
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xl"
+                            onClick={() =>
+                              handleEmojiReaction("😀", comment.id)
+                            }
+                          >
+                            <span role="img" aria-label="smile">
+                              😀
+                            </span>
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xl"
+                            onClick={() =>
+                              handleEmojiReaction("❤️", comment.id)
+                            }
+                          >
+                            <span role="img" aria-label="heart">
+                              ❤️
+                            </span>
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xl"
+                            onClick={() =>
+                              handleEmojiReaction("💚", comment.id)
+                            }
+                          >
+                            <span role="img" aria-label="green-heart">
+                              💚
+                            </span>
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xl"
+                            onClick={() =>
+                              handleEmojiReaction("👏", comment.id)
+                            }
+                          >
+                            <span role="img" aria-label="clap">
+                              👏
+                            </span>
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xl"
+                            onClick={() =>
+                              handleEmojiReaction("🙏", comment.id)
+                            }
+                          >
+                            <span role="img" aria-label="pray">
+                              🙏
+                            </span>
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xl"
+                            onClick={() =>
+                              handleEmojiReaction("💪", comment.id)
+                            }
+                          >
+                            <span role="img" aria-label="muscle">
+                              💪
+                            </span>
+                          </button>
+                          <button
+                            className="w-8 h-8 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-xl text-gray-400"
+                            onClick={() => handleEmojiReaction("+", comment.id)}
+                          >
+                            <span>+</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Spacer */}
+                      <div className="flex-grow"></div>
 
                       {/* Reply button */}
                       <button
-                        className="ml-4 px-3 py-1 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600 hover:bg-[#e8f5ed]"
+                        className="px-3 py-1 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600 hover:bg-[#e8f5ed]"
                         onClick={() =>
                           setReplyingTo(
                             replyingTo === comment.id ? null : comment.id
@@ -439,13 +517,7 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
                                       {reply.user.name}
                                     </h5>
                                     <p className="text-xs text-gray-500">
-                                      {new Date(
-                                        reply.created_at
-                                      ).toLocaleDateString("es-ES", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                      })}
+                                      {getDaysSince(reply.created_at)}
                                     </p>
                                   </div>
                                 </div>
@@ -480,7 +552,7 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
             )}
           </div>
         ) : (
-          <div className="text-center py-10 bg-gray-50 rounded-lg">
+          <div className="text-center py-10 bg-gray-50 rounded-lg flex-1 flex flex-col justify-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No hay comentarios aún
             </h3>

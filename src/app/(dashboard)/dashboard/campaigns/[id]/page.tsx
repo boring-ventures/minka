@@ -1631,14 +1631,10 @@ export default function CampaignDetailPage() {
           {activeTab === "transferir" && (
             <div className="w-full">
               <div className="px-6 md:px-8 lg:px-16 xl:px-24 py-6">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
                   Transferir fondos
                 </h2>
-                <p className="text-xl text-gray-600 leading-relaxed mb-10">
-                  Transfiere los fondos recolectados a la cuenta designada para
-                  el proyecto.
-                </p>
-                <div className="border-b border-[#478C5C]/20 my-8"></div>
+                <div className="border-b border-[#478C5C]/20 my-4"></div>
               </div>
               <TransferFundsTab campaign={campaign} />
             </div>
