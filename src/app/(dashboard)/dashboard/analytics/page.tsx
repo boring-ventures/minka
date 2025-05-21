@@ -140,7 +140,16 @@ export default function AnalyticsPage() {
           analyticsData.totalNotificationsSent = 654;
         }
 
-        setAdminData(analyticsData);
+        // Update the admin data with values from API, with fallbacks to 0 for optional fields
+        setAdminData({
+          totalUsers: analyticsData.totalUsers,
+          totalCampaigns: analyticsData.totalCampaigns,
+          totalDonations: analyticsData.totalDonations,
+          pendingVerifications: analyticsData.pendingVerifications,
+          totalInteractions: analyticsData.totalInteractions || 0,
+          growthRate: analyticsData.growthRate || 0,
+          totalNotificationsSent: analyticsData.totalNotificationsSent || 0,
+        });
       }
 
       setIsLoading(false);

@@ -486,7 +486,7 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
                                 }
                               >
                                 {isSubmittingReply || isReplyingToComment ? (
-                                  <LoadingSpinner size="xs" className="mr-2" />
+                                  <LoadingSpinner size="sm" className="mr-2" />
                                 ) : (
                                   <Send size={14} className="mr-2" />
                                 )}

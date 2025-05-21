@@ -61,7 +61,9 @@ export interface CampaignUpdate {
 export interface CampaignComment {
   id: string;
   content: string;
+  message?: string;
   createdAt: string;
+  donation_amount?: number;
   profile: {
     id: string;
     name: string;

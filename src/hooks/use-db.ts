@@ -323,6 +323,9 @@ export function useDb() {
     totalCampaigns: number;
     totalDonations: number;
     pendingVerifications: number;
+    totalInteractions?: number;
+    growthRate?: number;
+    totalNotificationsSent?: number;
   }> => {
     const cacheKey = "analytics";
     const cachedData = getCachedData(cacheKey);
@@ -442,6 +445,7 @@ export function useDb() {
       accountNumber: string;
       amount: number;
       status: string;
+      frequency?: string;
     }): Promise<{ error?: any }> => {
       setLoading(true);
       try {
