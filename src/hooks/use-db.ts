@@ -446,27 +446,79 @@ export function useDb() {
       amount: number;
       status: string;
       frequency?: string;
-    }): Promise<{ error?: any }> => {
+    }): Promise<{ error?: any; transferId?: string }> => {
       setLoading(true);
       try {
-        const response = await fetch("/api/campaign/fund-transfer", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(data),
-        });
+        const response = await fetch(
+          `/api/campaign/${data.campaignId}/transfer`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(data),
+          }
+        );
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.message || "Failed to create fund transfer");
+          throw new Error(error.error || "Failed to create fund transfer");
         }
 
-        return {};
+        const result = await response.json();
+
+        return { transferId: result.transferId };
       } catch (error) {
         console.error("Error creating fund transfer:", error);
         return { error };
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // Get fund transfer history
+  const getFundTransferHistory = useCallback(
+    async (
+      campaignId: string,
+      limit: number = 10,
+      offset: number = 0
+    ): Promise<{
+      transfers: Array<any>;
+      totalCount: number;
+      hasMore: boolean;
+      error?: any;
+    }> => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/campaign/${campaignId}/transfer?limit=${limit}&offset=${offset}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to fetch transfer history");
+        }
+
+        const data = await response.json();
+        return {
+          transfers: data.transfers,
+          totalCount: data.totalCount,
+          hasMore: data.hasMore,
+        };
+      } catch (error) {
+        console.error("Error fetching transfer history:", error);
+        return {
+          transfers: [],
+          totalCount: 0,
+          hasMore: false,
+          error,
+        };
       } finally {
         setLoading(false);
       }
@@ -493,6 +545,7 @@ export function useDb() {
       updateNotificationPreferences,
       // Fund transfers
       createFundTransfer,
+      getFundTransferHistory,
     }),
     [
       loading,
@@ -505,6 +558,7 @@ export function useDb() {
       getNotificationPreferences,
       updateNotificationPreferences,
       createFundTransfer,
+      getFundTransferHistory,
     ]
   );
 

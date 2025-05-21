@@ -1,0 +1,4 @@
+/* Custom override to hide the default close button in the dialog */
+[role="dialog"] > [data-state] > [class*="right-4"][class*="top-4"] {
+  display: none !important;
+}
