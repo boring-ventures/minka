@@ -2,12 +2,21 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ProfileData } from "@/types";
 import { useAuth } from "@/providers/auth-provider";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import {
+  LogOut,
+  CheckCircle,
+  Bell,
+  BarChart,
+  Users,
+  LibraryBig,
+  ArrowRight,
+} from "lucide-react";
 
 interface AdminDashboardContentProps {
   profile: ProfileData | null;
@@ -44,60 +53,111 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
 
   return (
     <div className="space-y-8">
-      <div className="bg-card rounded-lg p-6">
-        <h2 className="text-2xl font-semibold mb-4">Dashboard Overview</h2>
-        <p className="text-muted-foreground">
-          Welcome to the admin dashboard, {profile?.name || "Admin"}. You have
-          access to manage all campaigns and users.
+      <div className="rounded-lg p-6">
+        <h2 className="text-2xl font-semibold mb-4">Panel Administrativo</h2>
+        <p>
+          Bienvenido al panel administrativo, {profile?.name || "Administrador"}
+          . Desde aquí puedes gestionar todas las campañas, usuarios y
+          configuraciones de la plataforma.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-card rounded-lg p-6">
-          <h3 className="text-xl font-semibold mb-2">Campaigns</h3>
-          <p className="text-muted-foreground mb-6">
-            Review and manage all active campaigns
-          </p>
-          <Link
-            href="/dashboard/campaigns"
-            className="text-primary hover:underline font-medium"
-          >
-            Manage Campaigns →
-          </Link>
-        </div>
-
-        <div className="bg-card rounded-lg p-6">
-          <h3 className="text-xl font-semibold mb-2">Users</h3>
-          <p className="text-muted-foreground mb-6">
-            Manage user accounts and permissions
-          </p>
-          <Link
-            href="/dashboard/users"
-            className="text-primary hover:underline font-medium"
-          >
-            Manage Users →
-          </Link>
-        </div>
-
-        <div className="bg-card rounded-lg p-6">
-          <h3 className="text-xl font-semibold mb-2">Analytics</h3>
-          <p className="text-muted-foreground mb-6">
-            View donation statistics and platform metrics
+      <h3 className="text-xl font-semibold mb-4">Gestión de Plataforma</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center mb-4">
+            <BarChart className="h-6 w-6 mr-2 text-[#2c6e49]" />
+            <h3 className="text-xl font-semibold">Estadísticas</h3>
+          </div>
+          <p className="text-gray-600 mb-6 h-24">
+            Visualiza métricas detalladas sobre campañas, donaciones, usuarios y
+            desempeño general de la plataforma.
           </p>
           <Link
             href="/dashboard/analytics"
-            className="text-primary hover:underline font-medium"
+            className="text-[#2c6e49] hover:underline font-medium flex items-center"
           >
-            View Analytics →
+            Ver estadísticas <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center mb-4">
+            <CheckCircle className="h-6 w-6 mr-2 text-[#2c6e49]" />
+            <h3 className="text-xl font-semibold">Verificación</h3>
+          </div>
+          <p className="text-gray-600 mb-6 h-24">
+            Revisa y aprueba solicitudes de verificación de campañas. Valida la
+            documentación y autenticidad de los organizadores.
+          </p>
+          <Link
+            href="/dashboard/verification"
+            className="text-[#2c6e49] hover:underline font-medium flex items-center"
+          >
+            Gestionar verificaciones <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center mb-4">
+            <Bell className="h-6 w-6 mr-2 text-[#2c6e49]" />
+            <h3 className="text-xl font-semibold">Notificaciones</h3>
+          </div>
+          <p className="text-gray-600 mb-6 h-24">
+            Envía notificaciones sobre actualizaciones de la plataforma a los
+            usuarios que han dado su consentimiento.
+          </p>
+          <Link
+            href="/dashboard/notifications/admin"
+            className="text-[#2c6e49] hover:underline font-medium flex items-center"
+          >
+            Gestionar notificaciones <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </div>
       </div>
 
-      <div className="flex justify-end mt-4">
+      <h3 className="text-xl font-semibold mb-4 mt-8">Gestión de Contenido</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center mb-4">
+            <LibraryBig className="h-6 w-6 mr-2 text-[#2c6e49]" />
+            <h3 className="text-xl font-semibold">Campañas</h3>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Administra todas las campañas activas, revisa contenido y realiza
+            modificaciones cuando sea necesario.
+          </p>
+          <Link
+            href="/dashboard/campaigns"
+            className="text-[#2c6e49] hover:underline font-medium flex items-center"
+          >
+            Gestionar campañas <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center mb-4">
+            <Users className="h-6 w-6 mr-2 text-[#2c6e49]" />
+            <h3 className="text-xl font-semibold">Usuarios</h3>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Visualiza y administra las cuentas de usuarios, permisos y roles
+            dentro de la plataforma.
+          </p>
+          <Link
+            href="/dashboard/users"
+            className="text-[#2c6e49] hover:underline font-medium flex items-center"
+          >
+            Gestionar usuarios <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-8">
         <Button
           onClick={handleSignOut}
           variant="outline"
-          className="flex items-center gap-2 text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+          className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
         >
           <LogOut size={16} />
           Cerrar sesión

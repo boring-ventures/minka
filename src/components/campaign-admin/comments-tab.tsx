@@ -8,6 +8,8 @@ import {
   Trash2,
   ChevronDown,
   Filter,
+  Send,
+  Reply,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CommentsTabProps {
   campaign: Record<string, any>;
@@ -46,9 +56,17 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
   const [sortBy, setSortBy] = useState<string>("recent");
   const [filterBy, setFilterBy] = useState<string>("all");
   const [showSaveBar, setShowSaveBar] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-  const { isLoadingComments, getCampaignComments, deleteCampaignComment } =
-    useCampaign();
+  const {
+    isLoadingComments,
+    getCampaignComments,
+    deleteCampaignComment,
+    replyToComment,
+    isReplyingToComment,
+  } = useCampaign();
 
   useEffect(() => {
     fetchComments();
@@ -114,6 +132,77 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
     setShowSaveBar(true);
   };
 
+  const handleReplySubmit = async (commentId: string) => {
+    if (!replyText.trim()) return;
+
+    setIsSubmittingReply(true);
+
+    try {
+      // Call the replyToComment function from useCampaign hook
+      const success = await replyToComment(campaign.id, commentId, replyText);
+
+      if (success) {
+        // Show success message
+        toast({
+          title: "Respuesta enviada",
+          description: "Tu respuesta ha sido publicada correctamente.",
+        });
+
+        // Manually update the UI with the new reply - useful if the backend
+        // doesn't immediately include the reply in the comments endpoint
+        const updatedComments = comments.map((comment) => {
+          if (comment.id === commentId) {
+            // Create a new reply object
+            const newReply = {
+              id: `temp-reply-${Date.now()}`,
+              text: replyText,
+              created_at: new Date().toISOString(),
+              user: {
+                id: "current-user",
+                name: "Administrador", // Use a generic admin name
+                avatar: "",
+              },
+            };
+
+            // Add the new reply to the comment
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), newReply],
+            };
+          }
+          return comment;
+        });
+
+        // Update comments state with our local update
+        setComments(updatedComments);
+
+        // Fetch updated comments to refresh the list with a small delay to ensure
+        // the backend has processed the comment
+        setTimeout(async () => {
+          await fetchComments();
+        }, 1000);
+
+        // Reset reply state
+        setReplyText("");
+        setReplyingTo(null);
+      }
+    } catch (error) {
+      console.error("Error submitting reply:", error);
+
+      // If there was an error, try to display a helpful message
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : "No se pudo enviar tu respuesta. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
   return (
     <div className="w-full px-6 md:px-8 lg:px-16 xl:px-24 py-6">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
@@ -159,26 +248,20 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Filter dropdown */}
-            <div className="relative">
-              <div className="absolute top-0 left-0 w-full">
-                <div className="absolute z-10 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                  <div className="p-1 bg-[#f2f8f5] rounded-t-md border border-[#2c6e49] border-b-0">
-                    <div className="px-3 py-2 text-[#1a5535] hover:bg-white cursor-pointer">
-                      Sin reaccionar
-                    </div>
-                  </div>
-                  <div className="p-1 bg-white rounded-b-md border border-[#2c6e49] border-t-0">
-                    <div className="px-3 py-2 bg-[#e8f5ed] text-[#1a5535] font-medium">
-                      Todos
-                    </div>
-                    <div className="px-3 py-2 text-gray-700 hover:bg-[#f2f8f5] cursor-pointer">
-                      ONGs
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Filter as Select component */}
+            <Select
+              value={filterBy}
+              onValueChange={(value) => setFilterBy(value)}
+            >
+              <SelectTrigger className="w-36 border-gray-300 bg-white">
+                <SelectValue placeholder="Filtrar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unreacted">Sin reaccionar</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="ongs">ONGs</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -189,38 +272,41 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
         ) : comments.length > 0 ? (
           <div className="space-y-8">
             {/* Comment items */}
-            {[1, 2].map((item) => (
+            {comments.map((comment) => (
               <div
-                key={item}
+                key={comment.id}
                 className="border-b border-gray-200 pb-6 mb-6 last:border-b-0"
               >
                 <div className="flex gap-4 mb-3">
                   <div className="w-12 h-12 bg-green-600 rounded-full overflow-hidden flex items-center justify-center text-white font-medium">
-                    NR
+                    {comment.profile.name.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-medium text-gray-900">
-                          Nadia Rosas
+                          {comment.profile.name}
                         </h4>
                         <p className="text-gray-500 text-sm">
-                          Bs. 200,00 | 3 días
+                          {new Date(comment.createdAt).toLocaleDateString(
+                            "es-ES",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
                         </p>
                       </div>
                       <button
-                        onClick={() => openDeleteDialog("comment-id")}
+                        onClick={() => openDeleteDialog(comment.id)}
                         className="text-green-600 hover:text-green-800 flex items-center"
                       >
                         <span className="mr-2">Eliminar comentario</span>
                         <Trash2 size={16} />
                       </button>
                     </div>
-                    <p className="mt-2 text-gray-700">
-                      Es un honor poder contribuir a la conservación del Parque
-                      Nacional Amboró. ¡Juntos podemos hacer la diferencia!
-                      Sigamos protegiendo este maravilloso lugar
-                    </p>
+                    <p className="mt-2 text-gray-700">{comment.content}</p>
 
                     {/* Emoji reactions */}
                     <div className="mt-4 flex items-center gap-2">
@@ -270,7 +356,108 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
                       >
                         <span>+</span>
                       </button>
+
+                      {/* Reply button */}
+                      <button
+                        className="ml-4 px-3 py-1 rounded-full bg-[#f2f8f5] flex items-center justify-center text-gray-600 hover:bg-[#e8f5ed]"
+                        onClick={() =>
+                          setReplyingTo(
+                            replyingTo === comment.id ? null : comment.id
+                          )
+                        }
+                      >
+                        <Reply size={14} className="mr-1" />
+                        <span className="text-sm">Responder</span>
+                      </button>
                     </div>
+
+                    {/* Reply section - only visible when replying to this comment */}
+                    {replyingTo === comment.id && (
+                      <div className="mt-4 pl-4 border-l-2 border-gray-200">
+                        <div className="flex gap-2">
+                          <div className="w-8 h-8 bg-[#2c6e49] rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-medium">
+                            AD
+                          </div>
+                          <div className="flex-1">
+                            <Textarea
+                              placeholder="Escribe tu respuesta..."
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2c6e49] min-h-[80px] text-sm"
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-sm"
+                                onClick={() => {
+                                  setReplyingTo(null);
+                                  setReplyText("");
+                                }}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white text-sm"
+                                onClick={() => handleReplySubmit(comment.id)}
+                                disabled={
+                                  !replyText.trim() ||
+                                  isSubmittingReply ||
+                                  isReplyingToComment
+                                }
+                              >
+                                {isSubmittingReply || isReplyingToComment ? (
+                                  <LoadingSpinner size="xs" className="mr-2" />
+                                ) : (
+                                  <Send size={14} className="mr-2" />
+                                )}
+                                Enviar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Display existing replies */}
+                    {comment.replies && comment.replies.length > 0 && (
+                      <div className="mt-4">
+                        {comment.replies.map((reply) => (
+                          <div
+                            key={reply.id}
+                            className="mt-2 pl-4 border-l-2 border-gray-200"
+                          >
+                            <div className="flex gap-2">
+                              <div className="w-8 h-8 bg-[#2c6e49] rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-medium">
+                                {reply.user.name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex justify-between">
+                                  <div>
+                                    <h5 className="text-sm font-medium text-gray-900">
+                                      {reply.user.name}
+                                    </h5>
+                                    <p className="text-xs text-gray-500">
+                                      {new Date(
+                                        reply.created_at
+                                      ).toLocaleDateString("es-ES", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                      })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <p className="mt-1 text-sm text-gray-700">
+                                  {reply.text}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

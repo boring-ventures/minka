@@ -67,6 +67,16 @@ export interface CampaignComment {
     name: string;
     profilePicture?: string;
   };
+  replies?: Array<{
+    id: string;
+    text: string;
+    created_at: string;
+    user: {
+      id: string;
+      name: string;
+      avatar?: string;
+    };
+  }>;
 }
 
 // Define types for campaign donations
@@ -95,6 +105,7 @@ export function useCampaign() {
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [isLoadingDonations, setIsLoadingDonations] = useState(false);
   const [isUpdatingDonation, setIsUpdatingDonation] = useState(false);
+  const [isReplyingToComment, setIsReplyingToComment] = useState(false);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -682,6 +693,62 @@ export function useCampaign() {
     }
   };
 
+  // Function to reply to a campaign comment
+  const replyToComment = async (
+    targetCampaignId: string,
+    commentId: string,
+    content: string
+  ): Promise<boolean> => {
+    setIsReplyingToComment(true);
+
+    try {
+      if (!content.trim()) {
+        throw new Error("La respuesta no puede estar vacía");
+      }
+
+      // Using the regular comments endpoint with a special format for replies
+      // until a specific reply endpoint is implemented
+      const response = await fetch(
+        `/api/campaign/${targetCampaignId}/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content,
+            parentCommentId: commentId, // Add parent comment ID to indicate this is a reply
+            isReply: true,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to post reply");
+      }
+
+      toast({
+        title: "Respuesta enviada",
+        description: "Tu respuesta ha sido publicada correctamente",
+      });
+      return true;
+    } catch (error) {
+      console.error("Error posting reply to comment:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Error al publicar la respuesta",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsReplyingToComment(false);
+    }
+  };
+
   return {
     isCreating,
     isSavingDraft,
@@ -691,6 +758,7 @@ export function useCampaign() {
     isPostingComment,
     isLoadingDonations,
     isUpdatingDonation,
+    isReplyingToComment,
     campaignId,
     createCampaign,
     saveCampaignDraft,
@@ -704,5 +772,6 @@ export function useCampaign() {
     deleteCampaignComment,
     getCampaignDonations,
     updateDonationStatus,
+    replyToComment,
   };
 }
