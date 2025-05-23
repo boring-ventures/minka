@@ -75,7 +75,7 @@ export function CampaignCard({
 
   return (
     <div
-      className="cursor-pointer rounded-lg overflow-hidden bg-white border border-gray-100 h-[450px] grid grid-rows-[160px_1fr_auto] hover:shadow-md transition-all duration-200"
+      className="cursor-pointer rounded-lg overflow-hidden bg-white border border-gray-100 h-[380px] grid grid-rows-[160px_1fr_auto] hover:shadow-md transition-all duration-200"
       onClick={handleCardClick}
     >
       {/* Image Section - Fixed height */}
@@ -90,9 +90,9 @@ export function CampaignCard({
       </div>
 
       {/* Content Section - Scrollable if needed */}
-      <div className="p-4 overflow-hidden">
+      <div className="p-3 overflow-hidden">
         {/* Status indicator with verified check */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           {isVerified && status === "active" && (
             <Image
               src="/icons/verified.svg"
@@ -115,7 +115,7 @@ export function CampaignCard({
         </h3>
 
         {/* Category and Location with truncation */}
-        <div className="flex text-sm text-gray-600 mb-4 overflow-hidden">
+        <div className="flex text-sm text-gray-600 mb-3 overflow-hidden">
           <span className="mr-4 truncate max-w-[50%]">{category}</span>
           <span className="truncate max-w-[50%]">{location}</span>
         </div>
@@ -142,7 +142,7 @@ export function CampaignCard({
 
       {/* Button Section - Auto height to accommodate stacked buttons */}
       <div
-        className="p-4 pt-2 border-t border-gray-100"
+        className="p-3 pt-2 border-t border-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Add verification action button if not verified and campaign is active */}

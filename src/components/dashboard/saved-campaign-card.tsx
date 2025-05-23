@@ -42,9 +42,9 @@ export function SavedCampaignCard({
       href={`/campaign/${id}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="block bg-white rounded-lg shadow-sm overflow-hidden relative hover:shadow-md transition-all duration-200 group"
+      className="block bg-white rounded-lg shadow-sm overflow-hidden relative hover:shadow-md transition-all duration-200 group h-[180px]"
     >
-      <div className="flex overflow-hidden relative">
+      <div className="flex overflow-hidden relative h-full">
         <div className="relative w-[140px] group-hover:w-[80px] transition-all duration-300">
           <Image
             src={imageUrl}
@@ -81,12 +81,14 @@ export function SavedCampaignCard({
           </Button>
         )}
 
-        <div className="flex-1 p-3 flex flex-col justify-between min-h-[90px]">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{title}</h3>
+        <div className="flex-1 p-2 flex flex-col justify-between min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0">
+            <h3 className="font-semibold text-gray-900 flex-shrink-0">
+              {title}
+            </h3>
 
             {/* Tags */}
-            <div className="flex gap-2 mt-1">
+            <div className="flex gap-2 mt-1 flex-shrink-0">
               {isInclusive && (
                 <span className="text-xs font-medium py-1 px-2 rounded-full bg-[#e8f5ed] text-[#2c6e49]">
                   Inclusivo
@@ -98,23 +100,23 @@ export function SavedCampaignCard({
             </div>
 
             {/* Description - Only visible on hover */}
-            <div className="overflow-hidden transition-all duration-300 mt-1">
-              <p className="text-sm text-gray-600 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150">
+            <div className="overflow-hidden transition-all duration-300 mt-1 max-h-0 group-hover:max-h-16 flex-1 min-h-0">
+              <p className="text-sm text-gray-600 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 h-16 leading-relaxed">
                 {description}
               </p>
             </div>
 
             {/* Stats - Only visible on hover */}
-            <div className="overflow-hidden transition-all duration-300 mt-1">
+            <div className="overflow-hidden transition-all duration-300 mt-1 max-h-0 group-hover:max-h-20 flex-1 min-h-0">
               <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100">
-                <div className="space-y-2 text-[#2c6e49]">
+                <div className="grid grid-cols-2 gap-2 text-[#2c6e49]">
                   <div>
-                    <span className="font-medium text-base">Donadores: </span>
-                    <span className="font-bold text-lg">{donorCount}</span>
+                    <span className="font-medium text-sm">Donadores</span>
+                    <p className="font-bold text-lg">{donorCount}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-base">Recaudado: </span>
-                    <span className="font-bold text-lg">{amountRaised}</span>
+                    <span className="font-medium text-sm">Recaudado</span>
+                    <p className="font-bold text-lg">{amountRaised}</p>
                   </div>
                 </div>
               </div>
@@ -127,7 +129,7 @@ export function SavedCampaignCard({
           <div className="w-px h-12 bg-gray-200"></div>
         </div>
 
-        <div className="flex items-center pr-3 self-center">
+        <div className="flex items-center pr-2 self-center">
           <div className="text-[#2c6e49] hover:bg-[#e8f5ed] border border-[#2c6e49] rounded-full px-5 py-2 text-sm flex items-center gap-2 font-medium transition-colors">
             Donar ahora
             <svg

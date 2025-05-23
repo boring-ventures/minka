@@ -28,9 +28,9 @@ export function CompletedCampaignCard({
       href={`/campaign/${id}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="block bg-white rounded-lg shadow-sm overflow-hidden relative hover:shadow-md transition-all duration-200 group"
+      className="block bg-white rounded-lg shadow-sm overflow-hidden relative hover:shadow-md transition-all duration-200 group h-[180px]"
     >
-      <div className="flex overflow-hidden relative">
+      <div className="flex overflow-hidden relative h-full">
         <div className="relative w-[140px] group-hover:w-[80px] transition-all duration-300">
           <Image
             src={imageUrl}
@@ -54,17 +54,19 @@ export function CompletedCampaignCard({
           </div>
         </div>
 
-        <div className="flex-1 p-3 flex items-center justify-between min-h-[90px]">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{title}</h3>
+        <div className="flex-1 p-2 flex items-center justify-between min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0">
+            <h3 className="font-semibold text-gray-900 flex-shrink-0">
+              {title}
+            </h3>
             {description && (
-              <p className="text-sm text-gray-600 mt-1 line-clamp-1">
+              <p className="text-sm text-gray-600 mt-1 line-clamp-1 flex-shrink-0">
                 {description}
               </p>
             )}
 
             {/* Status indicator with a bigger point */}
-            <div className="mt-1">
+            <div className="mt-1 flex-shrink-0">
               <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-600">
                 <span className="text-lg inline-block leading-none">•</span>{" "}
                 Finalizada
@@ -72,8 +74,8 @@ export function CompletedCampaignCard({
             </div>
 
             {/* Expanded description - Only visible on hover */}
-            <div className="overflow-hidden transition-all duration-300 mt-1">
-              <p className="text-sm text-gray-600 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150">
+            <div className="overflow-hidden transition-all duration-300 mt-1 max-h-0 group-hover:max-h-16 flex-1 min-h-0">
+              <p className="text-sm text-gray-600 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 h-16 leading-relaxed">
                 {description && description.length > 50
                   ? description
                   : "Esta campaña ha sido completada exitosamente gracias a la colaboración de todos los donadores."}
@@ -81,16 +83,16 @@ export function CompletedCampaignCard({
             </div>
 
             {/* Stats - Only visible on hover */}
-            <div className="overflow-hidden transition-all duration-300 mt-1">
+            <div className="overflow-hidden transition-all duration-300 mt-1 max-h-0 group-hover:max-h-20 flex-1 min-h-0">
               <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100">
-                <div className="space-y-2 text-[#2c6e49]">
+                <div className="grid grid-cols-2 gap-2 text-[#2c6e49]">
                   <div>
-                    <span className="font-medium text-base">Donadores: </span>
-                    <span className="font-bold text-lg">{donorCount}</span>
+                    <span className="font-medium text-sm">Donadores</span>
+                    <p className="font-bold text-lg">{donorCount}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-base">Recaudado: </span>
-                    <span className="font-bold text-lg">{amountRaised}</span>
+                    <span className="font-medium text-sm">Recaudado</span>
+                    <p className="font-bold text-lg">{amountRaised}</p>
                   </div>
                 </div>
               </div>
@@ -98,12 +100,12 @@ export function CompletedCampaignCard({
           </div>
 
           {/* Separator - Only visible on hover */}
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 self-center">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 self-center flex-shrink-0">
             <div className="w-px h-12 bg-gray-200"></div>
           </div>
 
           <div
-            className="text-[#2c6e49] flex items-center hover:underline font-bold px-3 py-2 rounded-full transition-all duration-300 self-center"
+            className="text-[#2c6e49] flex items-center hover:underline font-bold px-2 py-2 rounded-full transition-all duration-300 self-center flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             Administrar Campaña <Edit className="ml-2 h-3.5 w-3.5" />
