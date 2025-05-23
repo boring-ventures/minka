@@ -87,7 +87,11 @@ export async function GET(request: Request) {
         const locationMatches = getLocationEnumsFromSearch(search);
 
         // Build the search OR clause to include title, description, and location
-        const searchConditions = [
+        const searchConditions: Array<
+          | { title: { contains: string; mode: string } }
+          | { description: { contains: string; mode: string } }
+          | { location: string }
+        > = [
           { title: { contains: search, mode: "insensitive" } },
           { description: { contains: search, mode: "insensitive" } },
         ];
