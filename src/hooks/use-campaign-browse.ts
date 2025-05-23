@@ -320,14 +320,8 @@ export function useCampaignBrowse() {
 
   // Update categories and locations when filters change
   useEffect(() => {
-    // Only update categories when a non-category filter changes
-    if (
-      isInitialized &&
-      (filters.location ||
-        filters.search ||
-        filters.verified ||
-        filters.verificationStatus)
-    ) {
+    // Update categories when any non-category filter changes (including when cleared)
+    if (isInitialized) {
       fetchCategories();
     }
   }, [
@@ -340,14 +334,8 @@ export function useCampaignBrowse() {
   ]);
 
   useEffect(() => {
-    // Only update locations when a non-location filter changes
-    if (
-      isInitialized &&
-      (filters.category ||
-        filters.search ||
-        filters.verified ||
-        filters.verificationStatus)
-    ) {
+    // Update locations when any non-location filter changes (including when cleared)
+    if (isInitialized) {
       fetchLocations();
     }
   }, [
