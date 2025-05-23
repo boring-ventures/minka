@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useSavedCampaigns } from "@/hooks/use-saved-campaigns";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 interface CampaignProgressProps {
   isVerified: boolean;
@@ -36,6 +37,7 @@ export function CampaignProgress({
   const { isCampaignSaved, saveCampaign, unsaveCampaign } = useSavedCampaigns();
   const [isSaving, setIsSaving] = useState(false);
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
+  const router = useRouter();
 
   const isLoggedIn = !!session;
   console.log(session);
@@ -101,6 +103,100 @@ export function CampaignProgress({
     }
   };
 
+  const handleShareClick = () => {
+    // Debug authentication state
+    console.log("Share button clicked - Auth state:", {
+      isLoggedIn,
+      hasSession: !!session,
+      authLoading,
+      session,
+      user: session?.user?.email,
+    });
+
+    // Don't proceed if auth is still loading
+    if (authLoading) {
+      toast({
+        title: "Cargando",
+        description: "Por favor espera mientras verificamos tu sesión",
+      });
+      return;
+    }
+
+    // Check if user is logged in
+    if (!isLoggedIn || !session) {
+      console.log("User not authenticated, redirecting to sign-in");
+      // Redirect to sign-in page if not logged in
+      router.push("/sign-in");
+      return;
+    }
+
+    console.log("User is authenticated, proceeding with sharing");
+    // User is logged in, provide sharing functionality
+    const shareUrl = `${window.location.origin}/campaign/${campaignId}`;
+    const shareTitle = campaignTitle || "Apoya esta campaña";
+    const shareText = `¡Apoya esta campaña en Minka! ${shareTitle}`;
+
+    // Try to use native Web Share API if available
+    if (navigator.share) {
+      navigator
+        .share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        })
+        .catch((error) => {
+          console.log("Error sharing:", error);
+          // Fallback to copying URL to clipboard
+          fallbackShare(shareUrl);
+        });
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      fallbackShare(shareUrl);
+    }
+  };
+
+  const fallbackShare = (url: string) => {
+    // Copy to clipboard as fallback
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          toast({
+            title: "¡Enlace copiado!",
+            description:
+              "El enlace de la campaña ha sido copiado al portapapeles",
+          });
+        })
+        .catch(() => {
+          // Show manual sharing options if clipboard fails
+          showSharingOptions(url);
+        });
+    } else {
+      showSharingOptions(url);
+    }
+  };
+
+  const showSharingOptions = (url: string) => {
+    const shareText = encodeURIComponent(
+      `¡Apoya esta campaña en Minka! ${campaignTitle || "Una gran causa"}`
+    );
+
+    // Create sharing options
+    const shareOptions = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      twitter: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodeURIComponent(url)}`,
+      whatsapp: `https://wa.me/?text=${shareText}%20${encodeURIComponent(url)}`,
+    };
+
+    // For now, open Facebook sharing as default
+    window.open(shareOptions.facebook, "_blank", "width=600,height=400");
+
+    toast({
+      title: "¡Compartir campaña!",
+      description: "Se abrió una ventana para compartir en redes sociales",
+    });
+  };
+
   return (
     <div
       className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
@@ -158,6 +254,7 @@ export function CampaignProgress({
         <Button
           variant="outline"
           className="w-full border-gray-200 hover:bg-gray-50 rounded-full py-6"
+          onClick={handleShareClick}
         >
           <Share2 className="mr-2 h-4 w-4" />
           Compartir

@@ -19,8 +19,10 @@ export default async function CampaignPage({
 
   // Use Suspense to show loading state while client component fetches data
   return (
-    <Suspense fallback={<Loading />}>
-      <CampaignClientPage id={id} />
-    </Suspense>
+    <div className="flex flex-col min-h-screen overflow-wrap break-words">
+      <Suspense fallback={<Loading />}>
+        <CampaignClientPage id={id} />
+      </Suspense>
+    </div>
   );
 }

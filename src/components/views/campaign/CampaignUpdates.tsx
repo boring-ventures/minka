@@ -39,7 +39,7 @@ export function CampaignUpdates({ updates }: CampaignUpdatesProps) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+      <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49] break-words">
         Actualizaciones de la campaña
       </h2>
       <div className="space-y-6">
@@ -62,9 +62,9 @@ export function CampaignUpdates({ updates }: CampaignUpdatesProps) {
               key={update.id}
               className="bg-white rounded-lg p-6 shadow-sm border border-gray-100"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="h-5 w-5 text-[#2c6e49]" />
-                <span className="text-gray-600">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <Clock className="h-5 w-5 text-[#2c6e49] flex-shrink-0" />
+                <span className="text-gray-600 break-words">
                   {typeof update.createdAt === "string"
                     ? new Date(update.createdAt).toLocaleDateString("es-ES", {
                         year: "numeric",
@@ -75,8 +75,12 @@ export function CampaignUpdates({ updates }: CampaignUpdatesProps) {
                 </span>
               </div>
 
-              <h3 className="text-xl font-semibold mb-2">{update.title}</h3>
-              <p className="text-gray-700 mb-4">{update.message}</p>
+              <h3 className="text-xl font-semibold mb-2 break-words">
+                {update.title}
+              </h3>
+              <p className="text-gray-700 mb-4 break-words whitespace-pre-wrap leading-relaxed">
+                {update.message}
+              </p>
 
               {update.imageUrl && (
                 <div className="mt-4 mb-4 rounded-lg overflow-hidden">

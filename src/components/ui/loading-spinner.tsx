@@ -73,7 +73,7 @@ export function LoadingSpinner({
         </div>
       </div>
 
-      {showText && <p className="mt-4 text-[#356945] font-medium">{text}</p>}
+      {showText && <p className="pt-4 mt-4 text-[#356945] font-medium">{text}</p>}
     </div>
   );
 }

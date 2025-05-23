@@ -82,7 +82,10 @@ function formatCampaignData(campaign: any) {
   return {
     title: campaign.title,
     description: campaign.description,
-    beneficiaries: campaign.beneficiaries_description || campaign.description,
+    story: campaign.story || campaign.description,
+    beneficiaries:
+      campaign.beneficiaries_description ||
+      "Información de beneficiarios no disponible",
     images: galleryItems,
     progress: progressData,
     organizer: organizerData,
@@ -126,96 +129,117 @@ function CustomCampaignDetails({
     <div className="space-y-8">
       {/* Organizer Header */}
       <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
-        <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+        <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center flex-shrink-0">
           <span className="text-sm font-medium text-[#2c6e49]">
             {organizer.name[0]}
           </span>
         </div>
-        <div>
-          <h3 className="font-medium text-[#2c6e49]">{organizer.name}</h3>
-          <p className="text-sm text-gray-600">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-medium text-[#2c6e49] break-words">
+            {organizer.name}
+          </h3>
+          <p className="text-sm text-gray-600 break-words">
             {organizer.role} | {organizer.location}
           </p>
         </div>
       </div>
 
       {/* Verification Badge */}
-      <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <Image
             src="/landing-page/step-2.png"
             alt="Verified"
             width={32}
             height={32}
-            className="text-[#2c6e49]"
+            className="text-[#2c6e49] flex-shrink-0"
           />
-          <span className="text-[#2c6e49] text-xl font-medium">
+          <span className="text-[#2c6e49] text-xl font-medium break-words">
             Campaña verificada por Minka
           </span>
         </div>
-        <Link href="#" className="text-[#2c6e49] underline text-base">
+        <Link
+          href="#"
+          className="text-[#2c6e49] underline text-base break-words whitespace-nowrap"
+        >
           Más información sobre la verificación
         </Link>
       </div>
 
       {/* Campaign Description */}
       <div className="space-y-4 pb-8 border-b border-gray-200">
-        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49] break-words">
           Descripción de la campaña
         </h2>
-        <p className="text-gray-700 leading-relaxed">{description}</p>
+        <p className="text-gray-700 leading-relaxed break-words whitespace-pre-wrap">
+          {description}
+        </p>
       </div>
 
       {/* Beneficiaries */}
       <div className="space-y-4 pb-8 border-b border-gray-200">
-        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49] break-words">
           Beneficiarios
         </h2>
-        <p className="text-gray-700 leading-relaxed">{beneficiaries}</p>
+        <p className="text-gray-700 leading-relaxed break-words whitespace-pre-wrap">
+          {beneficiaries}
+        </p>
       </div>
 
       {/* About Organizer */}
       <div className="space-y-6 pb-8 border-b border-gray-200">
-        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+        <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49] break-words">
           Sobre el organizador
         </h2>
         <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center">
+          <div className="h-10 w-10 rounded-full bg-[#e8f0e9] flex items-center justify-center flex-shrink-0">
             <span className="text-sm font-medium text-[#2c6e49]">
               {organizer.name[0]}
             </span>
           </div>
-          <div>
-            <h3 className="font-medium text-[#2c6e49]">{organizer.name}</h3>
-            <p className="text-sm text-gray-600">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-medium text-[#2c6e49] break-words">
+              {organizer.name}
+            </h3>
+            <p className="text-sm text-gray-600 break-words">
               Gestor de campaña | {organizer.location}
             </p>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-[#2c6e49]" />
-            <span className="text-lg font-medium text-[#2c6e49]">
-              Tiempo en la plataforma
-            </span>
+          <div className="flex items-start gap-2">
+            <Clock className="h-5 w-5 text-[#2c6e49] flex-shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <span className="text-lg font-medium text-[#2c6e49] break-words">
+                Tiempo en la plataforma
+              </span>
+            </div>
           </div>
-          <p className="pl-6 text-lg">Miembro desde {organizer.memberSince}</p>
+          <p className="pl-6 text-lg break-words">
+            Miembro desde {organizer.memberSince}
+          </p>
 
-          <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-[#2c6e49]" />
-            <span className="text-lg font-medium text-[#2c6e49]">
-              Otras campañas
-            </span>
+          <div className="flex items-start gap-2">
+            <Award className="h-5 w-5 text-[#2c6e49] flex-shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <span className="text-lg font-medium text-[#2c6e49] break-words">
+                Otras campañas
+              </span>
+            </div>
           </div>
-          <p className="pl-6 text-lg">
+          <p className="pl-6 text-lg break-words">
             {organizer.successfulCampaigns} campañas exitosas
           </p>
         </div>
 
         <div>
-          <h4 className="font-medium mb-2 text-xl text-[#2c6e49]">Biografía</h4>
-          <p className="text-black">{organizer.bio}</p>
+          <h4 className="font-medium mb-2 text-xl text-[#2c6e49] break-words">
+            Biografía
+          </h4>
+          <p className="text-black break-words whitespace-pre-wrap leading-relaxed">
+            {organizer.bio}
+          </p>
         </div>
       </div>
     </div>
@@ -226,7 +250,7 @@ function CustomCampaignDetails({
 function CustomDonorComments({ comments }: { comments: any[] }) {
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
+      <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49] break-words">
         Comentarios de donadores
       </h2>
       <div className="space-y-6">
@@ -236,17 +260,19 @@ function CustomDonorComments({ comments }: { comments: any[] }) {
               key={index}
               className="border-b border-gray-200 pb-6 last:border-0"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-medium">{comment.donor}</span>
-                <span className="text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="font-medium break-words">{comment.donor}</span>
+                <span className="text-sm text-gray-500 break-words">
                   donó hace {comment.date}
                 </span>
               </div>
-              <p className="text-gray-700">{comment.comment}</p>
+              <p className="text-gray-700 break-words whitespace-pre-wrap leading-relaxed">
+                {comment.comment}
+              </p>
             </div>
           ))
         ) : (
-          <p className="text-gray-500">
+          <p className="text-gray-500 break-words">
             Aún no hay comentarios en esta campaña.
           </p>
         )}
@@ -292,16 +318,17 @@ export default function CampaignClientPage({ id }: { id: string }) {
   // Handle error state
   if (error) {
     return (
-      <>
+      <div className="flex flex-col min-h-screen">
         <Header />
-        <div className="min-h-[400px] flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl text-red-600 mb-2">Error</h2>
-            <p className="text-gray-700">{error}</p>
+        <div className="h-20 md:h-28"></div>
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center max-w-md mx-auto">
+            <h2 className="text-2xl text-red-600 mb-2 break-words">Error</h2>
+            <p className="text-gray-700 break-words">{error}</p>
           </div>
         </div>
         <Footer />
-      </>
+      </div>
     );
   }
 
@@ -314,17 +341,22 @@ export default function CampaignClientPage({ id }: { id: string }) {
   const formattedData = formatCampaignData(campaign);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Header />
       <div className="h-20 md:h-28"></div>
-      <main className="container mx-auto px-4 py-10">
-        {/* Campaign Title */}
-        <h1 className="text-3xl md:text-5xl font-bold text-[#2c6e49] mb-6">
-          {campaign.title}
-        </h1>
+      <main className="container mx-auto px-4 py-10 flex-1">
+        {/* Campaign Title and Description */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-5xl font-bold text-black mb-4 break-words leading-tight">
+            {campaign.title}
+          </h1>
+          <p className="text-lg md:text-xl text-black leading-relaxed break-words whitespace-pre-wrap max-w-4xl mx-auto">
+            {formattedData.story}
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8 min-w-0">
             {/* Campaign Gallery */}
             <CampaignGallery images={formattedData.images} />
 
@@ -343,11 +375,11 @@ export default function CampaignClientPage({ id }: { id: string }) {
             </div>
 
             {/* Tab Navigation */}
-            <div className="mt-10 border-b border-gray-200">
-              <div className="flex gap-6">
+            <div className="mt-10 border-b border-gray-200 overflow-x-auto">
+              <div className="flex gap-6 min-w-max sm:min-w-0">
                 <button
                   onClick={() => setActiveTab("descripcion")}
-                  className={`pb-4 px-2 font-medium ${
+                  className={`pb-4 px-2 font-medium whitespace-nowrap ${
                     activeTab === "descripcion"
                       ? "text-[#2c6e49] border-b-2 border-[#2c6e49]"
                       : "text-gray-500"
@@ -357,7 +389,7 @@ export default function CampaignClientPage({ id }: { id: string }) {
                 </button>
                 <button
                   onClick={() => setActiveTab("actualizaciones")}
-                  className={`pb-4 px-2 font-medium ${
+                  className={`pb-4 px-2 font-medium whitespace-nowrap ${
                     activeTab === "actualizaciones"
                       ? "text-[#2c6e49] border-b-2 border-[#2c6e49]"
                       : "text-gray-500"
@@ -367,7 +399,7 @@ export default function CampaignClientPage({ id }: { id: string }) {
                 </button>
                 <button
                   onClick={() => setActiveTab("comentarios")}
-                  className={`pb-4 px-2 font-medium ${
+                  className={`pb-4 px-2 font-medium whitespace-nowrap ${
                     activeTab === "comentarios"
                       ? "text-[#2c6e49] border-b-2 border-[#2c6e49]"
                       : "text-gray-500"
@@ -379,7 +411,7 @@ export default function CampaignClientPage({ id }: { id: string }) {
             </div>
 
             {/* Tab Content */}
-            <div className="my-8">
+            <div className="my-8 min-w-0">
               {activeTab === "descripcion" && (
                 <CustomCampaignDetails
                   organizer={formattedData.organizer}
@@ -415,14 +447,14 @@ export default function CampaignClientPage({ id }: { id: string }) {
 
         {/* Related Campaigns */}
         {relatedCampaigns.length > 0 && (
-          <div className="mt-16">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold text-[#2c6e49]">
+          <div className="mt-16" id="related-campaigns">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h2 className="text-2xl md:text-3xl font-bold text-[#2c6e49] break-words">
                 Causas similares
               </h2>
               <Link
                 href="/campaigns"
-                className="flex items-center text-[#2c6e49] font-medium"
+                className="flex items-center text-[#2c6e49] font-medium whitespace-nowrap"
               >
                 Ver todas <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -449,6 +481,6 @@ export default function CampaignClientPage({ id }: { id: string }) {
         )}
       </main>
       <Footer />
-    </>
+    </div>
   );
 }
