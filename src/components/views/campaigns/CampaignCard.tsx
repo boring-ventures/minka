@@ -43,9 +43,9 @@ export function CampaignCard({
       rel="noopener noreferrer"
       className="block h-full rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg"
     >
-      <div className="bg-white rounded-xl overflow-hidden group relative transition-all duration-300 h-full">
-        {/* Campaign Image - Always visible but partially covered */}
-        <div className="relative h-56">
+      <div className="bg-white rounded-xl overflow-hidden group relative transition-all duration-300 h-full flex flex-col min-h-[400px]">
+        {/* Campaign Image - Animated height */}
+        <div className="relative h-64 group-hover:h-32 transition-all duration-300 overflow-hidden flex-shrink-0">
           <Image
             src={image || "/placeholder.svg"}
             alt={title}
@@ -54,10 +54,25 @@ export function CampaignCard({
           />
         </div>
 
-        {/* Default Card Content */}
-        <div className="p-6 bg-white transition-all duration-300 group-hover:bg-white/80 group-hover:backdrop-blur-sm h-[calc(100%-224px)]">
-          <div className="flex flex-col mb-3">
-            <div className="mb-2 flex-shrink-0 h-8">
+        {/* Verified badge - moves to 50/50 position on hover */}
+        <div className="absolute left-4 opacity-0 group-hover:opacity-100 group-hover:top-32 group-hover:-translate-y-1/2 transition-all duration-300 z-10">
+          {verified && (
+            <div className="w-12 h-12 rounded-full bg-[#2c6e49] flex items-center justify-center transition-all duration-300 shadow-sm">
+              <Image
+                src="/landing-page/step-2.png"
+                alt="Verified"
+                width={32}
+                height={32}
+                className="brightness-0 invert transition-all duration-300"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Card Content - Flexible height but constrained */}
+        <div className="p-4 bg-white flex flex-col relative flex-1">
+          <div className="flex flex-col mb-2">
+            <div className="mb-1 flex-shrink-0 h-8 group-hover:opacity-0 transition-opacity duration-300">
               {verified ? (
                 <Image
                   src="/landing-page/step-2.png"
@@ -74,7 +89,8 @@ export function CampaignCard({
               {title}
             </h3>
           </div>
-          <div className="flex items-center text-base text-gray-600 mb-4 flex-wrap gap-2">
+
+          <div className="flex items-center text-base text-gray-600 mb-3 flex-wrap gap-2">
             <span className="bg-[#F8FAF2] text-[#2c6e49] px-2 py-1 rounded-md">
               {category}
             </span>
@@ -82,89 +98,59 @@ export function CampaignCard({
               {getRegionDisplayName(location)}
             </span>
           </div>
-          <div className="mb-4">
-            <div className="w-full bg-[#EBEDE6] rounded-full h-3">
-              <div
-                className="bg-[#2c6e49] h-3 rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="flex justify-end mt-2">
-              <span className="text-base text-gray-600">
-                {Math.round(progress)}%
-              </span>
-            </div>
+
+          {/* Description - Only visible on hover */}
+          <div className="overflow-hidden transition-all duration-300 group-hover:mb-3">
+            <p className="text-gray-600 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150">
+              {description}
+            </p>
           </div>
-          <div className="block">
-            <Button className="w-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start">
-              Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+
+          {/* Stats - Only visible on hover */}
+          <div className="overflow-hidden transition-all duration-300">
+            <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100 mb-3">
+              <div className="space-y-3 text-[#2c6e49]">
+                <div>
+                  <p className="font-medium text-lg">Donadores</p>
+                  <p className="text-2xl font-bold">{donorCount}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-lg">Recaudado</p>
+                  <p className="text-2xl font-bold">{amountRaised}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Hover State Content */}
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm p-6 flex flex-col opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 rounded-xl">
-          <div className="flex flex-col mb-3">
-            <div className="mb-2 flex-shrink-0 h-12">
-              {verified ? (
-                <div className="w-12 h-12 rounded-full bg-[#2c6e49] flex items-center justify-center">
-                  <Image
-                    src="/landing-page/step-2.png"
-                    alt="Verified"
-                    width={32}
-                    height={32}
-                    className="brightness-0 invert"
+        {/* Sticky/Floating button area - Always at bottom */}
+        <div className="sticky bottom-0 bg-white p-4 pt-0 border-t-0">
+          {/* Progress Bar and Separator Container - Fixed height */}
+          <div className="h-12 mb-3 flex items-center relative">
+            {/* Progress Bar - Hidden on hover */}
+            <div className="w-full group-hover:opacity-0 transition-opacity duration-300">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-[#EBEDE6] rounded-full h-3">
+                  <div
+                    className="bg-[#2c6e49] h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
                   />
                 </div>
-              ) : (
-                <div className="w-12 h-12" />
-              )}
+                <span className="text-base text-[#2c6e49] font-medium">
+                  {Math.round(progress)}%
+                </span>
+              </div>
             </div>
-            <h3 className="font-medium text-2xl text-[#2c6e49] line-clamp-2">
-              {title}
-            </h3>
-          </div>
 
-          <div className="flex items-center text-base text-gray-600 mb-3 flex-wrap gap-2">
-            <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
-              {category}
-            </span>
-            <span className="border border-[#d1e7dd] bg-[#f8f9fa] text-[#2c6e49] px-2 py-1 rounded-md">
-              {getRegionDisplayName(location)}
-            </span>
-          </div>
-
-          <p className="text-gray-600 mb-4 flex-grow line-clamp-4">
-            {description}
-          </p>
-
-          <div className="flex justify-between text-gray-600 mb-3">
-            <div>
-              <p className="font-medium">Donadores</p>
-              <p className="text-xl font-bold">{donorCount}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-medium">Recaudado</p>
-              <p className="text-xl font-bold">{amountRaised}</p>
+            {/* Separator - Only visible on hover, overlaid */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center">
+              <div className="w-full h-px bg-gray-200"></div>
             </div>
           </div>
 
-          <div className="mb-4">
-            <div className="w-full bg-[#d1e7dd] rounded-full h-3">
-              <div
-                className="bg-[#2c6e49] h-3 rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <div className="flex justify-end mt-2">
-              <span className="text-base text-gray-600">
-                {Math.round(progress)}%
-              </span>
-            </div>
-          </div>
-
+          {/* Donate Button - Truly fixed position */}
           <div className="block">
-            <Button className="w-full bg-[#2c6e49] text-white hover:bg-[#1e4d33] text-lg shadow-none border-0 rounded-full justify-start">
+            <Button className="w-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start transition-all duration-300">
               Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
