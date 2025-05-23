@@ -6,6 +6,11 @@ export interface CampaignFilters {
   location?: string;
   search?: string;
   verified?: boolean;
+  verificationStatus?: "verified" | "pending" | "unverified";
+  // New filters for future backend support
+  createdAfter?: string;
+  fundingPercentageMin?: number;
+  fundingPercentageMax?: number;
 }
 
 export interface SortOption {
@@ -57,6 +62,7 @@ export function useCampaignBrowse() {
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // State for categories and locations
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -100,6 +106,25 @@ export function useCampaignBrowse() {
           url.searchParams.append("location", filters.location);
         if (filters.search) url.searchParams.append("search", filters.search);
         if (filters.verified) url.searchParams.append("verified", "true");
+        if (filters.verificationStatus)
+          url.searchParams.append(
+            "verificationStatus",
+            filters.verificationStatus
+          );
+
+        // Add new filter parameters
+        if (filters.createdAfter)
+          url.searchParams.append("createdAfter", filters.createdAfter);
+        if (filters.fundingPercentageMin !== undefined)
+          url.searchParams.append(
+            "fundingPercentageMin",
+            filters.fundingPercentageMin.toString()
+          );
+        if (filters.fundingPercentageMax !== undefined)
+          url.searchParams.append(
+            "fundingPercentageMax",
+            filters.fundingPercentageMax.toString()
+          );
 
         // Add sort and pagination
         url.searchParams.append("sortBy", sortBy);
@@ -163,6 +188,11 @@ export function useCampaignBrowse() {
         url.searchParams.append("location", filters.location);
       if (filters.search) url.searchParams.append("search", filters.search);
       if (filters.verified) url.searchParams.append("verified", "true");
+      if (filters.verificationStatus)
+        url.searchParams.append(
+          "verificationStatus",
+          filters.verificationStatus
+        );
 
       console.log("Fetching categories with URL:", url.toString());
 
@@ -184,7 +214,12 @@ export function useCampaignBrowse() {
     } finally {
       setIsCategoriesLoading(false);
     }
-  }, [filters.location, filters.search, filters.verified]);
+  }, [
+    filters.location,
+    filters.search,
+    filters.verified,
+    filters.verificationStatus,
+  ]);
 
   // Function to fetch locations
   const fetchLocations = useCallback(async () => {
@@ -199,6 +234,11 @@ export function useCampaignBrowse() {
         url.searchParams.append("category", filters.category);
       if (filters.search) url.searchParams.append("search", filters.search);
       if (filters.verified) url.searchParams.append("verified", "true");
+      if (filters.verificationStatus)
+        url.searchParams.append(
+          "verificationStatus",
+          filters.verificationStatus
+        );
 
       console.log("Fetching locations with URL:", url.toString());
 
@@ -220,7 +260,12 @@ export function useCampaignBrowse() {
     } finally {
       setIsLocationsLoading(false);
     }
-  }, [filters.category, filters.search, filters.verified]);
+  }, [
+    filters.category,
+    filters.search,
+    filters.verified,
+    filters.verificationStatus,
+  ]);
 
   // Update filters
   const updateFilters = (newFilters: Partial<CampaignFilters>) => {
@@ -251,37 +296,76 @@ export function useCampaignBrowse() {
 
   // Reset all filters
   const resetFilters = () => {
+    console.log("Resetting all filters");
+    // Set loading state immediately for better UX
+    setIsLoading(true);
+    setError(null);
+
     setFilters({});
     setSortBy("popular");
     setPagination((prev) => ({ ...prev, currentPage: 1 }));
   };
 
-  // Initial fetch of campaigns, categories, and locations
+  // Initial fetch of campaigns, categories, and locations only once on mount
   useEffect(() => {
-    fetchCampaigns();
-    fetchCategories();
-    fetchLocations();
-  }, [fetchCampaigns, fetchCategories, fetchLocations]);
+    // Initial fetch on mount
+    if (!isInitialized) {
+      console.log("Initial fetch on mount");
+      fetchCampaigns();
+      fetchCategories();
+      fetchLocations();
+      setIsInitialized(true);
+    }
+  }, [isInitialized, fetchCampaigns, fetchCategories, fetchLocations]);
 
   // Update categories and locations when filters change
   useEffect(() => {
     // Only update categories when a non-category filter changes
-    if (filters.location || filters.search || filters.verified) {
+    if (
+      isInitialized &&
+      (filters.location ||
+        filters.search ||
+        filters.verified ||
+        filters.verificationStatus)
+    ) {
       fetchCategories();
     }
-  }, [filters.location, filters.search, filters.verified, fetchCategories]);
+  }, [
+    filters.location,
+    filters.search,
+    filters.verified,
+    filters.verificationStatus,
+    fetchCategories,
+    isInitialized,
+  ]);
 
   useEffect(() => {
     // Only update locations when a non-location filter changes
-    if (filters.category || filters.search || filters.verified) {
+    if (
+      isInitialized &&
+      (filters.category ||
+        filters.search ||
+        filters.verified ||
+        filters.verificationStatus)
+    ) {
       fetchLocations();
     }
-  }, [filters.category, filters.search, filters.verified, fetchLocations]);
+  }, [
+    filters.category,
+    filters.search,
+    filters.verified,
+    filters.verificationStatus,
+    fetchLocations,
+    isInitialized,
+  ]);
 
-  // Fetch campaigns when filters or sort change
+  // Fetch campaigns when filters or sort change - but not on initial mount
   useEffect(() => {
-    fetchCampaigns(pagination.currentPage);
-  }, [filters, sortBy, pagination.currentPage, fetchCampaigns]);
+    if (isInitialized) {
+      console.log("Fetching campaigns due to filter/sort change");
+      fetchCampaigns(pagination.currentPage);
+    }
+  }, [filters, sortBy, pagination.currentPage, fetchCampaigns, isInitialized]);
 
   return {
     campaigns,

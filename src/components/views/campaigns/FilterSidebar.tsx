@@ -1,14 +1,16 @@
 "use client";
 
 import {
-  Search,
-  SlidersHorizontal,
-  Check,
-  ChevronDown,
-  Loader2,
-} from "lucide-react";
-import { useState } from "react";
+  useState,
+  useEffect,
+  Suspense,
+  memo,
+  useCallback,
+  useRef,
+} from "react";
+import Image from "next/image";
 import { CampaignFilters } from "@/hooks/use-campaign-browse";
+import { Loader2, X } from "lucide-react";
 
 export interface LocationItem {
   name: string;
@@ -30,17 +32,6 @@ export function FilterSidebar({
   onResetFilters,
   isLocationsLoading = false,
 }: FilterSidebarProps) {
-  const [isCertifiedMenuOpen, setIsCertifiedMenuOpen] = useState(true);
-  const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(true);
-
-  const toggleCertifiedMenu = () => {
-    setIsCertifiedMenuOpen(!isCertifiedMenuOpen);
-  };
-
-  const toggleLocationMenu = () => {
-    setIsLocationMenuOpen(!isLocationMenuOpen);
-  };
-
   // Default locations if none are provided
   const defaultLocations: LocationItem[] = [
     { name: "La Paz", count: 45 },
@@ -53,134 +44,731 @@ export function FilterSidebar({
   // Use provided locations or defaults if empty
   const displayLocations = locations.length > 0 ? locations : defaultLocations;
 
-  const handleVerifiedChange = (verified: boolean) => {
-    onUpdateFilters({ verified });
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializingRef = useRef(false);
+
+  // Create a stable debounced search function
+  const debouncedSearch = useCallback(
+    (query: string) => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      searchTimeoutRef.current = setTimeout(() => {
+        const trimmedQuery = query.trim();
+        onUpdateFilters({ search: trimmedQuery || undefined });
+      }, 500);
+    },
+    [onUpdateFilters]
+  );
+
+  // Initialize searchQuery from filters
+  useEffect(() => {
+    isInitializingRef.current = true;
+    if (filters.search) {
+      setSearchQuery(filters.search);
+    } else {
+      setSearchQuery("");
+    }
+    isInitializingRef.current = false;
+  }, [filters.search]);
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setSearchQuery(newValue);
+
+    // Only trigger search if we're not initializing from props
+    if (!isInitializingRef.current) {
+      debouncedSearch(newValue);
+    }
   };
 
+  // Handle search clear
+  const handleSearchClear = () => {
+    setSearchQuery("");
+    debouncedSearch("");
+  };
+
+  // Handle search submission (for Enter key)
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Clear any pending debounced search and trigger immediately
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    const trimmedQuery = searchQuery.trim();
+    onUpdateFilters({ search: trimmedQuery || undefined });
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Reset internal filter states when filters are reset from parent
+  useEffect(() => {
+    // Reset creation date filter when createdAfter is undefined
+    if (!filters.createdAfter) {
+      setCreationDateFilter([]);
+    }
+  }, [filters.createdAfter]);
+
+  useEffect(() => {
+    // Reset amount raised filter when fundingPercentage filters are undefined
+    if (
+      filters.fundingPercentageMin === undefined &&
+      filters.fundingPercentageMax === undefined
+    ) {
+      setAmountRaisedFilter([]);
+    }
+  }, [filters.fundingPercentageMin, filters.fundingPercentageMax]);
+
+  useEffect(() => {
+    // Reset verification status when verification filter is undefined
+    if (!filters.verificationStatus && filters.verified === undefined) {
+      setVerificationStatus([]);
+    } else if (filters.verificationStatus) {
+      // Map the API status back to UI status
+      let uiStatus: string;
+      if (filters.verificationStatus === "verified") {
+        uiStatus = "verified";
+      } else if (filters.verificationStatus === "pending") {
+        uiStatus = "in_process";
+      } else if (filters.verificationStatus === "unverified") {
+        uiStatus = "unverified";
+      } else {
+        uiStatus = "";
+      }
+
+      if (uiStatus && !verificationStatus.includes(uiStatus)) {
+        setVerificationStatus([uiStatus]);
+      }
+    } else if (filters.verified === true) {
+      // Backward compatibility - if old verified=true is set
+      if (!verificationStatus.includes("verified")) {
+        setVerificationStatus(["verified"]);
+      }
+    }
+  }, [filters.verificationStatus, filters.verified]);
+
+  // Additional comprehensive reset when all filters are cleared
+  useEffect(() => {
+    // Check if filters object is completely empty or only has undefined values
+    const hasAnyFilter = Object.values(filters).some(
+      (value) => value !== undefined
+    );
+
+    if (!hasAnyFilter) {
+      // Reset all internal states when no filters are active
+      setCreationDateFilter([]);
+      setAmountRaisedFilter([]);
+      setVerificationStatus([]);
+      setSearchQuery("");
+      console.log("All filters cleared - resetting UI states");
+    }
+  }, [filters]);
+
+  // Handle verified filter change - now integrated with verification status
+  const handleVerificationStatusChange = (status: string) => {
+    const newStatus = [...verificationStatus];
+
+    if (newStatus.includes(status)) {
+      // Remove the filter if it's already selected
+      const index = newStatus.indexOf(status);
+      newStatus.splice(index, 1);
+    } else {
+      // Add the filter
+      newStatus.push(status);
+    }
+
+    setVerificationStatus(newStatus);
+
+    // Use the new verificationStatus parameter instead of boolean verified
+    if (newStatus.length === 1) {
+      // Single selection - use the specific verification status
+      let selectedStatus: "verified" | "pending" | "unverified";
+
+      if (newStatus[0] === "verified") {
+        selectedStatus = "verified";
+      } else if (newStatus[0] === "in_process") {
+        selectedStatus = "pending";
+      } else if (newStatus[0] === "unverified") {
+        selectedStatus = "unverified";
+      } else {
+        // fallback
+        selectedStatus = "verified";
+      }
+
+      onUpdateFilters({
+        verificationStatus: selectedStatus,
+        verified: undefined, // clear old parameter
+      });
+    } else if (newStatus.length === 0) {
+      // No selection - show all campaigns
+      onUpdateFilters({
+        verificationStatus: undefined,
+        verified: undefined,
+      });
+    } else {
+      // Multiple selections - for now, clear the filter to show all
+      // In the future, we could support multiple status filtering
+      onUpdateFilters({
+        verificationStatus: undefined,
+        verified: undefined,
+      });
+    }
+  };
+
+  // Handle location change
   const handleLocationChange = (location: string | undefined) => {
     onUpdateFilters({ location });
   };
 
+  // Verification status filter - now handles all verification states
+  const [verificationStatus, setVerificationStatus] = useState<string[]>([]);
+
+  // Creation date filter
+  const [creationDateFilter, setCreationDateFilter] = useState<string[]>([]);
+
+  const handleCreationDateChange = (filter: string) => {
+    const newFilters = [...creationDateFilter];
+
+    if (newFilters.includes(filter)) {
+      // Remove the filter if it's already selected
+      const index = newFilters.indexOf(filter);
+      newFilters.splice(index, 1);
+    } else {
+      // Add the filter
+      newFilters.push(filter);
+    }
+
+    setCreationDateFilter(newFilters);
+
+    // Calculate a date for filtering based on selected options
+    // This works with a backend that supports 'createdAfter' parameter
+    let createdAfter: string | undefined = undefined;
+
+    if (newFilters.includes("24h")) {
+      const date = new Date();
+      date.setHours(date.getHours() - 24);
+      createdAfter = date.toISOString();
+    } else if (newFilters.includes("7d")) {
+      const date = new Date();
+      date.setDate(date.getDate() - 7);
+      createdAfter = date.toISOString();
+    } else if (newFilters.includes("30d")) {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      createdAfter = date.toISOString();
+    }
+
+    // If the backend doesn't support createdAfter parameter yet, this will be ignored
+    // But this prepares the component for when it is supported
+    onUpdateFilters({ createdAfter });
+  };
+
+  // Amount raised filter - for UI only, not implemented in backend yet
+  const [amountRaisedFilter, setAmountRaisedFilter] = useState<string[]>([]);
+
+  const handleAmountRaisedChange = (filter: string) => {
+    const newFilters = [...amountRaisedFilter];
+
+    if (newFilters.includes(filter)) {
+      // Remove the filter if it's already selected
+      const index = newFilters.indexOf(filter);
+      newFilters.splice(index, 1);
+    } else {
+      // Add the filter
+      newFilters.push(filter);
+    }
+
+    setAmountRaisedFilter(newFilters);
+
+    // Map selected filters to percentages for the backend
+    // This works with a backend that supports 'fundingPercentageMin' and 'fundingPercentageMax'
+    let fundingPercentageMin: number | undefined = undefined;
+    let fundingPercentageMax: number | undefined = undefined;
+
+    if (newFilters.includes("less_25")) {
+      fundingPercentageMin = 0;
+      fundingPercentageMax = 25;
+    } else if (newFilters.includes("between_25_75")) {
+      fundingPercentageMin = 25;
+      fundingPercentageMax = 75;
+    } else if (newFilters.includes("more_75")) {
+      fundingPercentageMin = 75;
+      fundingPercentageMax = 100;
+    } else if (newFilters.includes("goal_reached")) {
+      fundingPercentageMin = 100;
+    }
+
+    // If the backend doesn't support these parameters yet, they will be ignored
+    // But this prepares the component for when they are supported
+    onUpdateFilters({
+      fundingPercentageMin,
+      fundingPercentageMax,
+    });
+  };
+
   return (
-    <div className="w-full md:w-72 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden h-fit">
-      <div className="p-6 border-b border-gray-100">
-        <h2 className="text-xl font-semibold text-[#333333] mb-4">Filtros</h2>
-        <button
-          onClick={onResetFilters}
-          className="text-[#2c6e49] hover:underline font-medium"
-          disabled={isLocationsLoading}
-        >
-          Limpiar filtros
-        </button>
+    <div className="w-full md:w-72 bg-transparent">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-[#333333]">
+          Filtrar resultados
+        </h2>
+        <Image
+          src="/icons/instant_mix.svg"
+          alt="Filtros"
+          width={24}
+          height={24}
+        />
       </div>
 
-      {/* Certified Organizations Section */}
-      <div className="border-b border-gray-100">
-        <button
-          onClick={toggleCertifiedMenu}
-          className="flex items-center justify-between w-full p-6 text-left"
-        >
-          <span className="text-lg font-medium text-[#333333]">Verificado</span>
-          <ChevronDown
-            className={`h-5 w-5 text-[#2c6e49] transition-transform ${
-              isCertifiedMenuOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        {isCertifiedMenuOpen && (
-          <div className="px-6 pb-6">
-            <div
-              className="flex items-center mb-2 cursor-pointer"
-              onClick={() => handleVerifiedChange(true)}
-            >
-              <div
-                className={`w-5 h-5 rounded-sm border mr-3 flex items-center justify-center ${
-                  filters.verified
-                    ? "bg-[#2c6e49] border-[#2c6e49]"
-                    : "border-gray-400"
-                }`}
+      {/* Search Bar */}
+      <div className="mb-6">
+        <form onSubmit={handleSearchSubmit}>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar campañas"
+              className="w-full h-12 px-4 pl-10 pr-10 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a5535] focus:border-transparent"
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+            {/* Search icon */}
+            <div className="absolute left-3 top-3.5">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                {filters.verified && <Check className="h-4 w-4 text-white" />}
-              </div>
-              <span className="text-[#333333]">Mostrar solo verificadas</span>
+                <path
+                  d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z"
+                  fill="#6E6E6E"
+                />
+              </svg>
             </div>
+            {/* Clear button - only show when there's text */}
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleSearchClear}
+                className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            )}
+            <button type="submit" className="hidden">
+              Search
+            </button>
           </div>
-        )}
+        </form>
       </div>
+
+      {/* Separator */}
+      <div className="h-px bg-gray-200 my-6"></div>
 
       {/* Location Section */}
-      <div className="border-b border-gray-100">
-        <button
-          onClick={toggleLocationMenu}
-          className="flex items-center justify-between w-full p-6 text-left"
-        >
-          <span className="text-lg font-medium text-[#333333]">Ubicación</span>
-          <ChevronDown
-            className={`h-5 w-5 text-[#2c6e49] transition-transform ${
-              isLocationMenuOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-[#333333] mb-4">Ubicación</h3>
 
-        {isLocationMenuOpen && (
-          <div className="px-6 pb-6">
+        <div className="space-y-3">
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleLocationChange(undefined)}
+          >
             <div
-              className="flex items-center mb-3 cursor-pointer"
-              onClick={() =>
-                !isLocationsLoading && handleLocationChange(undefined)
-              }
+              className={`w-6 h-6 border border-gray-400 rounded-full flex items-center justify-center ${!filters.location ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
             >
-              <div
-                className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                  !filters.location
-                    ? "bg-[#2c6e49] border-[#2c6e49]"
-                    : "border-gray-400"
-                } ${isLocationsLoading ? "opacity-50" : ""}`}
-              >
-                {!filters.location && (
-                  <div className="h-3 w-3 rounded-full bg-white"></div>
-                )}
-              </div>
-              <span
-                className={`text-[#333333] ${isLocationsLoading ? "opacity-50" : ""}`}
-              >
-                Todas
-              </span>
+              {!filters.location && (
+                <div className="w-4 h-4 rounded-full bg-white"></div>
+              )}
             </div>
+            <span className="ml-3 text-[#333333]">Todas las ubicaciones</span>
+          </div>
 
-            {isLocationsLoading ? (
-              <div className="flex items-center justify-start ml-2 mt-4 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin mr-2 text-[#2c6e49]" />
-                <span>Actualizando ubicaciones...</span>
-              </div>
-            ) : (
-              displayLocations.map((location) => (
+          {isLocationsLoading ? (
+            <div className="flex items-center text-gray-500 mt-2">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span>Cargando ubicaciones...</span>
+            </div>
+          ) : (
+            displayLocations.map((location) => (
+              <div
+                key={location.name}
+                className="flex items-center cursor-pointer"
+                onClick={() => handleLocationChange(location.name)}
+              >
                 <div
-                  key={location.name}
-                  className="flex items-center mb-3 cursor-pointer"
-                  onClick={() => handleLocationChange(location.name)}
+                  className={`w-6 h-6 border border-gray-400 rounded-full flex items-center justify-center ${filters.location === location.name ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                      filters.location === location.name
-                        ? "bg-[#2c6e49] border-[#2c6e49]"
-                        : "border-gray-400"
-                    }`}
-                  >
-                    {filters.location === location.name && (
-                      <div className="h-3 w-3 rounded-full bg-white"></div>
-                    )}
-                  </div>
-                  <span className="text-[#333333]">{location.name}</span>
-                  <span className="ml-2 text-sm text-gray-500">
-                    ({location.count})
-                  </span>
+                  {filters.location === location.name && (
+                    <div className="w-4 h-4 rounded-full bg-white"></div>
+                  )}
                 </div>
-              ))
+                <span className="ml-3 text-[#333333]">{location.name}</span>
+                <span className="ml-2 text-sm text-gray-500">
+                  ({location.count})
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Separator */}
+      <div className="h-px bg-gray-200 my-6"></div>
+
+      {/* Verification Status Section */}
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-[#333333] mb-4">
+          Estado de verificación
+        </h3>
+
+        <div className="space-y-3">
+          {/* Verified campaigns */}
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleVerificationStatusChange("verified")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${verificationStatus.includes("verified") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {verificationStatus.includes("verified") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">Verificadas</span>
+            {verificationStatus.includes("verified") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
             )}
           </div>
-        )}
+
+          {/* In process campaigns */}
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleVerificationStatusChange("in_process")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${verificationStatus.includes("in_process") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {verificationStatus.includes("in_process") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">
+              En proceso de verificación
+            </span>
+            {verificationStatus.includes("in_process") && (
+              <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+
+          {/* Unverified campaigns */}
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleVerificationStatusChange("unverified")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${verificationStatus.includes("unverified") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {verificationStatus.includes("unverified") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">Sin verificación</span>
+            {verificationStatus.includes("unverified") && (
+              <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Separator */}
+      <div className="h-px bg-gray-200 my-6"></div>
+
+      {/* Creation Date Section */}
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-[#333333] mb-4">
+          Fecha de creación
+        </h3>
+
+        <div className="space-y-3">
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleCreationDateChange("24h")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${creationDateFilter.includes("24h") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {creationDateFilter.includes("24h") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">Últimas 24 horas</span>
+            {creationDateFilter.includes("24h") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleCreationDateChange("7d")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${creationDateFilter.includes("7d") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {creationDateFilter.includes("7d") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">Últimos 7 días</span>
+            {creationDateFilter.includes("7d") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleCreationDateChange("30d")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${creationDateFilter.includes("30d") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {creationDateFilter.includes("30d") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">Último mes</span>
+            {creationDateFilter.includes("30d") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Separator */}
+      <div className="h-px bg-gray-200 my-6"></div>
+
+      {/* Amount Raised Section */}
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-[#333333] mb-4">
+          Monto recaudado
+        </h3>
+
+        <div className="space-y-3">
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleAmountRaisedChange("less_25")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${amountRaisedFilter.includes("less_25") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {amountRaisedFilter.includes("less_25") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">
+              Menos del 25% de la meta
+            </span>
+            {amountRaisedFilter.includes("less_25") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleAmountRaisedChange("between_25_75")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${amountRaisedFilter.includes("between_25_75") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {amountRaisedFilter.includes("between_25_75") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">
+              Entre el 25% y 75% de la meta
+            </span>
+            {amountRaisedFilter.includes("between_25_75") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleAmountRaisedChange("more_75")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${amountRaisedFilter.includes("more_75") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {amountRaisedFilter.includes("more_75") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">Más del 75% de la meta</span>
+            {amountRaisedFilter.includes("more_75") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+
+          <div
+            className="flex items-center cursor-pointer"
+            onClick={() => handleAmountRaisedChange("goal_reached")}
+          >
+            <div
+              className={`w-6 h-6 border border-gray-400 rounded flex items-center justify-center ${amountRaisedFilter.includes("goal_reached") ? "bg-[#1a5535] border-[#1a5535]" : "bg-white"}`}
+            >
+              {amountRaisedFilter.includes("goal_reached") && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+            <span className="ml-3 text-[#333333]">Meta alcanzada</span>
+            {amountRaisedFilter.includes("goal_reached") && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                Activo
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -90,7 +90,9 @@ export function CampaignCard({
               />
             </div>
             <div className="flex justify-end mt-2">
-              <span className="text-base text-gray-600">{progress}%</span>
+              <span className="text-base text-gray-600">
+                {Math.round(progress)}%
+              </span>
             </div>
           </div>
           <div className="block">
@@ -155,7 +157,9 @@ export function CampaignCard({
               />
             </div>
             <div className="flex justify-end mt-2">
-              <span className="text-base text-gray-600">{progress}%</span>
+              <span className="text-base text-gray-600">
+                {Math.round(progress)}%
+              </span>
             </div>
           </div>
 

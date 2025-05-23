@@ -255,6 +255,7 @@ export function TransferFundsTab({ campaign }: TransferFundsTabProps) {
           "Ocurrió un error al procesar tu solicitud. Por favor intenta nuevamente.",
         variant: "destructive",
       });
+      return { success: false };
     } finally {
       setIsLoading(false);
     }

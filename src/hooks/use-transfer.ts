@@ -40,6 +40,7 @@ export function useTransfer() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(data),
       });
 
@@ -91,7 +92,10 @@ export function useTransfer() {
 
     try {
       const response = await fetch(
-        `/api/campaign/${campaignId}/transfer?limit=${limit}&offset=${offset}`
+        `/api/campaign/${campaignId}/transfer?limit=${limit}&offset=${offset}`,
+        {
+          credentials: "include",
+        }
       );
 
       if (response.status === 401) {

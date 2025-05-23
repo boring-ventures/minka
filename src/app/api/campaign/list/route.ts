@@ -140,9 +140,19 @@ export async function GET(request: Request) {
     const location = url.searchParams.get("location");
     const search = url.searchParams.get("search");
     const sortBy = url.searchParams.get("sortBy") || "popular"; // default sort
-    const verified = url.searchParams.get("verified") === "true";
+    const verified = url.searchParams.get("verified") === "true"; // keep for backward compatibility
+    const verificationStatus = url.searchParams.get("verificationStatus"); // new parameter: 'verified', 'pending', 'unverified'
     const page = parseInt(url.searchParams.get("page") || "1");
     const limit = parseInt(url.searchParams.get("limit") || "12"); // items per page
+
+    // New filter parameters
+    const createdAfter = url.searchParams.get("createdAfter");
+    const fundingPercentageMin = url.searchParams.get("fundingPercentageMin")
+      ? parseInt(url.searchParams.get("fundingPercentageMin") || "0")
+      : undefined;
+    const fundingPercentageMax = url.searchParams.get("fundingPercentageMax")
+      ? parseInt(url.searchParams.get("fundingPercentageMax") || "100")
+      : undefined;
 
     // Calculate offset for pagination
     const skip = (page - 1) * limit;
@@ -163,14 +173,90 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      whereClause.OR = [
+      // Get potential location enum matches from the search term
+      const locationMatches = getLocationEnumsFromSearch(search);
+
+      // Build the search OR clause to include title, description, and location
+      const searchConditions = [
         { title: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
       ];
+
+      // Add location conditions if we found matching locations
+      if (locationMatches.length > 0) {
+        locationMatches.forEach((locationEnum) => {
+          searchConditions.push({ location: locationEnum });
+        });
+      }
+
+      whereClause.OR = searchConditions;
     }
 
     if (verified) {
       whereClause.verificationStatus = true;
+    }
+
+    // Handle new verification status filter
+    if (verificationStatus) {
+      if (verificationStatus === "verified") {
+        // Show campaigns that are verified (either through boolean flag or approved verification request)
+        whereClause.OR = [
+          { verificationStatus: true },
+          {
+            verificationRequests: {
+              verificationStatus: "approved",
+            },
+          },
+        ];
+      } else if (verificationStatus === "pending") {
+        // Show campaigns with pending verification requests
+        whereClause.verificationRequests = {
+          verificationStatus: "pending",
+        };
+      } else if (verificationStatus === "unverified") {
+        // Show campaigns that are not verified and don't have pending/approved requests
+        whereClause.AND = [
+          {
+            OR: [{ verificationStatus: false }, { verificationStatus: null }],
+          },
+          {
+            OR: [
+              {
+                verificationRequests: {
+                  is: null,
+                },
+              },
+              {
+                verificationRequests: {
+                  verificationStatus: "rejected",
+                },
+              },
+            ],
+          },
+        ];
+      }
+    }
+
+    // Apply new filters
+    if (createdAfter) {
+      whereClause.createdAt = {
+        gte: new Date(createdAfter),
+      };
+    }
+
+    if (
+      fundingPercentageMin !== undefined ||
+      fundingPercentageMax !== undefined
+    ) {
+      whereClause.percentageFunded = {};
+
+      if (fundingPercentageMin !== undefined) {
+        whereClause.percentageFunded.gte = fundingPercentageMin;
+      }
+
+      if (fundingPercentageMax !== undefined) {
+        whereClause.percentageFunded.lte = fundingPercentageMax;
+      }
     }
 
     // Determine sort order
@@ -203,6 +289,11 @@ export async function GET(request: Request) {
             name: true,
             location: true,
             profilePicture: true,
+          },
+        },
+        verificationRequests: {
+          select: {
+            verificationStatus: true,
           },
         },
       },
@@ -310,4 +401,40 @@ function formatLocation(location: string) {
   };
 
   return locationMap[location] || location;
+}
+
+// Helper function to reverse-map location display names to DB enum values
+function getLocationEnumsFromSearch(searchTerm: string): string[] {
+  const displayToEnumMap: Record<string, string> = {
+    "la paz": "la_paz",
+    "santa cruz": "santa_cruz",
+    cochabamba: "cochabamba",
+    sucre: "sucre",
+    oruro: "oruro",
+    potosí: "potosi",
+    potosi: "potosi",
+    tarija: "tarija",
+    beni: "beni",
+    pando: "pando",
+  };
+
+  const searchLower = searchTerm.toLowerCase();
+  const matchingEnums: string[] = [];
+
+  // Check for exact matches first
+  if (displayToEnumMap[searchLower]) {
+    matchingEnums.push(displayToEnumMap[searchLower]);
+  }
+
+  // Check for partial matches
+  Object.entries(displayToEnumMap).forEach(([displayName, enumValue]) => {
+    if (
+      displayName.includes(searchLower) &&
+      !matchingEnums.includes(enumValue)
+    ) {
+      matchingEnums.push(enumValue);
+    }
+  });
+
+  return matchingEnums;
 }
