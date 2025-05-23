@@ -69,8 +69,8 @@ export function CampaignCard({
           )}
         </div>
 
-        {/* Card Content - Flexible height but constrained */}
-        <div className="p-3 bg-white flex flex-col relative flex-1 min-h-0">
+        {/* Card Content - Fixed height to prevent expansion */}
+        <div className="p-3 bg-white flex flex-col relative flex-1 min-h-0 overflow-hidden">
           <div className="flex flex-col mb-1 flex-shrink-0">
             <div className="mb-1 flex-shrink-0 h-8 group-hover:opacity-0 transition-opacity duration-500 ease-in-out">
               {verified ? (
@@ -101,34 +101,36 @@ export function CampaignCard({
             </span>
           </div>
 
-          {/* Description - Only visible on hover */}
-          <div className="overflow-hidden transition-all duration-300 max-h-0 group-hover:max-h-20 group-hover:mb-2 flex-shrink-0">
-            <div className="h-20 overflow-hidden">
-              <p className="text-gray-600 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 leading-relaxed overflow-hidden">
+          {/* Description - Only visible on hover, positioned absolutely to not affect layout */}
+          <div className="absolute top-[140px] left-3 right-3 overflow-hidden transition-all duration-300 max-h-0 group-hover:max-h-20 z-10">
+            <div className="bg-white rounded p-2 shadow-sm">
+              <p className="text-gray-600 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 leading-relaxed text-sm">
                 {description}
               </p>
             </div>
           </div>
 
-          {/* Stats - Only visible on hover */}
-          <div className="overflow-hidden transition-all duration-300 max-h-0 group-hover:max-h-24 flex-1">
-            <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100 group-hover:mb-2">
-              <div className="grid grid-cols-2 gap-4 text-[#2c6e49] h-20">
-                <div className="overflow-hidden">
-                  <p className="font-medium text-lg truncate">Donadores</p>
-                  <p className="text-2xl font-bold truncate">{donorCount}</p>
-                </div>
-                <div className="overflow-hidden">
-                  <p className="font-medium text-lg truncate">Recaudado</p>
-                  <p className="text-2xl font-bold truncate">{amountRaised}</p>
+          {/* Stats - Only visible on hover, positioned absolutely to not affect layout */}
+          <div className="absolute top-[200px] left-3 right-3 overflow-hidden transition-all duration-300 max-h-0 group-hover:max-h-24 z-10">
+            <div className="bg-white rounded p-2 shadow-sm">
+              <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100">
+                <div className="grid grid-cols-2 gap-4 text-[#2c6e49]">
+                  <div className="overflow-hidden">
+                    <p className="font-medium text-sm truncate">Donadores</p>
+                    <p className="text-lg font-bold truncate">{donorCount}</p>
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="font-medium text-sm truncate">Recaudado</p>
+                    <p className="text-lg font-bold truncate">{amountRaised}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Sticky/Floating button area - Always at bottom */}
-        <div className="sticky bottom-0 bg-white p-3 pt-0 border-t-0 flex-shrink-0">
+        {/* Sticky/Floating button area - Always at bottom with fixed height */}
+        <div className="bg-white p-3 pt-0 border-t-0 flex-shrink-0 h-[90px] flex flex-col justify-end">
           {/* Progress Bar and Separator Container - Fixed height */}
           <div className="h-10 mb-2 flex items-center relative">
             {/* Progress Bar - Hidden on hover */}
@@ -152,9 +154,9 @@ export function CampaignCard({
             </div>
           </div>
 
-          {/* Donate Button - Truly fixed position */}
-          <div className="block">
-            <Button className="w-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start transition-all duration-300">
+          {/* Donate Button - Fixed height */}
+          <div className="h-10">
+            <Button className="w-full h-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start transition-all duration-300">
               Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
