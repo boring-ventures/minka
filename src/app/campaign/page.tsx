@@ -2,10 +2,11 @@
 
 import { CategorySelector } from "@/components/views/campaigns/CategorySelector";
 import { FilterSidebar } from "@/components/views/campaigns/FilterSidebar";
+import { MobileFilterModal } from "@/components/views/campaigns/MobileFilterModal";
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, Filter } from "lucide-react";
 import { useState, useEffect, Suspense, memo } from "react";
 import { useCampaignBrowse, SortOption } from "@/hooks/use-campaign-browse";
 import { Button } from "@/components/ui/button";
@@ -90,7 +91,7 @@ const CampaignResults = memo(function CampaignResults({
 
   return (
     <div className="flex-1">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+      <div className="hidden lg:flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-[#333333]">{resultsTitle}</h2>
           <p className="text-xl text-[#555555]">
@@ -147,7 +148,7 @@ const CampaignResults = memo(function CampaignResults({
 
       {campaigns.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 lg:px-0">
             {campaigns.map((campaign) => (
               <CampaignCard
                 key={campaign.id}
@@ -232,6 +233,7 @@ function CampaignsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Get category from URL if it exists
   const categoryFromUrl = searchParams.get("category");
@@ -331,6 +333,15 @@ function CampaignsContent() {
     }
   }, [categoryFromUrl, updateFilters]);
 
+  // Sync mobile search query with filter state
+  useEffect(() => {
+    if (filters.search) {
+      setSearchQuery(filters.search);
+    } else {
+      setSearchQuery("");
+    }
+  }, [filters.search]);
+
   // Modified function to handle category selection
   const handleCategorySelect = (category: string | undefined) => {
     if (category) {
@@ -362,6 +373,22 @@ function CampaignsContent() {
     setSearchQuery("");
     // Reset all filters in the hook
     resetFilters();
+  };
+
+  // Mobile search functionality
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedQuery = searchQuery.trim();
+    updateFilters({ search: trimmedQuery || undefined });
+  };
+
+  const handleMobileSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleMobileSearchClear = () => {
+    setSearchQuery("");
+    updateFilters({ search: undefined });
   };
 
   // Helper to get display name for UI selection state
@@ -415,35 +442,113 @@ function CampaignsContent() {
             displayStyle="card"
           />
 
-          <div className="flex flex-col md:flex-row gap-10 mt-16">
-            <FilterSidebar
-              locations={locations}
-              filters={{
-                ...filters,
-                location: getDisplayLocation(filters.location),
-              }}
-              onUpdateFilters={(newFilters) => {
-                // Handle all filter updates properly
-                const processedFilters: any = { ...newFilters };
+          {/* Mobile Search and Filter Section */}
+          <div className="block lg:hidden mt-8 mb-8">
+            <div className="space-y-4">
+              {/* Results Title */}
+              <div className="px-4">
+                <h2 className="text-3xl font-bold text-[#333333]">
+                  {getResultsTitle()}
+                </h2>
+                <p className="text-xl text-[#555555]">
+                  {pagination.totalCount} Resultados
+                </p>
+              </div>
 
-                // Special handling for location filter
-                if (newFilters.location !== undefined) {
-                  if (newFilters.location) {
-                    processedFilters.location = mapLocationToEnum(
-                      newFilters.location
-                    );
-                  } else {
-                    processedFilters.location = undefined;
+              {/* Search Bar - Full Width */}
+              <div className="px-4">
+                <form onSubmit={handleMobileSearch} className="w-full">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Buscar campañas"
+                      className="w-full h-12 px-4 pl-10 pr-10 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#1a5535] focus:border-transparent"
+                      value={searchQuery}
+                      onChange={handleMobileSearchChange}
+                    />
+                    <div className="absolute left-3 top-3.5">
+                      <Search size={18} className="text-gray-400" />
+                    </div>
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={handleMobileSearchClear}
+                        className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              {/* Filter Button and Sort Dropdown */}
+              <div className="px-4">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsMobileFilterOpen(true)}
+                    className="flex items-center justify-center h-12 px-6 bg-[#2c6e49] text-white rounded-full font-medium hover:bg-[#2c6e49]/90 transition-colors whitespace-nowrap"
+                  >
+                    <Filter size={18} className="mr-2" />
+                    Filtrar
+                  </button>
+
+                  <div className="relative flex-1">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => updateSort(e.target.value)}
+                      className="w-full h-12 appearance-none bg-transparent border-0 rounded-full px-4 pr-10 focus:outline-none focus:ring-0 focus:border-transparent text-[#333333]"
+                    >
+                      {!sortBy && (
+                        <option value="" disabled>
+                          Ordenar por
+                        </option>
+                      )}
+                      {sortOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="flex flex-col lg:flex-row gap-10 mt-16">
+            <div className="hidden lg:block">
+              <FilterSidebar
+                locations={locations}
+                filters={{
+                  ...filters,
+                  location: getDisplayLocation(filters.location),
+                }}
+                onUpdateFilters={(newFilters) => {
+                  // Handle all filter updates properly
+                  const processedFilters: any = { ...newFilters };
+
+                  // Special handling for location filter
+                  if (newFilters.location !== undefined) {
+                    if (newFilters.location) {
+                      processedFilters.location = mapLocationToEnum(
+                        newFilters.location
+                      );
+                    } else {
+                      processedFilters.location = undefined;
+                    }
                   }
-                }
 
-                // For all other filters (including createdAfter, fundingPercentageMin, fundingPercentageMax)
-                // pass them through directly as they're already in the correct format
-                updateFilters(processedFilters);
-              }}
-              onResetFilters={handleResetFilters}
-              isLocationsLoading={isLocationsLoading}
-            />
+                  // For all other filters (including createdAfter, fundingPercentageMin, fundingPercentageMax)
+                  // pass them through directly as they're already in the correct format
+                  updateFilters(processedFilters);
+                }}
+                onResetFilters={handleResetFilters}
+                isLocationsLoading={isLocationsLoading}
+              />
+            </div>
 
             {/* This is the only part that will reload when filters change */}
             <CampaignResults
@@ -459,6 +564,37 @@ function CampaignsContent() {
               onResetFilters={handleResetFilters}
             />
           </div>
+
+          {/* Mobile Filter Modal */}
+          <MobileFilterModal
+            isOpen={isMobileFilterOpen}
+            onClose={() => setIsMobileFilterOpen(false)}
+            locations={locations}
+            filters={{
+              ...filters,
+              location: getDisplayLocation(filters.location),
+            }}
+            onUpdateFilters={(newFilters) => {
+              // Handle all filter updates properly
+              const processedFilters: any = { ...newFilters };
+
+              // Special handling for location filter
+              if (newFilters.location !== undefined) {
+                if (newFilters.location) {
+                  processedFilters.location = mapLocationToEnum(
+                    newFilters.location
+                  );
+                } else {
+                  processedFilters.location = undefined;
+                }
+              }
+
+              // For all other filters
+              updateFilters(processedFilters);
+            }}
+            onResetFilters={handleResetFilters}
+            isLocationsLoading={isLocationsLoading}
+          />
         </main>
         <Footer />
       </div>

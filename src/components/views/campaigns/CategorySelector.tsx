@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
+import React from "react";
 
 export interface CategoryItem {
   name: string;
@@ -28,10 +29,33 @@ export function CategorySelector({
   const [activeCategory, setActiveCategory] = useState<string | undefined>(
     selectedCategory
   );
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    setActiveCategory(selectedCategory);
+  }, [selectedCategory]);
 
   const handleCategoryClick = (category: string | undefined) => {
-    setActiveCategory(category);
-    onSelectCategory(category);
+    // Only handle click if we're not in the middle of dragging
+    if (!isDragging) {
+      setActiveCategory(category);
+      onSelectCategory(category);
+    }
+  };
+
+  // Handle touch/mouse events to track dragging state
+  const handleTouchStart = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchMove = () => {
+    setIsDragging(true);
+  };
+
+  const handleTouchEnd = () => {
+    // Reset dragging state after a short delay to allow click detection
+    setTimeout(() => setIsDragging(false), 100);
   };
 
   // Default categories if none are provided
@@ -119,104 +143,198 @@ export function CategorySelector({
 
   return (
     <div className="mt-16">
-      <div
-        className={`flex flex-wrap justify-center ${displayStyle === "card" ? "gap-6" : "gap-4"}`}
-      >
-        {displayStyle === "pill" ? (
-          <>
+      {/* Mobile horizontal scroll for pills */}
+      <div className="block lg:hidden mb-8">
+        <h3 className="text-xl font-bold text-[#333333] mb-4 px-4">
+          Filtrar por categorías
+        </h3>
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-hide touch-pan-x scroll-smooth"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleTouchStart}
+          onMouseMove={handleTouchMove}
+          onMouseUp={handleTouchEnd}
+          style={{
+            WebkitOverflowScrolling: "touch",
+            overscrollBehaviorX: "contain",
+          }}
+        >
+          <div
+            className="flex gap-3 px-4 pb-2 min-w-max"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             <button
               onClick={() => handleCategoryClick(undefined)}
-              className={`px-6 py-4 border-2 rounded-full transition-all ${
+              className={`flex-shrink-0 px-4 py-2 border-2 rounded-full transition-all text-sm font-medium whitespace-nowrap touch-manipulation select-none ${
                 activeCategory === undefined
                   ? "border-[#2c6e49] bg-[#2c6e49] text-white"
-                  : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
+                  : "border-gray-300 hover:border-[#2c6e49] text-[#333333] bg-white"
               }`}
               disabled={isLoading}
+              style={{
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                touchAction: "manipulation",
+              }}
             >
-              Todas las categorías
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4">
+                  <Image
+                    src="/icons/view_cozy.svg"
+                    alt="Todas"
+                    width={16}
+                    height={16}
+                    className={
+                      activeCategory === undefined ? "brightness-0 invert" : ""
+                    }
+                    draggable={false}
+                  />
+                </div>
+                <span>Todos</span>
+              </div>
             </button>
 
             {isLoading ? (
-              <div className="flex items-center justify-center px-6 py-4 border-2 border-gray-200 rounded-full">
-                <Loader2 className="h-5 w-5 animate-spin text-[#2c6e49]" />
-                <span className="ml-2 text-gray-500">
-                  Actualizando categorías...
-                </span>
+              <div className="flex items-center justify-center px-4 py-2 border-2 border-gray-200 rounded-full flex-shrink-0">
+                <Loader2 className="h-4 w-4 animate-spin text-[#2c6e49]" />
+                <span className="ml-2 text-gray-500 text-sm">Cargando...</span>
               </div>
             ) : (
               displayCategories.map((category) => (
                 <button
                   key={category.name}
                   onClick={() => handleCategoryClick(category.name)}
-                  className={`px-6 py-4 border-2 rounded-full transition-all flex items-center ${
+                  className={`flex-shrink-0 px-4 py-2 border-2 rounded-full transition-all text-sm font-medium whitespace-nowrap touch-manipulation select-none ${
                     activeCategory === category.name
                       ? "border-[#2c6e49] bg-[#2c6e49] text-white"
-                      : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
+                      : "border-gray-300 hover:border-[#2c6e49] text-[#333333] bg-white"
                   }`}
                   disabled={isLoading}
+                  style={{
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                    touchAction: "manipulation",
+                  }}
                 >
-                  <span>{category.name}</span>
-                  <span className="ml-2 bg-white bg-opacity-20 text-sm px-2 py-0.5 rounded-full">
-                    {category.count}
-                  </span>
-                </button>
-              ))
-            )}
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => handleCategoryClick(undefined)}
-              className={`w-60 h-28 border-2 rounded-lg transition-all flex flex-col items-start justify-center px-6 ${
-                activeCategory === undefined
-                  ? "border-[#2c6e49] bg-[#2c6e49] text-white"
-                  : "border-gray-300 hover:border-[#2c6e49] text-[#333333] hover:bg-gray-50"
-              }`}
-              disabled={isLoading}
-            >
-              <Image
-                src="/icons/view_cozy.svg"
-                alt="Todas las categorías"
-                width={24}
-                height={24}
-                className="mb-3"
-              />
-              <span className="font-medium">Todas las categorías</span>
-            </button>
-
-            {isLoading ? (
-              <div className="w-60 h-28 border-2 border-gray-200 rounded-lg flex flex-col items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-[#2c6e49] mb-3" />
-                <span className="text-gray-500 text-center">
-                  Actualizando categorías...
-                </span>
-              </div>
-            ) : (
-              displayCategories.map((category) => (
-                <button
-                  key={category.name}
-                  onClick={() => handleCategoryClick(category.name)}
-                  className={`w-60 h-28 border-2 rounded-lg transition-all flex flex-col items-start justify-center px-6 ${
-                    activeCategory === category.name
-                      ? "border-[#2c6e49] bg-[#2c6e49] text-white"
-                      : "border-gray-300 hover:border-[#2c6e49] text-[#333333] hover:bg-gray-50"
-                  }`}
-                  disabled={isLoading}
-                >
-                  {getCategoryIcon(category.name)}
-                  <div className="flex items-center gap-2 mt-3 mb-1">
-                    <span className="font-medium">{category.name}</span>
-                    <span
-                      className={`text-sm ${activeCategory === category.name ? "text-white/90" : "text-gray-500"}`}
-                    >
-                      ({category.count})
-                    </span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4">
+                      {React.cloneElement(getCategoryIcon(category.name), {
+                        draggable: false,
+                      })}
+                    </div>
+                    <span>{category.name}</span>
                   </div>
                 </button>
               ))
             )}
-          </>
-        )}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop version - original layout */}
+      <div className="hidden lg:block">
+        <div
+          className={`flex flex-wrap justify-center ${displayStyle === "card" ? "gap-6" : "gap-4"}`}
+        >
+          {displayStyle === "pill" ? (
+            <>
+              <button
+                onClick={() => handleCategoryClick(undefined)}
+                className={`px-6 py-4 border-2 rounded-full transition-all ${
+                  activeCategory === undefined
+                    ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+                    : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
+                }`}
+                disabled={isLoading}
+              >
+                Todas las categorías
+              </button>
+
+              {isLoading ? (
+                <div className="flex items-center justify-center px-6 py-4 border-2 border-gray-200 rounded-full">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#2c6e49]" />
+                  <span className="ml-2 text-gray-500">
+                    Actualizando categorías...
+                  </span>
+                </div>
+              ) : (
+                displayCategories.map((category) => (
+                  <button
+                    key={category.name}
+                    onClick={() => handleCategoryClick(category.name)}
+                    className={`px-6 py-4 border-2 rounded-full transition-all flex items-center ${
+                      activeCategory === category.name
+                        ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+                        : "border-gray-300 hover:border-[#2c6e49] text-[#333333]"
+                    }`}
+                    disabled={isLoading}
+                  >
+                    <span>{category.name}</span>
+                    <span className="ml-2 bg-white bg-opacity-20 text-sm px-2 py-0.5 rounded-full">
+                      {category.count}
+                    </span>
+                  </button>
+                ))
+              )}
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => handleCategoryClick(undefined)}
+                className={`w-60 h-28 border-2 rounded-lg transition-all flex flex-col items-start justify-center px-6 ${
+                  activeCategory === undefined
+                    ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+                    : "border-gray-300 hover:border-[#2c6e49] text-[#333333] hover:bg-gray-50"
+                }`}
+                disabled={isLoading}
+              >
+                <Image
+                  src="/icons/view_cozy.svg"
+                  alt="Todas las categorías"
+                  width={24}
+                  height={24}
+                  className="mb-3"
+                />
+                <span className="font-medium">Todas las categorías</span>
+              </button>
+
+              {isLoading ? (
+                <div className="w-60 h-28 border-2 border-gray-200 rounded-lg flex flex-col items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#2c6e49] mb-3" />
+                  <span className="text-gray-500 text-center">
+                    Actualizando categorías...
+                  </span>
+                </div>
+              ) : (
+                displayCategories.map((category) => (
+                  <button
+                    key={category.name}
+                    onClick={() => handleCategoryClick(category.name)}
+                    className={`w-60 h-28 border-2 rounded-lg transition-all flex flex-col items-start justify-center px-6 ${
+                      activeCategory === category.name
+                        ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+                        : "border-gray-300 hover:border-[#2c6e49] text-[#333333] hover:bg-gray-50"
+                    }`}
+                    disabled={isLoading}
+                  >
+                    {getCategoryIcon(category.name)}
+                    <div className="flex items-center gap-2 mt-3 mb-1">
+                      <span className="font-medium">{category.name}</span>
+                      <span
+                        className={`text-sm ${activeCategory === category.name ? "text-white/90" : "text-gray-500"}`}
+                      >
+                        ({category.count})
+                      </span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
