@@ -2,12 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Facebook,
-  Instagram,
-  Linkedin,
-  MessageSquare as WhatsAppIcon,
-} from "lucide-react";
 
 export function Footer() {
   return (
@@ -64,37 +58,61 @@ export function Footer() {
                 href="#"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
+                className="rounded-full p-3 hover:bg-white/10 transition-colors duration-300"
                 aria-label="Síguenos en Facebook"
               >
-                <Facebook className="h-7 w-7" />
+                <Image
+                  src="/icons/footer-icons/Facebook_white/Minka.svg"
+                  alt="Facebook"
+                  width={63}
+                  height={63}
+                  className="h-16 w-16"
+                />
               </Link>
               <Link
                 href="#"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
+                className="rounded-full p-3 hover:bg-white/10 transition-colors duration-300"
                 aria-label="Síguenos en Instagram"
               >
-                <Instagram className="h-7 w-7" />
+                <Image
+                  src="/icons/footer-icons/Instagram_white/Minka.svg"
+                  alt="Instagram"
+                  width={63}
+                  height={63}
+                  className="h-16 w-16"
+                />
               </Link>
               <Link
                 href="#"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
+                className="rounded-full p-3 hover:bg-white/10 transition-colors duration-300"
                 aria-label="Contáctanos por WhatsApp"
               >
-                <WhatsAppIcon className="h-7 w-7" />
+                <Image
+                  src="/icons/footer-icons/WhatsApp_white/Minka.svg"
+                  alt="WhatsApp"
+                  width={63}
+                  height={63}
+                  className="h-16 w-16"
+                />
               </Link>
               <Link
                 href="#"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-full p-3 text-[#2c6e49] hover:bg-[#e8f5ed] transition-colors duration-300"
+                className="rounded-full p-3 hover:bg-white/10 transition-colors duration-300"
                 aria-label="Síguenos en LinkedIn"
               >
-                <Linkedin className="h-7 w-7" />
+                <Image
+                  src="/icons/footer-icons/LinkedIN_white/Minka.svg"
+                  alt="LinkedIn"
+                  width={63}
+                  height={63}
+                  className="h-16 w-16"
+                />
               </Link>
             </div>
           </div>
