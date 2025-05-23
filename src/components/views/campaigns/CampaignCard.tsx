@@ -55,15 +55,15 @@ export function CampaignCard({
         </div>
 
         {/* Verified badge - moves to 50/50 position on hover */}
-        <div className="absolute left-4 opacity-0 group-hover:opacity-100 group-hover:top-32 group-hover:-translate-y-1/2 transition-all duration-300 z-10">
+        <div className="absolute left-4 top-4 opacity-0 group-hover:opacity-100 group-hover:top-32 group-hover:-translate-y-1/2 transition-all duration-500 ease-in-out z-10">
           {verified && (
-            <div className="w-12 h-12 rounded-full bg-[#2c6e49] flex items-center justify-center transition-all duration-300 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-[#2c6e49] flex items-center justify-center transition-all duration-500 ease-in-out shadow-sm">
               <Image
                 src="/landing-page/step-2.png"
                 alt="Verified"
                 width={32}
                 height={32}
-                className="brightness-0 invert transition-all duration-300"
+                className="brightness-0 invert transition-all duration-500 ease-in-out"
               />
             </div>
           )}
@@ -72,14 +72,14 @@ export function CampaignCard({
         {/* Card Content - Flexible height but constrained */}
         <div className="p-3 bg-white flex flex-col relative flex-1 min-h-0">
           <div className="flex flex-col mb-1 flex-shrink-0">
-            <div className="mb-1 flex-shrink-0 h-8 group-hover:opacity-0 transition-opacity duration-300">
+            <div className="mb-1 flex-shrink-0 h-8 group-hover:opacity-0 transition-opacity duration-500 ease-in-out">
               {verified ? (
                 <Image
                   src="/landing-page/step-2.png"
                   alt="Verified"
                   width={32}
                   height={32}
-                  className="text-[#2c6e49]"
+                  className="text-[#2c6e49] transition-opacity duration-500 ease-in-out"
                 />
               ) : (
                 <div className="w-8 h-8" />

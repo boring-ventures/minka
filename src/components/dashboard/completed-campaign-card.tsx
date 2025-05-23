@@ -42,14 +42,14 @@ export function CompletedCampaignCard({
         </div>
 
         {/* Verified badge - moves to 50/50 position on hover */}
-        <div className="absolute left-[140px] group-hover:left-[80px] top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10 transition-all duration-300">
-          <div className="bg-[#2c6e49] group-hover:bg-[#2c6e49] rounded-full p-1 flex items-center justify-center w-[30px] h-[30px] group-hover:w-[36px] group-hover:h-[36px] transition-all duration-300 shadow-sm">
+        <div className="absolute left-[140px] group-hover:left-[80px] top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10 transition-all duration-500 ease-in-out">
+          <div className="bg-[#2c6e49] group-hover:bg-[#2c6e49] rounded-full p-1 flex items-center justify-center w-[30px] h-[30px] group-hover:w-[36px] group-hover:h-[36px] transition-all duration-500 ease-in-out shadow-sm">
             <Image
               src="/icons/verified.svg"
               alt="Verified"
               width={20}
               height={20}
-              className="brightness-0 invert" /* Always white */
+              className="brightness-0 invert transition-all duration-500 ease-in-out" /* Always white */
             />
           </div>
         </div>
