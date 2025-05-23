@@ -2090,7 +2090,6 @@ export function CampaignForm() {
                       ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/campaign/${campaignId}`)}`
                       : "#"
                   }
-                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center"
                 >
@@ -2111,7 +2110,6 @@ export function CampaignForm() {
                       ? `https://wa.me/?text=${encodeURIComponent(`¡Apoya mi campaña en Minka! ${window.location.origin}/campaign/${campaignId}`)}`
                       : "#"
                   }
-                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center"
                 >
@@ -2132,7 +2130,6 @@ export function CampaignForm() {
                       ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(`¡Apoya mi campaña en Minka! ${window.location.origin}/campaign/${campaignId}`)}`
                       : "#"
                   }
-                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center"
                 >

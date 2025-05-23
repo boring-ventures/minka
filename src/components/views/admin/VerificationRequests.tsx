@@ -306,7 +306,6 @@ export function VerificationRequests() {
                 <Link
                   href={`/campaign/${selectedRequest.campaign.id}`}
                   className="text-blue-600 hover:underline"
-                  target="_blank"
                 >
                   Ver campaña en el sitio
                 </Link>

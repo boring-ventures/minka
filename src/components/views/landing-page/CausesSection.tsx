@@ -73,7 +73,7 @@ export function CausesSection() {
             No se pudieron cargar las campañas. Por favor, intenta de nuevo más
             tarde.
           </p>
-          <Link href="/campaign" target="_blank" rel="noopener noreferrer">
+          <Link href="/campaign" rel="noopener noreferrer">
             <Button className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white rounded-full">
               Ver todas las campañas
             </Button>
@@ -84,11 +84,7 @@ export function CausesSection() {
           <p className="text-xl text-gray-600 mb-6">
             No hay campañas disponibles en este momento.
           </p>
-          <Link
-            href="/create-campaign"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link href="/create-campaign" rel="noopener noreferrer">
             <Button className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white rounded-full">
               Crear una campaña
             </Button>
@@ -118,7 +114,7 @@ export function CausesSection() {
 
       {!isLoading && !error && campaigns.length > 0 && (
         <div className="flex justify-center mt-12">
-          <Link href="/campaign" target="_blank" rel="noopener noreferrer">
+          <Link href="/campaign" rel="noopener noreferrer">
             <Button
               className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] hover:text-white text-xl shadow-none border-0 rounded-full"
               size="lg"

@@ -695,7 +695,6 @@ export function AdsTab({ campaign }: AdsTabProps) {
                             <div className="mt-2">
                               <a
                                 href={update.youtubeUrl}
-                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[#2c6e49] text-sm hover:underline flex items-center"
                               >

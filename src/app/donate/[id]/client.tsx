@@ -16,10 +16,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // Define donation amount options
 const DONATION_AMOUNTS = [
-  { value: 50, label: "Bs. 50,00" },
-  { value: 100, label: "Bs. 100,00" },
-  { value: 200, label: "Bs. 200,00" },
-  { value: 500, label: "Bs. 500,00" },
+  { value: 50, label: "Bs. 50" },
+  { value: 100, label: "Bs. 100" },
+  { value: 200, label: "Bs. 200" },
+  { value: 500, label: "Bs. 500" },
 ];
 
 // Define payment methods
@@ -74,6 +74,22 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Animation state for step transitions
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationDirection, setAnimationDirection] = useState<
+    "forward" | "backward"
+  >("forward");
+
+  // Custom tip state
+  const [tipMode, setTipMode] = useState<"percentage" | "custom">("percentage");
+  const [customTipAmount, setCustomTipAmount] = useState<string>("");
+
+  // Donation confirmation state
+  const [isDonationConfirmed, setIsDonationConfirmed] = useState(false);
+
+  // Share functionality state
+  const [showShareOptions, setShowShareOptions] = useState(false);
+
   // Load user data on component mount
   useEffect(() => {
     const checkUser = async () => {
@@ -91,7 +107,10 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
   // Calculate donation details
   const donationAmount =
     selectedAmount || (customAmount ? Number.parseFloat(customAmount) : 0);
-  const platformFee = donationAmount * (minkaContribution / 100); // User-selected percentage for platform fee
+  const platformFee =
+    tipMode === "percentage"
+      ? donationAmount * (minkaContribution / 100)
+      : Number.parseFloat(customTipAmount) || 0; // User-selected percentage or custom amount for platform fee
   const totalAmount = donationAmount + platformFee;
 
   // Handle amount selection
@@ -126,16 +145,31 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
       step === 1 &&
       (selectedAmount || (customAmount && Number.parseFloat(customAmount) > 0))
     ) {
-      setStep(2);
+      setIsAnimating(true);
+      setAnimationDirection("forward");
+      setTimeout(() => {
+        setStep(2);
+        setIsAnimating(false);
+      }, 300);
     } else if (step === 2 && paymentMethod) {
-      setStep(3);
+      setIsAnimating(true);
+      setAnimationDirection("forward");
+      setTimeout(() => {
+        setStep(3);
+        setIsAnimating(false);
+      }, 300);
     }
   };
 
   // Handle going back to previous step
   const handleBack = () => {
     if (step > 1) {
-      setStep(step - 1);
+      setIsAnimating(true);
+      setAnimationDirection("backward");
+      setTimeout(() => {
+        setStep(step - 1);
+        setIsAnimating(false);
+      }, 300);
     }
   };
 
@@ -200,6 +234,7 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
 
       // Show success modal
       setShowSuccessModal(true);
+      setIsDonationConfirmed(true);
     } catch (error) {
       console.error("Error submitting donation:", error);
       setErrorMessage(
@@ -219,14 +254,32 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
     router.push(`/sign-in?redirect=${encodeURIComponent(currentPath)}`);
   };
 
+  // Handle sign-up redirect for unauthenticated users
+  const handleSignUpRedirect = () => {
+    // Store the current URL to redirect back after sign-up
+    const currentPath = window.location.pathname;
+    router.push(`/sign-up?redirect=${encodeURIComponent(currentPath)}`);
+  };
+
   // Handle closing success modal
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    setStep(4); // Show step 4 with notifications options
+    setIsAnimating(true);
+    setAnimationDirection("forward");
+    setTimeout(() => {
+      setStep(4); // Show step 4 with notifications options
+      setIsAnimating(false);
+    }, 300);
   };
 
   // Handle notification toggle
   const handleNotificationToggle = async (checked: boolean) => {
+    // If user is trying to enable notifications but is not authenticated, redirect to sign-in
+    if (checked && !user) {
+      handleLoginRedirect();
+      return;
+    }
+
     setReceiveNotifications(checked);
     // If we have a donation ID, update the notification preference in the database
     if (donationId) {
@@ -290,6 +343,82 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setMinkaContribution(Number(e.target.value));
+  };
+
+  // Handle tip mode change
+  const handleTipModeChange = (mode: "percentage" | "custom") => {
+    setTipMode(mode);
+    if (mode === "custom" && !customTipAmount) {
+      setCustomTipAmount("");
+    }
+  };
+
+  // Handle custom tip amount change
+  const handleCustomTipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow numbers and decimal point
+    if (/^\d*\.?\d*$/.test(value)) {
+      setCustomTipAmount(value);
+    }
+  };
+
+  // Share functionality
+  const handleShareClick = () => {
+    const shareUrl = `${window.location.origin}/campaign/${campaignId}`;
+    const shareTitle = campaign?.title || "Apoya esta campaña";
+    const shareText = `¡Acabo de apoyar esta campaña en Minka! ${shareTitle}`;
+
+    // Try to use native Web Share API if available (mobile devices)
+    if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) {
+      navigator
+        .share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        })
+        .catch((error) => {
+          console.log("Error sharing:", error);
+          // Fallback to custom share options
+          setShowShareOptions(true);
+        });
+    } else {
+      // Show custom share options for desktop
+      setShowShareOptions(true);
+    }
+  };
+
+  const shareOnPlatform = (platform: string) => {
+    const shareUrl = `${window.location.origin}/campaign/${campaignId}`;
+    const shareTitle = campaign?.title || "Apoya esta campaña";
+    const shareText = `¡Acabo de apoyar esta campaña en Minka! ${shareTitle}`;
+
+    const urls = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`,
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
+    };
+
+    if (platform === "copy") {
+      copyToClipboard(shareUrl);
+    } else if (urls[platform as keyof typeof urls]) {
+      window.open(
+        urls[platform as keyof typeof urls],
+        "_blank",
+        "width=600,height=400"
+      );
+      setShowShareOptions(false);
+    }
+  };
+
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setShowShareOptions(false);
+      // You could add a toast notification here if you have the toast hook available
+    } catch (error) {
+      console.error("Failed to copy: ", error);
+    }
   };
 
   if (campaignLoading) {
@@ -422,6 +551,11 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
         </div>
       </div>
 
+      {/* Separator between campaign details and form */}
+      <div className="w-full flex justify-center">
+        <div className="w-[90%] border-t border-gray-200"></div>
+      </div>
+
       {/* Main content */}
       <main className="overflow-x-hidden">
         <div className="container mx-auto py-12">
@@ -472,110 +606,175 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
             <>
               {/* Step 1: Choose donation amount */}
               {step === 1 && (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 px-4">
-                  {/* Left column: Title and description */}
-                  <div className="md:col-span-5">
-                    <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
-                      Elige el monto de tu donación
-                    </h2>
-                    <p className="text-gray-600">
-                      Selecciona un monto o ingresa la cantidad que prefieras y
-                      contribuye a generar impacto. Minka retiene un porcentaje
-                      de donación para cubrir costos operativos y garantizar el
-                      funcionamiento seguro de la plataforma.
-                    </p>
-                  </div>
-
-                  {/* Right column: Donation form */}
-                  <div className="md:col-span-7">
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-8 border border-black">
-                      <h3 className="text-lg font-semibold text-black mb-4">
-                        Selecciona un monto
-                      </h3>
-
-                      {/* Predefined amounts */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        {DONATION_AMOUNTS.map((option, index) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={`py-3 px-4 rounded-lg border ${
-                              selectedAmount === option.value
-                                ? "border-black bg-gray-100 text-black"
-                                : "border-black hover:bg-gray-100 text-black"
-                            } transition-colors`}
-                            onClick={() => handleAmountSelect(option.value)}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Custom amount */}
-                      <div className="mb-6">
-                        <label
-                          htmlFor="custom-amount"
-                          className="block text-sm font-medium text-black mb-2"
-                        >
-                          Si prefieres, indica otra cantidad
-                        </label>
-                        <div className="relative">
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black">
-                            Bs.
-                          </span>
-                          <input
-                            type="text"
-                            id="custom-amount"
-                            className="block w-full pl-10 pr-3 py-3 border border-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black text-black"
-                            placeholder="1.300,00"
-                            value={customAmount}
-                            onChange={handleCustomAmountChange}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Donation info - updated with slider - border and bg removed */}
-                      <div className="mb-6">
-                        <p className="text-sm text-black mb-3">
-                          ¿Quieres apoyar a Minka? Una contribución voluntaria
-                          adicional te permite ser parte de la comunidad
-                          solidaria por excelencia.
+                <div
+                  className={`transition-opacity duration-500 ${isAnimating ? "opacity-0" : "opacity-100"}`}
+                >
+                  <div className="min-h-[600px] flex items-center justify-center">
+                    <div className="w-full max-w-3xl mx-auto px-4">
+                      {/* Title and description moved to top and centered */}
+                      <div className="text-center mb-8">
+                        <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
+                          Elige el monto de tu donación
+                        </h2>
+                        <p className="text-gray-600 max-w-2xl mx-auto">
+                          Selecciona un monto o ingresa la cantidad que
+                          prefieras y contribuye a generar impacto. Minka
+                          retiene un porcentaje de donación para cubrir costos
+                          operativos y garantizar el funcionamiento seguro de la
+                          plataforma.
                         </p>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-black">0%</span>
-                            <span className="text-sm text-black font-medium">
-                              {minkaContribution}%
-                            </span>
-                            <span className="text-sm text-black">100%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="1"
-                            value={minkaContribution}
-                            onChange={handleMinkaContributionChange}
-                            className="w-full h-2 rounded-full appearance-none bg-gray-300 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2c6e49]"
-                          />
-                        </div>
-                        <div className="flex justify-between items-center mt-3">
-                          <span className="text-sm text-black">
-                            Tu contribución a Minka:
-                          </span>
-                          <span className="text-sm font-medium text-black">
-                            Bs. {platformFee.toFixed(2)}
-                          </span>
-                        </div>
                       </div>
 
-                      {/* Total section */}
-                      <div className="mb-6 pb-4 border-b border-gray-200">
-                        <div className="flex justify-between">
-                          <span className="font-medium text-black">Total</span>
-                          <span className="font-medium text-black">
-                            Bs. {totalAmount.toFixed(2)}
-                          </span>
+                      {/* Donation form centered */}
+                      <div className="bg-white rounded-lg shadow-sm p-6 mb-8 border border-black">
+                        <h3 className="text-lg font-semibold text-black mb-4">
+                          Selecciona un monto
+                        </h3>
+
+                        {/* Predefined amounts */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          {DONATION_AMOUNTS.map((option, index) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={`py-3 px-4 rounded-lg border ${
+                                selectedAmount === option.value
+                                  ? "border-[#2c6e49] bg-[#2c6e49] text-white"
+                                  : "border-black hover:bg-gray-100 text-black"
+                              } transition-colors`}
+                              onClick={() => handleAmountSelect(option.value)}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Separator with "o" */}
+                        <div className="relative mb-6">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300"></div>
+                          </div>
+                          <div className="relative flex justify-center">
+                            <span className="bg-white px-3 text-sm text-gray-500 font-medium">
+                              o
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Custom amount */}
+                        <div className="mb-6">
+                          <label
+                            htmlFor="custom-amount"
+                            className="block text-sm font-medium text-black mb-2"
+                          >
+                            Si prefieres, indica otra cantidad
+                          </label>
+                          <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black">
+                              Bs.
+                            </span>
+                            <input
+                              type="text"
+                              id="custom-amount"
+                              className="block w-full pl-10 pr-3 py-3 border border-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black text-black"
+                              placeholder="1.300,00"
+                              value={customAmount}
+                              onChange={handleCustomAmountChange}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Donation info - updated with slider - border and bg removed */}
+                        <div className="mb-6">
+                          <p className="text-sm text-black mb-3">
+                            ¿Quieres apoyar a Minka? Una contribución voluntaria
+                            adicional te permite ser parte de la comunidad
+                            solidaria por excelencia.
+                          </p>
+
+                          {/* Tip mode toggle */}
+                          <div className="flex gap-2 mb-4">
+                            <button
+                              type="button"
+                              className={`px-3 py-2 text-sm rounded-md border ${
+                                tipMode === "percentage"
+                                  ? "bg-[#2c6e49] text-white border-[#2c6e49]"
+                                  : "bg-white text-black border-black hover:bg-gray-100"
+                              } transition-colors`}
+                              onClick={() => handleTipModeChange("percentage")}
+                            >
+                              Porcentaje
+                            </button>
+                            <button
+                              type="button"
+                              className={`px-3 py-2 text-sm rounded-md border ${
+                                tipMode === "custom"
+                                  ? "bg-[#2c6e49] text-white border-[#2c6e49]"
+                                  : "bg-white text-black border-black hover:bg-gray-100"
+                              } transition-colors`}
+                              onClick={() => handleTipModeChange("custom")}
+                            >
+                              Cantidad personalizada
+                            </button>
+                          </div>
+
+                          {/* Percentage mode */}
+                          {tipMode === "percentage" && (
+                            <div className="space-y-2">
+                              {/* Percentage indicator above the slider */}
+                              <div className="relative h-8">
+                                <div
+                                  className="absolute -top-2 transform -translate-x-1/2 text-[#2c6e49] text-lg font-semibold"
+                                  style={{ left: `${minkaContribution}%` }}
+                                >
+                                  {minkaContribution}%
+                                </div>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value={minkaContribution}
+                                onChange={handleMinkaContributionChange}
+                                className="w-full h-2 rounded-full appearance-none bg-gray-300 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2c6e49]"
+                              />
+                            </div>
+                          )}
+
+                          {/* Custom amount mode */}
+                          {tipMode === "custom" && (
+                            <div className="space-y-2">
+                              <label
+                                htmlFor="custom-tip"
+                                className="block text-sm font-medium text-black"
+                              >
+                                Ingresa el monto de tu contribución
+                              </label>
+                              <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black">
+                                  Bs.
+                                </span>
+                                <input
+                                  type="text"
+                                  id="custom-tip"
+                                  className="block w-full pl-10 pr-3 py-2 border border-black rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black text-black"
+                                  placeholder="0,00"
+                                  value={customTipAmount}
+                                  onChange={handleCustomTipChange}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center mt-3">
+                            <span className="text-sm text-black">
+                              Tu contribución a Minka:
+                            </span>
+                            <span className="text-sm font-medium text-black">
+                              Bs. {platformFee.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -585,81 +784,95 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
 
               {/* Step 2: Choose payment method */}
               {step === 2 && (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 px-4">
-                  {/* Left column: Title and description */}
-                  <div className="md:col-span-5">
-                    <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
-                      Elige el método de pago
-                    </h2>
-                    <p className="text-gray-600">
-                      Marca el método de pago con el que deseas realizar tu
-                      aporte. Tu donación está protegida.
-                    </p>
-                  </div>
-
-                  {/* Right column: Payment method cards */}
-                  <div className="md:col-span-7">
-                    <div className="space-y-4">
-                      {/* Credit/Debit Card Option */}
-                      <div
-                        className={`bg-white rounded-lg p-6 border ${
-                          paymentMethod === "card"
-                            ? "border-[#2c6e49]"
-                            : "border-black"
-                        } cursor-pointer hover:border-[#2c6e49] transition-colors`}
-                        onClick={() => handlePaymentMethodSelect("card")}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
-                              {paymentMethod === "card" ? (
-                                <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
-                              ) : null}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <CreditCard className="h-6 w-6 text-gray-600" />
-                              <h3 className="font-medium text-gray-800 text-lg">
-                                Tarjeta de crédito/débito
-                              </h3>
-                            </div>
-                            <p className="text-base text-gray-600">
-                              Ingresa los detalles de tu tarjeta de crédito o
-                              débito para procesar tu donación.
-                            </p>
-                          </div>
-                        </div>
+                <div
+                  className={`transition-opacity duration-500 ${isAnimating ? "opacity-0" : "opacity-100"}`}
+                >
+                  <div className="min-h-[600px] flex items-center justify-center">
+                    <div className="w-full max-w-3xl mx-auto px-4">
+                      {/* Title and description moved to top and centered */}
+                      <div className="text-center mb-8">
+                        <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
+                          Elige el método de pago
+                        </h2>
+                        <p className="text-gray-600 max-w-2xl mx-auto">
+                          Marca el método de pago con el que deseas realizar tu
+                          aporte. Tu donación está protegida.
+                        </p>
                       </div>
 
-                      {/* QR Code Option */}
-                      <div
-                        className={`bg-white rounded-lg p-6 border ${
-                          paymentMethod === "qr"
-                            ? "border-[#2c6e49]"
-                            : "border-black"
-                        } cursor-pointer hover:border-[#2c6e49] transition-colors`}
-                        onClick={() => handlePaymentMethodSelect("qr")}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
-                              {paymentMethod === "qr" ? (
-                                <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
-                              ) : null}
+                      {/* Payment method cards centered */}
+                      <div className="space-y-4">
+                        {/* Credit/Debit Card Option */}
+                        <div
+                          className={`bg-white rounded-lg p-8 border ${
+                            paymentMethod === "card"
+                              ? "border-[#2c6e49]"
+                              : "border-black"
+                          } cursor-pointer hover:border-[#2c6e49] transition-colors`}
+                          onClick={() => handlePaymentMethodSelect("card")}
+                        >
+                          <div className="flex items-start gap-6">
+                            <div className="flex-shrink-0 mt-1">
+                              <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
+                                {paymentMethod === "card" ? (
+                                  <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0 flex items-center justify-center w-16 h-16">
+                              <Image
+                                src="/icons/credit_card_heart.svg"
+                                alt="Credit Card"
+                                width={32}
+                                height={32}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-800 text-lg mb-2">
+                                Tarjeta de crédito/débito
+                              </h3>
+                              <p className="text-base text-gray-600">
+                                Ingresa los detalles de tu tarjeta de crédito o
+                                débito para procesar tu donación.
+                              </p>
                             </div>
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <QrCode className="h-6 w-6 text-gray-600" />
-                              <h3 className="font-medium text-gray-800 text-lg">
+                        </div>
+
+                        {/* QR Code Option */}
+                        <div
+                          className={`bg-white rounded-lg p-8 border ${
+                            paymentMethod === "qr"
+                              ? "border-[#2c6e49]"
+                              : "border-black"
+                          } cursor-pointer hover:border-[#2c6e49] transition-colors`}
+                          onClick={() => handlePaymentMethodSelect("qr")}
+                        >
+                          <div className="flex items-start gap-6">
+                            <div className="flex-shrink-0 mt-1">
+                              <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
+                                {paymentMethod === "qr" ? (
+                                  <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0 flex items-center justify-center w-16 h-16">
+                              <Image
+                                src="/icons/qr_code.svg"
+                                alt="QR Code"
+                                width={32}
+                                height={32}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-800 text-lg mb-2">
                                 Código QR
                               </h3>
+                              <p className="text-base text-gray-600">
+                                Abre la aplicación de tu banco, escanea el
+                                código QR y sigue las instrucciones.
+                              </p>
                             </div>
-                            <p className="text-base text-gray-600">
-                              Abre la aplicación de tu banco, escanea el código
-                              QR y sigue las instrucciones.
-                            </p>
                           </div>
                         </div>
                       </div>
@@ -670,102 +883,94 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
 
               {/* Step 3: Confirm donation */}
               {step === 3 && (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 px-4">
-                  {/* Left column: Title and description */}
-                  <div className="md:col-span-5">
-                    <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
-                      Confirma tu donación
-                    </h2>
-                    <p className="text-gray-600">
-                      Tu ayuda está a un paso de impulsar sueños. Confirma tu
-                      aporte y haz crecer esta causa.
-                    </p>
-                  </div>
-
-                  {/* Right column: Confirmation form */}
-                  <div className="md:col-span-7">
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-8 border border-black">
-                      <div className="flex flex-col items-center mb-6">
-                        <Image
-                          src="/landing-page/step-4.svg"
-                          alt="Donation"
-                          width={60}
-                          height={60}
-                          className="mb-2"
-                        />
-                        <h3 className="text-lg font-medium text-center text-[#2c6e49]">
-                          Tu donación
-                        </h3>
+                <div
+                  className={`transition-opacity duration-500 ${isAnimating ? "opacity-0" : "opacity-100"}`}
+                >
+                  <div className="min-h-[600px] flex items-center justify-center">
+                    <div className="w-full max-w-3xl mx-auto px-4">
+                      {/* Title and description moved to top and centered */}
+                      <div className="text-center mb-8">
+                        <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
+                          Confirma tu donación
+                        </h2>
+                        <p className="text-gray-600 max-w-2xl mx-auto">
+                          Tu ayuda está a un paso de impulsar sueños. Confirma
+                          tu aporte y haz crecer esta causa.
+                        </p>
                       </div>
 
-                      {/* Donation summary */}
-                      <div className="space-y-3 mb-6">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tu donación</span>
-                          <span className="font-medium">
-                            Bs. {donationAmount.toFixed(2)}
-                          </span>
+                      {/* Confirmation form centered */}
+                      <div className="bg-white rounded-lg shadow-sm p-6 mb-8 border border-black">
+                        <div className="flex flex-col items-center mb-6">
+                          <Image
+                            src="/landing-page/step-4.svg"
+                            alt="Donation"
+                            width={60}
+                            height={60}
+                            className="mb-2"
+                          />
+                          <h3 className="text-lg font-medium text-center text-[#2c6e49]">
+                            Tu donación
+                          </h3>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Aporte para Minka
-                          </span>
-                          <span className="font-medium">
-                            Bs. {platformFee.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="border-t border-gray-200 pt-3 flex justify-between">
-                          <span className="font-medium">Total</span>
-                          <span className="font-medium">
-                            Bs. {totalAmount.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Error notification */}
-                      {errorMessage && (
-                        <div className="bg-red-50 border border-red-300 text-red-800 rounded-lg p-4 mb-6">
-                          <div className="flex items-start">
-                            <div className="flex-shrink-0">
-                              <svg
-                                className="h-5 w-5 text-red-400"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                            <div className="ml-3">
-                              <p className="text-sm">{errorMessage}</p>
-                              {errorMessage.includes("iniciar sesión") && (
-                                <Button
-                                  className="mt-2 bg-white border border-red-300 text-red-700 hover:bg-red-50"
-                                  onClick={handleLoginRedirect}
-                                >
-                                  Iniciar sesión
-                                </Button>
-                              )}
-                            </div>
+                        {/* Donation summary */}
+                        <div className="space-y-3 mb-6">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tu donación</span>
+                            <span className="font-medium">
+                              Bs. {donationAmount.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">
+                              Aporte adicional a Minka
+                            </span>
+                            <span className="font-medium">
+                              Bs. {platformFee.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="border-t border-gray-200 pt-3 flex justify-between">
+                            <span className="font-medium">Total</span>
+                            <span className="font-medium">
+                              Bs. {totalAmount.toFixed(2)}
+                            </span>
                           </div>
                         </div>
-                      )}
 
-                      {/* Confirm button - responsive sizing */}
-                      <div className="flex justify-center">
-                        <Button
-                          className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3"
-                          onClick={handleConfirmDonation}
-                          disabled={isSubmitting}
-                        >
-                          Confirmar donación{" "}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
+                        {/* Error notification */}
+                        {errorMessage && (
+                          <div className="bg-red-50 border border-red-300 text-red-800 rounded-lg p-4 mb-6">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0">
+                                <svg
+                                  className="h-5 w-5 text-red-400"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </div>
+                              <div className="ml-3">
+                                <p className="text-sm">{errorMessage}</p>
+                                {errorMessage.includes("iniciar sesión") && (
+                                  <Button
+                                    className="mt-2 bg-white border border-red-300 text-red-700 hover:bg-red-50"
+                                    onClick={handleLoginRedirect}
+                                  >
+                                    Iniciar sesión
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -774,95 +979,91 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
 
               {/* Step 4: Notification preferences */}
               {step === 4 && (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 px-4">
-                  {/* Left column: Title and description */}
-                  <div className="md:col-span-5">
-                    <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
-                      Recibe actualizaciones sobre tu donación (opcional)
-                    </h2>
-                    <p className="text-gray-600">
-                      Sigue el avance de la campaña y descubre el impacto de tu
-                      aporte.
-                    </p>
-                  </div>
+                <div
+                  className={`transition-opacity duration-500 ${isAnimating ? "opacity-0" : "opacity-100"}`}
+                >
+                  <div className="min-h-[600px] flex items-center justify-center">
+                    <div className="w-full max-w-3xl mx-auto px-4">
+                      {/* Title and description moved to top and centered */}
+                      <div className="text-center mb-8">
+                        <h2 className="text-3xl md:text-4xl font-bold text-[#333333] mb-6 leading-tight">
+                          Recibe actualizaciones sobre tu donación (opcional)
+                        </h2>
+                        <p className="text-gray-600 max-w-2xl mx-auto">
+                          Sigue el avance de la campaña y descubre el impacto de
+                          tu aporte.
+                        </p>
+                      </div>
 
-                  {/* Right column: Notification preferences */}
-                  <div className="md:col-span-7">
-                    <div
-                      className={`bg-white rounded-lg shadow-sm p-6 mb-8 border ${receiveNotifications ? "border-[#2c6e49]" : "border-black"} hover:border-[#2c6e49] transition-colors`}
-                    >
+                      {/* Notification preferences form centered */}
                       <div
-                        className="flex items-start space-x-4 cursor-pointer"
-                        onClick={() =>
-                          handleNotificationToggle(!receiveNotifications)
-                        }
+                        className={`bg-white rounded-lg shadow-sm p-6 mb-8 border ${receiveNotifications ? "border-[#2c6e49]" : "border-black"} hover:border-[#2c6e49] transition-colors`}
                       >
-                        <div className="flex-shrink-0 mt-1">
-                          <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
-                            {receiveNotifications ? (
-                              <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
-                            ) : null}
+                        <div
+                          className="flex items-start space-x-4 cursor-pointer"
+                          onClick={() =>
+                            handleNotificationToggle(!receiveNotifications)
+                          }
+                        >
+                          <div className="flex-shrink-0 mt-1">
+                            <div className="h-6 w-6 rounded-full border border-gray-300 flex items-center justify-center">
+                              {receiveNotifications ? (
+                                <div className="h-3 w-3 rounded-full bg-[#2c6e49]"></div>
+                              ) : null}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start gap-2">
-                            <Image
-                              src="/icons/notifications.svg"
-                              alt="Notifications"
-                              width={28}
-                              height={28}
-                              className="mt-1"
-                            />
-                            <div>
-                              <h3 className="text-lg font-medium text-gray-900">
-                                Recibir notificaciones
-                              </h3>
-                              <p className="text-sm text-gray-600 mt-1">
-                                Recibe actualizaciones por correo electrónico
-                                y/o SMS
-                              </p>
+                          <div className="flex-1">
+                            <div className="flex items-start gap-2">
+                              <Image
+                                src="/icons/notifications.svg"
+                                alt="Notifications"
+                                width={28}
+                                height={28}
+                                className="mt-1"
+                              />
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900">
+                                  Recibir notificaciones
+                                </h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Recibe actualizaciones por correo electrónico
+                                  y/o SMS
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Show error message if there is one */}
-                    {errorMessage && (
-                      <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative mb-4">
-                        <span className="block sm:inline">{errorMessage}</span>
-                        <button
-                          className="absolute top-0 bottom-0 right-0 px-4 py-3"
-                          onClick={() => setErrorMessage(null)}
-                        >
-                          <span className="sr-only">Cerrar</span>
-                          <svg
-                            className="h-6 w-6 text-red-500"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            aria-hidden="true"
+                      {/* Show error message if there is one */}
+                      {errorMessage && (
+                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative mb-4">
+                          <span className="block sm:inline">
+                            {errorMessage}
+                          </span>
+                          <button
+                            className="absolute top-0 bottom-0 right-0 px-4 py-3"
+                            onClick={() => setErrorMessage(null)}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Complete button */}
-                    <div className="flex justify-center mt-8">
-                      <Button
-                        className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full px-8 py-3"
-                        onClick={() => router.push(`/campaign/${campaignId}`)}
-                      >
-                        Completar
-                      </Button>
+                            <span className="sr-only">Cerrar</span>
+                            <svg
+                              className="h-6 w-6 text-red-500"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -870,20 +1071,21 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
 
               {/* Navigation buttons */}
               <div className="max-w-3xl mx-auto mt-8 mb-4 px-4 flex justify-between">
-                {step > 1 && (
-                  <Button
-                    className="bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#e8f0e9] rounded-full px-6 py-2"
-                    onClick={handleBack}
-                  >
-                    Volver
-                  </Button>
-                )}
+                {/* Volver button - always present but invisible in step 1 */}
+                <Button
+                  className={`bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#e8f0e9] rounded-full px-6 py-2 ${
+                    step === 1 || isDonationConfirmed ? "invisible" : "visible"
+                  }`}
+                  onClick={handleBack}
+                  disabled={step === 1 || isDonationConfirmed}
+                >
+                  Volver
+                </Button>
 
-                {step < 3 && (
+                {/* Continuar button - always positioned on the right */}
+                {step < 3 && !isDonationConfirmed && (
                   <Button
-                    className={`ml-auto bg-[#2c6e49] hover:bg-[#1e4d33] text-white px-8 py-3 rounded-full ${
-                      step > 1 ? "" : "mx-auto"
-                    }`}
+                    className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white px-8 py-3 rounded-full"
                     onClick={handleContinue}
                     disabled={
                       (step === 1 &&
@@ -896,11 +1098,34 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                     Continuar <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 )}
+
+                {/* Confirmar donación button for step 3 */}
+                {step === 3 && !isDonationConfirmed && (
+                  <Button
+                    className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white px-8 py-3 rounded-full"
+                    onClick={handleConfirmDonation}
+                    disabled={isSubmitting}
+                  >
+                    Confirmar donación <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+
+                {/* Completar button for step 4 */}
+                {step === 4 && (
+                  <Button
+                    className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white px-8 py-3 rounded-full"
+                    onClick={() => router.push(`/campaign/${campaignId}`)}
+                  >
+                    Completar <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </>
           )}
         </div>
       </main>
+
+      <Footer />
 
       {/* Success Modal */}
       {showSuccessModal && (
@@ -955,23 +1180,167 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                 ¡Juntos somos más fuertes!
               </p>
 
+              {/* Account creation prompt for unauthenticated users */}
+              {!user && (
+                <p className="mt-3 text-sm text-gray-600">
+                  <span className="text-[#2c6e49] font-medium">
+                    Crea una cuenta para seguir el impacto de tu donación
+                  </span>
+                </p>
+              )}
+
+              {/* Share section */}
+              <div className="mt-4">
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-[#2c6e49] hover:text-[#1e4d33] border border-[#2c6e49] hover:border-[#1e4d33] rounded-full transition-colors"
+                    onClick={handleShareClick}
+                  >
+                    Compartir campaña
+                    <svg
+                      className="ml-2 h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Share Options Dropdown */}
+                  {showShareOptions && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white border border-gray-200 rounded-2xl shadow-lg p-4 z-10 w-64">
+                      <div className="text-sm font-medium text-gray-700 mb-3 text-center">
+                        Compartir en:
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => shareOnPlatform("whatsapp")}
+                          className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <Image
+                            src="/social-media/whatsapp.svg"
+                            alt="WhatsApp"
+                            width={20}
+                            height={20}
+                          />
+                          <span className="text-sm">WhatsApp</span>
+                        </button>
+
+                        <button
+                          onClick={() => shareOnPlatform("facebook")}
+                          className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <Image
+                            src="/social-media/facebook.svg"
+                            alt="Facebook"
+                            width={20}
+                            height={20}
+                          />
+                          <span className="text-sm">Facebook</span>
+                        </button>
+
+                        <button
+                          onClick={() => shareOnPlatform("twitter")}
+                          className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <Image
+                            src="/social-media/X.svg"
+                            alt="X (Twitter)"
+                            width={20}
+                            height={20}
+                          />
+                          <span className="text-sm">X (Twitter)</span>
+                        </button>
+
+                        <button
+                          onClick={() => shareOnPlatform("linkedin")}
+                          className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <Image
+                            src="/icons/LinkedIN_white.svg"
+                            alt="LinkedIn"
+                            width={20}
+                            height={20}
+                            style={{ filter: "brightness(0.43)" }}
+                          />
+                          <span className="text-sm">LinkedIn</span>
+                        </button>
+
+                        <button
+                          onClick={() => shareOnPlatform("copy")}
+                          className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-xl transition-colors col-span-2"
+                        >
+                          <svg
+                            className="h-5 w-5 text-gray-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span className="text-sm">Copiar enlace</span>
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => setShowShareOptions(false)}
+                        className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Black separator */}
               <div className="border-t border-black my-4"></div>
 
-              {/* Button with flat corners */}
-              <button
-                type="button"
-                className="inline-flex justify-center border-0 bg-[#2c6e49] px-16 py-2 text-sm font-medium text-white hover:bg-[#1e4d33] focus:outline-none rounded-full"
-                onClick={handleCloseSuccessModal}
-              >
-                Inicio
-              </button>
+              {/* Buttons */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  className="inline-flex justify-center border-0 bg-[#2c6e49] px-16 py-2 text-sm font-medium text-white hover:bg-[#1e4d33] focus:outline-none rounded-full"
+                  onClick={handleCloseSuccessModal}
+                >
+                  Inicio
+                </button>
+
+                {/* Account creation button for unauthenticated users */}
+                {!user && (
+                  <button
+                    type="button"
+                    className="block mx-auto text-sm text-[#2c6e49] hover:text-[#1e4d33] underline focus:outline-none transition-colors"
+                    onClick={handleSignUpRedirect}
+                  >
+                    Crear cuenta
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <Footer />
+      {/* Click outside to close share options */}
+      {showShareOptions && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowShareOptions(false)}
+        />
+      )}
     </div>
   );
 }

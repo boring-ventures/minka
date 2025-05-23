@@ -477,10 +477,7 @@ export default function CampaignVerificationPage() {
                           Revisar
                         </Button>
                         <Button variant="ghost" size="sm" asChild>
-                          <Link
-                            href={`/campaign/${request.campaignId}`}
-                            target="_blank"
-                          >
+                          <Link href={`/campaign/${request.campaignId}`}>
                             <ExternalLink className="mr-1 h-4 w-4" /> Ver
                           </Link>
                         </Button>
@@ -633,7 +630,6 @@ export default function CampaignVerificationPage() {
                           </div>
                           <a
                             href={selectedRequest.idDocumentUrl}
-                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline text-sm"
                           >
@@ -662,7 +658,6 @@ export default function CampaignVerificationPage() {
                                   </div>
                                   <a
                                     href={url}
-                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:underline text-sm truncate"
                                   >

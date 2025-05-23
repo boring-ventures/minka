@@ -473,11 +473,7 @@ export function SignUpForm() {
         />
         <label htmlFor="terms" className="text-sm leading-none cursor-pointer">
           Acepto los{" "}
-          <Link
-            href="/terminos"
-            className="text-[#2c6e49] hover:underline"
-            target="_blank"
-          >
+          <Link href="/terminos" className="text-[#2c6e49] hover:underline">
             Términos, Condiciones y Políticas de Minka
           </Link>
           .

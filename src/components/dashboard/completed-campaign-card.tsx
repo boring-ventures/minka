@@ -26,7 +26,6 @@ export function CompletedCampaignCard({
   return (
     <Link
       href={`/campaign/${id}`}
-      target="_blank"
       rel="noopener noreferrer"
       className="block bg-white rounded-lg shadow-sm overflow-hidden relative hover:shadow-md transition-all duration-200 group h-[180px]"
     >

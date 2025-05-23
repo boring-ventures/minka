@@ -100,7 +100,6 @@ export function PartnersSection() {
               <a
                 key={ally.id}
                 href={ally.href}
-                target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center justify-center h-24"
                 title={`Visitar ${ally.name}`}
@@ -132,7 +131,6 @@ export function PartnersSection() {
                 <a
                   key={`first-${ally.id}`}
                   href={ally.href}
-                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex-shrink-0 w-32 h-20 flex items-center justify-center"
                   title={`Visitar ${ally.name}`}
@@ -154,7 +152,6 @@ export function PartnersSection() {
                 <a
                   key={`second-${ally.id}`}
                   href={ally.href}
-                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex-shrink-0 w-32 h-20 flex items-center justify-center"
                   title={`Visitar ${ally.name}`}

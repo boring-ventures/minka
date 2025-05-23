@@ -39,7 +39,6 @@ export function CampaignCard({
   return (
     <Link
       href={campaignUrl}
-      target="_blank"
       rel="noopener noreferrer"
       className="block h-full rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg"
     >
