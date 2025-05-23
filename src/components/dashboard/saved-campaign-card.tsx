@@ -83,40 +83,48 @@ export function SavedCampaignCard({
 
         <div className="flex-1 p-2 flex flex-col justify-between min-h-0 overflow-hidden">
           <div className="flex-1 min-h-0">
-            <h3 className="font-semibold text-gray-900 flex-shrink-0">
-              {title}
-            </h3>
+            <div className="h-6 mb-1">
+              <h3 className="font-semibold text-gray-900 flex-shrink-0 truncate overflow-hidden">
+                {title}
+              </h3>
+            </div>
 
             {/* Tags */}
-            <div className="flex gap-2 mt-1 flex-shrink-0">
+            <div className="flex gap-2 mt-1 flex-shrink-0 min-h-[24px] overflow-hidden">
               {isInclusive && (
-                <span className="text-xs font-medium py-1 px-2 rounded-full bg-[#e8f5ed] text-[#2c6e49]">
+                <span className="text-xs font-medium py-1 px-2 rounded-full bg-[#e8f5ed] text-[#2c6e49] truncate max-w-[80px]">
                   Inclusivo
                 </span>
               )}
-              <span className="text-xs font-medium py-1 px-2 rounded-full bg-[#e8f5ed] text-[#2c6e49]">
+              <span className="text-xs font-medium py-1 px-2 rounded-full bg-[#e8f5ed] text-[#2c6e49] truncate max-w-[100px]">
                 {location}
               </span>
             </div>
 
             {/* Description - Only visible on hover */}
             <div className="overflow-hidden transition-all duration-300 mt-1 max-h-0 group-hover:max-h-16 flex-1 min-h-0">
-              <p className="text-sm text-gray-600 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 h-16 leading-relaxed">
-                {description}
-              </p>
+              <div className="h-16 overflow-hidden">
+                <p className="text-sm text-gray-600 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-150 leading-relaxed overflow-hidden">
+                  {description}
+                </p>
+              </div>
             </div>
 
             {/* Stats - Only visible on hover */}
             <div className="overflow-hidden transition-all duration-300 mt-1 max-h-0 group-hover:max-h-20 flex-1 min-h-0">
               <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100">
-                <div className="grid grid-cols-2 gap-2 text-[#2c6e49]">
-                  <div>
-                    <span className="font-medium text-sm">Donadores</span>
-                    <p className="font-bold text-lg">{donorCount}</p>
+                <div className="grid grid-cols-2 gap-2 text-[#2c6e49] h-16">
+                  <div className="overflow-hidden">
+                    <span className="font-medium text-sm block truncate">
+                      Donadores
+                    </span>
+                    <p className="font-bold text-lg truncate">{donorCount}</p>
                   </div>
-                  <div>
-                    <span className="font-medium text-sm">Recaudado</span>
-                    <p className="font-bold text-lg">{amountRaised}</p>
+                  <div className="overflow-hidden">
+                    <span className="font-medium text-sm block truncate">
+                      Recaudado
+                    </span>
+                    <p className="font-bold text-lg truncate">{amountRaised}</p>
                   </div>
                 </div>
               </div>
