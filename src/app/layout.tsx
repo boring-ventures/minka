@@ -39,11 +39,20 @@ export const metadata: Metadata = {
     siteName: APP_NAME,
     locale: "es_ES",
     type: "website",
+    images: [
+      {
+        url: "/favicon/android-chrome-512x512.png",
+        width: 512,
+        height: 512,
+        alt: APP_NAME,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: APP_NAME,
     description: APP_DESCRIPTION,
+    images: ["/favicon/android-chrome-512x512.png"],
   },
   robots: {
     index: true,
@@ -57,22 +66,55 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/icon.png",
-    shortcut: "/favicon.ico",
-    apple: "/apple-icon.png",
-    other: {
-      rel: "apple-touch-icon",
-      url: "/apple-icon.png",
-    },
+    icon: [
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    shortcut: "/favicon/favicon.ico",
+    apple: [
+      {
+        url: "/favicon/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+    other: [
+      {
+        rel: "android-chrome",
+        url: "/favicon/android-chrome-192x192.png",
+        sizes: "192x192",
+      },
+      {
+        rel: "android-chrome",
+        url: "/favicon/android-chrome-512x512.png",
+        sizes: "512x512",
+      },
+    ],
   },
-  manifest: "/manifest.json",
+  manifest: "/favicon/site.webmanifest",
   keywords: [
     "donaciones",
     "causas sociales",
     "bolivia",
     "crowdfunding",
     "ayuda social",
+    "MINKA",
+    "plataforma de donaciones",
+    "transformar vidas",
   ],
+  authors: [{ name: "MINKA Team" }],
+  creator: "MINKA",
+  publisher: "MINKA",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({

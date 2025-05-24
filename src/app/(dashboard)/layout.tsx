@@ -3,6 +3,16 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { redirect } from "next/navigation";
 import { DashboardLayoutClient } from "@/components/dashboard/dashboard-layout-client";
 import { UserDashboardLayout } from "@/components/dashboard/user-dashboard-layout";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Panel de control de MINKA - Gestiona tus campañas y donaciones",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 // This is a server component that checks authentication
 // It works with client-side navigation because Next.js preserves

@@ -6,6 +6,42 @@ import { TestimonialsSection } from "@/components/views/landing-page/Testimonial
 import { PartnersSection } from "@/components/views/landing-page/PartnersSection";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title:
+    "MINKA - Impulsa sueños, transforma vidas | Plataforma de donaciones Bolivia",
+  description:
+    "Únete a MINKA, la plataforma de donaciones líder en Bolivia. Apoya causas sociales, crea campañas de recaudación y transforma vidas. ¡Empieza tu campaña hoy!",
+  keywords: [
+    "donaciones Bolivia",
+    "crowdfunding Bolivia",
+    "causas sociales",
+    "recaudación de fondos",
+    "ayuda social Bolivia",
+    "plataforma donaciones",
+    "MINKA",
+    "transformar vidas",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "MINKA - Impulsa sueños, transforma vidas",
+    description:
+      "Únete a MINKA, la plataforma de donaciones líder en Bolivia. Apoya causas sociales y transforma vidas.",
+    type: "website",
+    locale: "es_ES",
+    url: "/",
+    siteName: "MINKA",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MINKA - Impulsa sueños, transforma vidas",
+    description:
+      "Únete a MINKA, la plataforma de donaciones líder en Bolivia. Apoya causas sociales y transforma vidas.",
+  },
+};
 
 export default function Home() {
   return (

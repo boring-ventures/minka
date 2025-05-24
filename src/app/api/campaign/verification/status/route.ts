@@ -102,7 +102,7 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    // If approved, also update the campaign verification status
+    // Update the campaign verification status based on the verification status
     if (status === "approved") {
       await db.campaign.update({
         where: {
@@ -111,6 +111,17 @@ export async function PUT(req: NextRequest) {
         data: {
           verificationStatus: true,
           verificationDate: new Date(),
+        },
+      });
+    } else {
+      // For rejected or pending status, set campaign verification to false
+      await db.campaign.update({
+        where: {
+          id: campaignId,
+        },
+        data: {
+          verificationStatus: false,
+          verificationDate: null,
         },
       });
     }

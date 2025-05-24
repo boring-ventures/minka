@@ -43,71 +43,105 @@ export async function GET(req: NextRequest) {
     const page = parseInt(url.searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
 
-    // Define the where clause for filter
+    // Define the where clause for campaigns based on verification status
     const where: any = {};
-    if (status !== "all") {
-      where.verificationStatus = status;
-    }
 
-    // Fetch verification requests
-    const verificationRequests = await db.campaignVerification.findMany({
+    if (status === "pending") {
+      where.AND = [
+        { verificationStatus: false },
+        { verificationRequests: { verificationStatus: "pending" } },
+      ];
+    } else if (status === "approved") {
+      where.verificationStatus = true; // Campaigns that are actually verified
+    } else if (status === "rejected") {
+      where.AND = [
+        { verificationStatus: false },
+        { verificationRequests: { verificationStatus: "rejected" } },
+      ];
+    } else if (status === "unverified") {
+      where.AND = [
+        { verificationStatus: false },
+        { verificationRequests: null },
+      ];
+    }
+    // For "all", we don't filter - we want all campaigns
+
+    // Fetch campaigns with their verification status
+    const campaigns = await db.campaign.findMany({
       where,
       include: {
-        campaign: {
+        organizer: {
           select: {
             id: true,
-            title: true,
-            media: {
-              where: {
-                isPrimary: true,
-              },
-              select: {
-                mediaUrl: true,
-              },
-              take: 1,
-            },
+            name: true,
           },
         },
+        media: {
+          where: {
+            isPrimary: true,
+          },
+          select: {
+            mediaUrl: true,
+          },
+          take: 1,
+        },
+        verificationRequests: true, // Include verification request if it exists
       },
       orderBy: {
-        requestDate: "desc",
+        createdAt: "desc",
       },
       skip,
       take: limit,
     });
 
     // Get total count for pagination
-    const totalCount = await db.campaignVerification.count({
+    const totalCount = await db.campaign.count({
       where,
     });
 
     // Format the response data
-    const formattedRequests = verificationRequests.map((verification) => {
+    const formattedCampaigns = campaigns.map((campaign) => {
       // Get the primary image or fallback to default
-      const imageUrl = verification.campaign.media[0]?.mediaUrl || null;
+      const imageUrl = campaign.media[0]?.mediaUrl || null;
+
+      // Determine the actual verification status
+      let status: string;
+      if (campaign.verificationStatus) {
+        status = "approved"; // Campaign is verified
+      } else if (campaign.verificationRequests) {
+        status = campaign.verificationRequests.verificationStatus; // pending or rejected
+      } else {
+        status = "unverified"; // No verification request
+      }
 
       return {
-        id: verification.id,
-        campaign: {
-          id: verification.campaign.id,
-          title: verification.campaign.title,
-          image_url: imageUrl,
-        },
-        requestDate: verification.requestDate.toISOString(),
-        approvalDate: verification.approvalDate?.toISOString() || null,
-        status: verification.verificationStatus,
-        idDocumentUrl: verification.idDocumentUrl,
-        supportingDocsUrls: verification.supportingDocsUrls,
-        campaignStory: verification.campaignStory,
-        referenceContactName: verification.referenceContactName,
-        referenceContactEmail: verification.referenceContactEmail,
-        referenceContactPhone: verification.referenceContactPhone,
-        notes: verification.notes,
+        id: campaign.id,
+        campaignTitle: campaign.title,
+        organizerName: campaign.organizer.name || "Organizador desconocido",
+        organizerId: campaign.organizer.id,
+        requestDate:
+          campaign.verificationRequests?.requestDate?.toISOString() || null,
+        approvalDate:
+          campaign.verificationRequests?.approvalDate?.toISOString() ||
+          campaign.verificationDate?.toISOString() ||
+          null,
+        status: status,
+        notes: campaign.verificationRequests?.notes,
+        idDocumentUrl: campaign.verificationRequests?.idDocumentUrl,
+        supportingDocsUrls: campaign.verificationRequests?.supportingDocsUrls,
+        campaignStory: campaign.story,
+        referenceContactName:
+          campaign.verificationRequests?.referenceContactName,
+        referenceContactEmail:
+          campaign.verificationRequests?.referenceContactEmail,
+        referenceContactPhone:
+          campaign.verificationRequests?.referenceContactPhone,
+        campaignImage: imageUrl,
       };
     });
 
     return NextResponse.json({
-      requests: formattedRequests,
+      campaigns: formattedCampaigns,
       pagination: {
         total: totalCount,
         page,

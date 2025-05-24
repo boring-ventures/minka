@@ -50,11 +50,11 @@ interface VerificationRequest {
   campaignTitle: string;
   organizerName: string;
   organizerId: string;
-  requestDate: string;
-  status: "pending" | "approved" | "rejected";
+  requestDate: string | null;
+  status: "pending" | "approved" | "rejected" | "unverified";
   notes?: string;
   idDocumentUrl?: string;
-  supportingDocsUrls: string[];
+  supportingDocsUrls?: string[];
   campaignStory?: string;
   referenceContactName?: string;
   referenceContactEmail?: string;
@@ -106,54 +106,43 @@ export default function CampaignVerificationPage() {
           return;
         }
 
-        // Fetch verification requests
-        const { data: verificationData, error } = await supabase
-          .from("campaign_verifications")
-          .select(
-            `
-            *,
-            campaign:campaigns(
-              id,
-              title,
-              organizer:profiles(id, name),
-              media:campaign_media(media_url, is_primary)
-            )
-          `
-          )
-          .order("request_date", { ascending: false });
+        // Fetch verification requests from API
+        const response = await fetch(
+          "/api/admin/verification-requests?status=all",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-        if (error) {
-          console.error("Error fetching verification requests:", error);
-          toast({
-            title: "Error",
-            description:
-              "No se pudieron cargar las solicitudes de verificación.",
-            variant: "destructive",
-          });
-          return;
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch verification requests: ${response.statusText}`
+          );
         }
 
-        // Format verification requests
-        const formattedRequests: VerificationRequest[] = verificationData.map(
+        const data = await response.json();
+
+        // Format verification requests to match existing interface
+        const formattedRequests: VerificationRequest[] = data.campaigns.map(
           (item: any) => ({
             id: item.id,
-            campaignId: item.campaign_id,
-            campaignTitle: item.campaign?.title || "Campaña sin título",
-            organizerName:
-              item.campaign?.organizer?.name || "Organizador desconocido",
-            organizerId: item.campaign?.organizer?.id || "",
-            requestDate: item.request_date,
-            status: item.verification_status,
+            campaignId: item.id,
+            campaignTitle: item.campaignTitle,
+            organizerName: item.organizerName,
+            organizerId: item.organizerId,
+            requestDate: item.requestDate,
+            status: item.status,
             notes: item.notes,
-            idDocumentUrl: item.id_document_url,
-            supportingDocsUrls: item.supporting_docs_urls || [],
-            campaignStory: item.campaign_story,
-            referenceContactName: item.reference_contact_name,
-            referenceContactEmail: item.reference_contact_email,
-            referenceContactPhone: item.reference_contact_phone,
-            campaignImage:
-              item.campaign?.media?.find((m: any) => m.is_primary)?.media_url ||
-              null,
+            idDocumentUrl: item.idDocumentUrl,
+            supportingDocsUrls: item.supportingDocsUrls || [],
+            campaignStory: item.campaignStory,
+            referenceContactName: item.referenceContactName,
+            referenceContactEmail: item.referenceContactEmail,
+            referenceContactPhone: item.referenceContactPhone,
+            campaignImage: item.campaignImage,
           })
         );
 
@@ -162,7 +151,8 @@ export default function CampaignVerificationPage() {
         console.error("Error in verification page:", error);
         toast({
           title: "Error",
-          description: "Ocurrió un error al cargar la página.",
+          description:
+            "Ocurrió un error al cargar las solicitudes de verificación.",
           variant: "destructive",
         });
       } finally {
@@ -196,34 +186,30 @@ export default function CampaignVerificationPage() {
     setProcessingAction(true);
 
     try {
-      // Update verification status in database
-      const { error: updateError } = await supabase
-        .from("campaign_verifications")
-        .update({
-          verification_status:
+      // Update verification status via API
+      const response = await fetch("/api/campaign/verification/status", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          campaignId: selectedRequest.campaignId,
+          status:
             dialogAction === "approve"
               ? "approved"
               : dialogAction === "reject"
                 ? "rejected"
                 : "pending",
           notes: noteText,
-          approval_date:
-            dialogAction === "approve" ? new Date().toISOString() : null,
-        })
-        .eq("id", selectedRequest.id);
+        }),
+      });
 
-      if (updateError) throw updateError;
-
-      // Also update campaign verification status if approved or unverified
-      if (dialogAction === "approve" || dialogAction === "unverify") {
-        const { error: campaignUpdateError } = await supabase
-          .from("campaigns")
-          .update({
-            verification_status: dialogAction === "approve",
-          })
-          .eq("id", selectedRequest.campaignId);
-
-        if (campaignUpdateError) throw campaignUpdateError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error ||
+            `Failed to update verification status: ${response.statusText}`
+        );
       }
 
       // Update local state
@@ -281,6 +267,9 @@ export default function CampaignVerificationPage() {
     if (currentTab === "pending" && req.status !== "pending") return false;
     if (currentTab === "approved" && req.status !== "approved") return false;
     if (currentTab === "rejected" && req.status !== "rejected") return false;
+    if (currentTab === "unverified" && req.status !== "unverified")
+      return false;
+    // For "all" tab, don't filter by status
 
     // Filter by search term if present
     if (searchTerm.trim() !== "") {
@@ -310,7 +299,7 @@ export default function CampaignVerificationPage() {
         Verificación de Campañas
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg text-yellow-600 flex items-center">
@@ -361,6 +350,23 @@ export default function CampaignVerificationPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-gray-600 flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              No Verificadas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {
+                verificationRequests.filter((r) => r.status === "unverified")
+                  .length
+              }
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs
@@ -373,6 +379,7 @@ export default function CampaignVerificationPage() {
           <TabsTrigger value="pending">Pendientes</TabsTrigger>
           <TabsTrigger value="approved">Aprobadas</TabsTrigger>
           <TabsTrigger value="rejected">Rechazadas</TabsTrigger>
+          <TabsTrigger value="unverified">No Verificadas</TabsTrigger>
           <TabsTrigger value="all">Todas</TabsTrigger>
         </TabsList>
 
@@ -446,10 +453,12 @@ export default function CampaignVerificationPage() {
                       </TableCell>
                       <TableCell>{request.organizerName}</TableCell>
                       <TableCell>
-                        {formatDistanceToNow(new Date(request.requestDate), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
+                        {request.requestDate
+                          ? formatDistanceToNow(new Date(request.requestDate), {
+                              addSuffix: true,
+                              locale: es,
+                            })
+                          : "Sin solicitud"}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -458,14 +467,18 @@ export default function CampaignVerificationPage() {
                               ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                               : request.status === "approved"
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
-                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                                : request.status === "rejected"
+                                  ? "bg-red-100 text-red-800 hover:bg-red-100"
+                                  : "bg-gray-100 text-gray-800 hover:bg-gray-100"
                           }
                         >
                           {request.status === "pending"
                             ? "Pendiente"
                             : request.status === "approved"
                               ? "Aprobada"
-                              : "Rechazada"}
+                              : request.status === "rejected"
+                                ? "Rechazada"
+                                : "No Verificada"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
@@ -500,7 +513,9 @@ export default function CampaignVerificationPage() {
                     ? "pendientes"
                     : currentTab === "approved"
                       ? "aprobadas"
-                      : "rechazadas"}
+                      : currentTab === "rejected"
+                        ? "rechazadas"
+                        : "no verificadas"}
               </p>
             </div>
           )}
@@ -552,9 +567,11 @@ export default function CampaignVerificationPage() {
                           Fecha de solicitud
                         </p>
                         <p className="text-base">
-                          {new Date(
-                            selectedRequest.requestDate
-                          ).toLocaleDateString("es-ES")}
+                          {selectedRequest.requestDate
+                            ? new Date(
+                                selectedRequest.requestDate
+                              ).toLocaleDateString("es-ES")
+                            : "Sin solicitud"}
                         </p>
                       </div>
                       <div>
@@ -567,14 +584,18 @@ export default function CampaignVerificationPage() {
                               ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                               : selectedRequest.status === "approved"
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
-                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                                : selectedRequest.status === "rejected"
+                                  ? "bg-red-100 text-red-800 hover:bg-red-100"
+                                  : "bg-gray-100 text-gray-800 hover:bg-gray-100"
                           }
                         >
                           {selectedRequest.status === "pending"
                             ? "Pendiente"
                             : selectedRequest.status === "approved"
                               ? "Aprobada"
-                              : "Rechazada"}
+                              : selectedRequest.status === "rejected"
+                                ? "Rechazada"
+                                : "No Verificada"}
                         </Badge>
                       </div>
                     </div>
@@ -744,6 +765,12 @@ export default function CampaignVerificationPage() {
                   >
                     Cerrar
                   </Button>
+
+                  {selectedRequest.status === "unverified" && (
+                    <div className="text-sm text-gray-500">
+                      Esta campaña aún no ha solicitado verificación.
+                    </div>
+                  )}
 
                   {selectedRequest.status === "pending" && (
                     <>
