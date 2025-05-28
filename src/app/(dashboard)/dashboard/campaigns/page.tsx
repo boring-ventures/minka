@@ -30,6 +30,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/components/ui/use-toast";
 import { SuperAdminCampaignTable } from "@/components/dashboard/super-admin-campaign-table";
 import { CampaignAnalytics } from "@/components/dashboard/campaign-analytics";
+import {
+  CampaignCard,
+  CampaignStatus,
+} from "@/components/dashboard/campaign-card";
 
 interface Campaign {
   id: string;
@@ -64,7 +68,7 @@ interface CampaignStats {
 
 export default function SuperAdminCampaignsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -75,65 +79,126 @@ export default function SuperAdminCampaignsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [currentTab, setCurrentTab] = useState("overview");
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check admin access
+  // Check user access and determine role
   useEffect(() => {
-    const checkAdminAccess = async () => {
+    const initializePage = async () => {
       if (!user) {
         router.push("/sign-in");
         return;
       }
 
+      // Check user role from profile
+      const userRole = profile?.role;
+      const isUserAdmin = userRole === "admin";
+      setIsAdmin(isUserAdmin);
+
       try {
-        // Check if user is admin via API
-        const response = await fetch(
-          "/api/admin/verification-requests?limit=1",
-          {
-            method: "GET",
-          }
-        );
-
-        if (!response.ok) {
-          if (response.status === 403) {
-            router.push("/dashboard");
-            return;
-          }
-          throw new Error("Failed to verify admin access");
-        }
-
-        await fetchCampaignsData();
+        await fetchCampaignsData(isUserAdmin);
       } catch (error) {
-        console.error("Admin access check failed:", error);
-        router.push("/dashboard");
+        console.error("Error initializing page:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load campaigns data. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
       }
     };
 
-    checkAdminAccess();
-  }, [user, router]);
+    initializePage();
+  }, [user, profile, router]);
 
-  const fetchCampaignsData = async () => {
+  const fetchCampaignsData = async (userIsAdmin: boolean) => {
     try {
       setLoading(true);
 
-      // Fetch campaigns and stats in parallel
-      const [campaignsResponse, statsResponse] = await Promise.all([
-        fetch("/api/admin/campaigns"),
-        fetch("/api/admin/campaigns/stats"),
-      ]);
+      if (userIsAdmin) {
+        // Admin user - fetch all campaigns and stats
+        const [campaignsResponse, statsResponse] = await Promise.all([
+          fetch("/api/admin/campaigns"),
+          fetch("/api/admin/campaigns/stats"),
+        ]);
 
-      if (!campaignsResponse.ok) {
-        throw new Error("Failed to fetch campaigns");
+        if (!campaignsResponse.ok) {
+          throw new Error("Failed to fetch admin campaigns");
+        }
+
+        if (!statsResponse.ok) {
+          throw new Error("Failed to fetch campaign stats");
+        }
+
+        const campaignsData = await campaignsResponse.json();
+        const statsData = await statsResponse.json();
+
+        setCampaigns(campaignsData.campaigns || []);
+        setStats(statsData);
+      } else {
+        // Regular user - fetch only their campaigns
+        const campaignsResponse = await fetch("/api/campaign/user");
+
+        if (!campaignsResponse.ok) {
+          throw new Error("Failed to fetch user campaigns");
+        }
+
+        const campaignsData = await campaignsResponse.json();
+
+        // Transform user campaigns to match the expected format
+        const transformedCampaigns = (campaignsData.campaigns || []).map(
+          (campaign: any) => ({
+            id: campaign.id,
+            title: campaign.title,
+            description: campaign.description || "",
+            category: campaign.category,
+            location: campaign.location,
+            goalAmount: Number(campaign.goal_amount),
+            collectedAmount: Number(campaign.current_amount),
+            donorCount: 0, // Not available in user API
+            percentageFunded: Math.round(
+              (Number(campaign.current_amount) / Number(campaign.goal_amount)) *
+                100
+            ),
+            daysRemaining: 0, // Calculate if needed
+            status: campaign.status,
+            verificationStatus: campaign.verification_status,
+            verificationDate: null,
+            createdAt: campaign.created_at,
+            endDate: "",
+            organizerName: "You",
+            organizerEmail: user?.email || "",
+            organizerId: campaign.organizer_id,
+            imageUrl: campaign.image_url,
+          })
+        );
+
+        setCampaigns(transformedCampaigns);
+
+        // Calculate basic stats for regular users
+        const totalCampaigns = transformedCampaigns.length;
+        const activeCampaigns = transformedCampaigns.filter(
+          (c: any) => c.status === "active"
+        ).length;
+        const totalRaised = transformedCampaigns.reduce(
+          (sum: number, c: any) => sum + c.collectedAmount,
+          0
+        );
+        const verifiedCampaigns = transformedCampaigns.filter(
+          (c: any) => c.verificationStatus
+        ).length;
+        const completedCampaigns = transformedCampaigns.filter(
+          (c: any) => c.status === "completed"
+        ).length;
+
+        setStats({
+          totalCampaigns,
+          activeCampaigns,
+          totalRaised,
+          averageFunding: totalCampaigns > 0 ? totalRaised / totalCampaigns : 0,
+          verifiedCampaigns,
+          completedCampaigns,
+        });
       }
-
-      if (!statsResponse.ok) {
-        throw new Error("Failed to fetch campaign stats");
-      }
-
-      const campaignsData = await campaignsResponse.json();
-      const statsData = await statsResponse.json();
-
-      setCampaigns(campaignsData.campaigns || []);
-      setStats(statsData);
     } catch (error) {
       console.error("Error fetching campaigns data:", error);
       toast({
@@ -184,34 +249,77 @@ export default function SuperAdminCampaignsPage() {
 
   const handleExportData = async () => {
     try {
-      const response = await fetch("/api/admin/campaigns/export", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          filters: {
-            search: searchTerm,
-            status: statusFilter,
-            category: categoryFilter,
-            verification: verificationFilter,
+      if (isAdmin) {
+        // Admin export - use admin API
+        const response = await fetch("/api/admin/campaigns/export", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            filters: {
+              search: searchTerm,
+              status: statusFilter,
+              category: categoryFilter,
+              verification: verificationFilter,
+            },
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to export data");
+        if (!response.ok) {
+          throw new Error("Failed to export data");
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = `campaigns-export-${new Date().toISOString().split("T")[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } else {
+        // Regular user export - create CSV from filtered campaigns
+        const csvContent = [
+          // CSV headers
+          [
+            "Title",
+            "Category",
+            "Location",
+            "Goal Amount",
+            "Collected Amount",
+            "Status",
+            "Verification Status",
+            "Created Date",
+          ].join(","),
+          // CSV data
+          ...filteredCampaigns.map((campaign) =>
+            [
+              `"${campaign.title}"`,
+              campaign.category,
+              campaign.location,
+              campaign.goalAmount,
+              campaign.collectedAmount,
+              campaign.status,
+              campaign.verificationStatus ? "Verified" : "Unverified",
+              new Date(campaign.createdAt).toLocaleDateString(),
+            ].join(",")
+          ),
+        ].join("\n");
+
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = `my-campaigns-export-${new Date().toISOString().split("T")[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
-      a.download = `campaigns-export-${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Export Successful",
@@ -235,6 +343,66 @@ export default function SuperAdminCampaignsPage() {
     );
   }
 
+  // Regular user UI - Simple card layout
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Administrar mis campañas
+            </h1>
+          </div>
+          <Button
+            className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white flex items-center gap-2"
+            asChild
+          >
+            <Link href="/create-campaign">
+              <Plus size={16} />
+              Nueva campaña
+            </Link>
+          </Button>
+        </div>
+
+        {/* Campaigns Grid */}
+        {campaigns.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-gray-500 text-lg mb-4">No tienes campañas aún</p>
+            <Button
+              className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
+              asChild
+            >
+              <Link href="/create-campaign">
+                <Plus size={16} className="mr-2" />
+                Crear tu primera campaña
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {campaigns.map((campaign) => (
+              <CampaignCard
+                key={campaign.id}
+                id={campaign.id}
+                title={campaign.title}
+                imageUrl={campaign.imageUrl || "/amboro-main.jpg"}
+                category={campaign.category}
+                location={campaign.location}
+                raisedAmount={campaign.collectedAmount}
+                goalAmount={campaign.goalAmount}
+                progress={campaign.percentageFunded}
+                status={campaign.status as CampaignStatus}
+                isVerified={campaign.verificationStatus}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Admin UI - Full featured layout
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -451,7 +619,8 @@ export default function SuperAdminCampaignsPage() {
             <CardContent className="p-0">
               <SuperAdminCampaignTable
                 campaigns={filteredCampaigns}
-                onCampaignUpdate={fetchCampaignsData}
+                onCampaignUpdate={() => fetchCampaignsData(isAdmin)}
+                isAdmin={isAdmin}
               />
             </CardContent>
           </Card>

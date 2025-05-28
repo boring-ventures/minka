@@ -651,6 +651,8 @@ export function CampaignForm() {
         // Create or update draft campaign before proceeding to step 2
         const draftData = {
           ...formData,
+          // Convert goalAmount to number by removing separators
+          goalAmount: removeNumberSeparators(String(formData.goalAmount)),
           // Include media information
           media: uploadedUrls.map((url, index) => ({
             mediaUrl: url,
@@ -662,6 +664,8 @@ export function CampaignForm() {
 
         console.log("Saving draft with data:", {
           formFields: Object.keys(formData),
+          goalAmount: draftData.goalAmount,
+          goalAmountType: typeof draftData.goalAmount,
           mediaCount: uploadedUrls.length,
           firstMediaUrl: uploadedUrls[0],
         });
@@ -1023,6 +1027,43 @@ export function CampaignForm() {
     return Object.keys(errors).length === 0;
   };
 
+  // Add function to format number with thousands separators
+  const formatNumberWithSeparators = (value: string | number): string => {
+    // Convert to string and remove any non-digit characters first
+    const stringValue = String(value || "");
+    const numericValue = stringValue.replace(/\D/g, "");
+
+    // Return empty string if no digits
+    if (!numericValue) return "";
+
+    // Add thousands separators (dots)
+    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Add function to remove separators and get raw numeric value
+  const removeNumberSeparators = (value: string): string => {
+    return value.replace(/\./g, "");
+  };
+
+  // Add function to handle input change with number validation
+  const handleGoalAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+
+    // Only allow digits and dots (for existing separators)
+    const numericOnly = inputValue.replace(/[^\d.]/g, "");
+
+    // Remove existing separators to get raw value
+    const rawValue = removeNumberSeparators(numericOnly);
+
+    // Update form data with raw numeric value
+    setFormData({ ...formData, goalAmount: rawValue });
+
+    // Clear error if value is provided
+    if (rawValue) {
+      setFormErrors({ ...formErrors, goalAmount: "" });
+    }
+  };
+
   // Add style block for transitions at the beginning of the component return statement
   return (
     <>
@@ -1271,16 +1312,11 @@ export function CampaignForm() {
                     Meta de recaudación
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     placeholder="Ingresa el monto a recaudar"
                     className={`w-full rounded-lg border ${formErrors.goalAmount ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
-                    value={formData.goalAmount}
-                    onChange={(e) => {
-                      setFormData({ ...formData, goalAmount: e.target.value });
-                      if (e.target.value) {
-                        setFormErrors({ ...formErrors, goalAmount: "" });
-                      }
-                    }}
+                    value={formatNumberWithSeparators(formData.goalAmount)}
+                    onChange={handleGoalAmountChange}
                   />
                   {formErrors.goalAmount && (
                     <div className="error-text">{formErrors.goalAmount}</div>
@@ -1702,6 +1738,10 @@ export function CampaignForm() {
                     // Prepare data for API
                     const apiData = {
                       ...formData,
+                      // Convert goalAmount to number by removing separators
+                      goalAmount: removeNumberSeparators(
+                        String(formData.goalAmount)
+                      ),
                       mediaUrls: uploadedUrls,
                       youtubeUrls: formData.youtubeUrls || [],
                     };

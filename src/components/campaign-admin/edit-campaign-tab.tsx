@@ -83,16 +83,42 @@ export function EditCampaignTab({ campaign }: EditCampaignTabProps) {
     setShowSaveBar(formChanged);
   }, [formData, initialFormState]);
 
+  // Add function to format number with thousands separators
+  const formatNumberWithSeparators = (value: string | number): string => {
+    // Convert to string and remove any non-digit characters first
+    const stringValue = String(value || "");
+    const numericValue = stringValue.replace(/\D/g, "");
+
+    // Return empty string if no digits
+    if (!numericValue) return "";
+
+    // Add thousands separators (dots)
+    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Add function to remove separators and get raw numeric value
+  const removeNumberSeparators = (value: string): string => {
+    return value.replace(/\./g, "");
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+
+    if (name === "goalAmount") {
+      // Only allow digits and dots (for existing separators) for goalAmount
+      const numericOnly = value.replace(/[^\d.]/g, "");
+
+      // Remove existing separators to get raw value
+      const rawValue = removeNumberSeparators(numericOnly);
+
+      setFormData({ ...formData, [name]: rawValue });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleFileSelect = () => {
@@ -324,7 +350,7 @@ export function EditCampaignTab({ campaign }: EditCampaignTabProps) {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          goal_amount: formData.goalAmount,
+          goal_amount: Number(formData.goalAmount),
           location: formData.location,
           category: formData.category,
           youtube_url: formData.youtubeUrl,
@@ -461,8 +487,8 @@ export function EditCampaignTab({ campaign }: EditCampaignTabProps) {
                 <Input
                   id="goalAmount"
                   name="goalAmount"
-                  type="number"
-                  value={formData.goalAmount}
+                  type="text"
+                  value={formatNumberWithSeparators(formData.goalAmount)}
                   onChange={handleInputChange}
                   className="pl-10 w-full border-gray-300"
                   required

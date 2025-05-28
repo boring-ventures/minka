@@ -73,11 +73,13 @@ interface Campaign {
 interface SuperAdminCampaignTableProps {
   campaigns: Campaign[];
   onCampaignUpdate: () => void;
+  isAdmin?: boolean;
 }
 
 export function SuperAdminCampaignTable({
   campaigns,
   onCampaignUpdate,
+  isAdmin = false,
 }: SuperAdminCampaignTableProps) {
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
@@ -372,36 +374,40 @@ export function SuperAdminCampaignTable({
                           </Link>
                         </DropdownMenuItem>
 
-                        <DropdownMenuSeparator />
+                        {isAdmin && (
+                          <>
+                            <DropdownMenuSeparator />
 
-                        {campaign.verificationStatus ? (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              openConfirmDialog(
-                                "unverify",
-                                campaign.id,
-                                campaign.title
-                              )
-                            }
-                            className="text-amber-600"
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Revoke Verification
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              openConfirmDialog(
-                                "verify",
-                                campaign.id,
-                                campaign.title
-                              )
-                            }
-                            className="text-green-600"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Verify Campaign
-                          </DropdownMenuItem>
+                            {campaign.verificationStatus ? (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  openConfirmDialog(
+                                    "unverify",
+                                    campaign.id,
+                                    campaign.title
+                                  )
+                                }
+                                className="text-amber-600"
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Revoke Verification
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  openConfirmDialog(
+                                    "verify",
+                                    campaign.id,
+                                    campaign.title
+                                  )
+                                }
+                                className="text-green-600"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Verify Campaign
+                              </DropdownMenuItem>
+                            )}
+                          </>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -422,9 +428,11 @@ export function SuperAdminCampaignTable({
           <Button variant="outline" size="sm">
             Bulk Export
           </Button>
-          <Button variant="outline" size="sm">
-            Bulk Verify
-          </Button>
+          {isAdmin && (
+            <Button variant="outline" size="sm">
+              Bulk Verify
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

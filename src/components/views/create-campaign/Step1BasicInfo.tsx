@@ -63,7 +63,17 @@ const formSchema = z.object({
   goalAmount: z.coerce.number().min(1, {
     message: "Por favor ingresa un monto mayor a cero",
   }),
-  location: z.enum(["la_paz", "santa_cruz", "cochabamba", "sucre", "oruro", "potosi", "tarija", "beni", "pando"]),
+  location: z.enum([
+    "la_paz",
+    "santa_cruz",
+    "cochabamba",
+    "sucre",
+    "oruro",
+    "potosi",
+    "tarija",
+    "beni",
+    "pando",
+  ]),
   endDate: z
     .date({
       required_error: "Por favor selecciona una fecha",
@@ -178,6 +188,42 @@ export function Step1BasicInfo() {
 
   const handleSetPrimaryMedia = (mediaUrl: string) => {
     dispatch({ type: "SET_PRIMARY_MEDIA", payload: mediaUrl });
+  };
+
+  // Add function to format number with thousands separators
+  const formatNumberWithSeparators = (value: string | number): string => {
+    // Convert to string and remove any non-digit characters first
+    const stringValue = String(value || "");
+    const numericValue = stringValue.replace(/\D/g, "");
+
+    // Return empty string if no digits
+    if (!numericValue) return "";
+
+    // Add thousands separators (dots)
+    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Add function to remove separators and get raw numeric value
+  const removeNumberSeparators = (value: string): string => {
+    return value.replace(/\./g, "");
+  };
+
+  // Add function to handle goal amount input change
+  const handleGoalAmountChange = (
+    onChange: (value: number | undefined) => void
+  ) => {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value;
+
+      // Only allow digits and dots (for existing separators)
+      const numericOnly = inputValue.replace(/[^\d.]/g, "");
+
+      // Remove existing separators to get raw value
+      const rawValue = removeNumberSeparators(numericOnly);
+
+      // Convert to number or undefined if empty
+      onChange(rawValue ? Number(rawValue) : undefined);
+    };
   };
 
   if (state.isSubmitting) {
@@ -335,11 +381,11 @@ export function Step1BasicInfo() {
                       </FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
+                          type="text"
                           placeholder="Ingresa el monto a recaudar"
                           className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4"
-                          value={value || ""}
-                          onChange={onChange}
+                          value={formatNumberWithSeparators(value || "")}
+                          onChange={handleGoalAmountChange(onChange)}
                           {...rest}
                         />
                       </FormControl>
