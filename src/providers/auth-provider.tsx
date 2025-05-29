@@ -27,6 +27,7 @@ type SignUpData = {
   firstName: string;
   lastName: string;
   documentId: string;
+  documentCountryCode: string;
   birthDate: string;
   phone: string;
 };

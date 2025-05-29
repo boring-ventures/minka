@@ -75,7 +75,7 @@ export function CountryCodeSelector({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "flex items-center justify-between h-10 px-3 border border-black border-r border-r-black bg-white text-sm w-auto min-w-0 rounded-r-none hover:bg-white",
+            "flex items-center justify-between h-10 px-3 border-black border-r border-r-black rounded-l-md rounded-r-none bg-white hover:bg-gray-50 text-sm w-auto min-w-0",
             className
           )}
         >

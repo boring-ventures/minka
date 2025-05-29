@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CountryCodeSelector } from "@/components/ui/country-code-selector";
+import { DocumentCountrySelector } from "@/components/ui/document-country-selector";
 import { findCountryByCode } from "@/data/country-codes";
 import {
   formatPhoneNumber,
@@ -55,7 +56,10 @@ const createSignUpFormSchema = (countryCode: string) =>
     .object({
       firstName: z.string().min(1, "El nombre es requerido"),
       lastName: z.string().min(1, "Los apellidos son requeridos"),
-      documentId: z.string().min(1, "El número de DNI es requerido"),
+      documentCountryCode: z
+        .string()
+        .min(1, "Selecciona un país para el documento"),
+      documentId: z.string().min(1, "El número de documento es requerido"),
       birthDate: z.date({
         required_error: "La fecha de nacimiento es requerida",
         invalid_type_error: "La fecha debe ser válida",
@@ -115,6 +119,7 @@ export function SignUpForm() {
     defaultValues: {
       firstName: "",
       lastName: "",
+      documentCountryCode: "BO", // Default to Bolivia
       documentId: "",
       birthDate: undefined,
       email: "",
@@ -128,8 +133,10 @@ export function SignUpForm() {
 
   // Watch countryCode and phone to handle formatting
   const countryCode = watch("countryCode");
+  const documentCountryCode = watch("documentCountryCode");
   const phoneValue = watch("phone");
   const selectedCountry = findCountryByCode(countryCode);
+  const selectedDocumentCountry = findCountryByCode(documentCountryCode);
 
   // Update validation schema when country changes
   useEffect(() => {
@@ -161,12 +168,20 @@ export function SignUpForm() {
       const cleanPhone = data.phone.replace(/\D/g, "");
       const fullPhoneNumber = `${selectedCountry?.dialCode}${cleanPhone}`;
 
+      // Format document ID with country info
+      const documentInfo = {
+        countryCode: data.documentCountryCode,
+        documentId: data.documentId,
+        formattedId: `${data.documentCountryCode}-${data.documentId}`,
+      };
+
       await signUp({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
-        documentId: data.documentId,
+        documentId: documentInfo.formattedId,
+        documentCountryCode: data.documentCountryCode,
         birthDate: formattedBirthDate,
         phone: fullPhoneNumber,
       });
@@ -266,32 +281,47 @@ export function SignUpForm() {
           Documento de Identidad
         </label>
         <div className="flex">
-          <div className="relative">
-            <button
-              type="button"
-              className="flex items-center justify-between h-10 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
-              disabled={isLoading || isSubmitting}
-            >
-              <div className="flex items-center">
-                <span className="mr-2">🇧🇴</span>
-                <span>BO</span>
-              </div>
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </button>
-          </div>
+          <Controller
+            name="documentCountryCode"
+            control={control}
+            render={({ field }) => (
+              <DocumentCountrySelector
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isLoading || isSubmitting}
+                className="flex-shrink-0"
+              />
+            )}
+          />
           <Input
             id="documentId"
             {...register("documentId")}
-            placeholder="Ingresa el número de tu DNI"
-            className="flex-1 rounded-l-none border-black"
+            placeholder={
+              documentCountryCode === "BO"
+                ? "Ingresa el número de tu DNI"
+                : documentCountryCode === "US"
+                  ? "Ingresa tu SSN"
+                  : documentCountryCode === "BR"
+                    ? "Ingresa tu CPF"
+                    : documentCountryCode === "AR"
+                      ? "Ingresa tu DNI"
+                      : documentCountryCode === "PE"
+                        ? "Ingresa tu DNI"
+                        : documentCountryCode === "CO"
+                          ? "Ingresa tu CC"
+                          : documentCountryCode === "ES"
+                            ? "Ingresa tu DNI/NIE"
+                            : "Ingresa tu documento"
+            }
+            className="flex-1 rounded-l-none border-black border-l-0"
             aria-invalid={errors.documentId ? "true" : "false"}
             disabled={isLoading || isSubmitting}
           />
         </div>
-        {errors.documentId && (
+        {(errors.documentCountryCode || errors.documentId) && (
           <p className="text-sm text-red-500 mt-1 flex items-center">
             <Info className="h-3 w-3 mr-1" />
-            {errors.documentId.message}
+            {errors.documentCountryCode?.message || errors.documentId?.message}
           </p>
         )}
       </div>
