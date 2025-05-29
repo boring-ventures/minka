@@ -9,8 +9,11 @@ export interface ProfileData {
   role: string;
   created_at: string;
   identity_number?: string;
+  identityNumber?: string;
   birth_date?: string;
+  birthDate?: string;
   profile_picture?: string | null;
+  profilePicture?: string | null;
   [key: string]: string | boolean | number | null | undefined;
 }
 

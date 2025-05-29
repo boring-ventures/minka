@@ -43,7 +43,10 @@ export default function DashboardPage() {
         return new Date().toISOString();
       };
 
-      return {
+      console.log("formatProfileData - raw data:", data);
+      console.log("formatProfileData - data keys:", Object.keys(data || {}));
+
+      const result = {
         id: data.id,
         name: data.name || "",
         email: data.email || "",
@@ -55,6 +58,11 @@ export default function DashboardPage() {
         // Include any other fields that might be expected
         ...(data as object),
       };
+
+      console.log("formatProfileData - result:", result);
+      console.log("formatProfileData - result keys:", Object.keys(result));
+
+      return result;
     },
     []
   );

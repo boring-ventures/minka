@@ -22,6 +22,11 @@ import { toast } from "@/components/ui/use-toast";
 import { useUpload } from "@/hooks/use-upload";
 import { useDb } from "@/hooks/use-db";
 import { InlineSpinner } from "@/components/ui/inline-spinner";
+import {
+  formatDocumentForDisplay,
+  parseDocumentId,
+  getDocumentTypeName,
+} from "@/utils/document-formatter";
 
 interface UserDashboardContentProps {
   profile: ProfileData | null;
@@ -99,6 +104,19 @@ export function UserDashboardContent({
   const { updateProfile } = useDb();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Debug logging to see what's in the profile object
+  useEffect(() => {
+    if (profile) {
+      console.log("Profile object:", profile);
+      console.log("Available keys:", Object.keys(profile));
+      console.log("identityNumber:", profile.identityNumber);
+      console.log("identity_number:", profile.identity_number);
+      console.log("birthDate:", profile.birthDate);
+      console.log("birth_date:", profile.birth_date);
+      console.log("Raw profile from props:", profile);
+    }
+  }, [profile]);
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
 
@@ -106,7 +124,7 @@ export function UserDashboardContent({
     return format(date, "dd/MM/yyyy", { locale: es });
   };
 
-  const birthDate = formatDate(profile?.birth_date);
+  const birthDate = formatDate(profile?.birthDate || profile?.birth_date);
 
   const handleSignOut = async () => {
     try {
@@ -307,9 +325,9 @@ export function UserDashboardContent({
         <div className="flex items-start gap-8 pb-8 border-b border-gray-200">
           <div className="flex flex-col items-center gap-4">
             <div className="w-32 h-32 bg-[#2c6e49] rounded-full flex items-center justify-center overflow-hidden">
-              {profile?.profile_picture ? (
+              {profile?.profilePicture || profile?.profile_picture ? (
                 <Image
-                  src={profile.profile_picture}
+                  src={profile.profilePicture || profile.profile_picture || ""}
                   alt="Profile"
                   width={128}
                   height={128}
@@ -355,7 +373,7 @@ export function UserDashboardContent({
                 )}
               </Button>
 
-              {profile?.profile_picture && (
+              {(profile?.profilePicture || profile?.profile_picture) && (
                 <Button
                   variant="outline"
                   className="flex items-center gap-2 text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
@@ -408,7 +426,9 @@ export function UserDashboardContent({
           <div>
             <h3 className="text-gray-500 mb-2">Cédula de Identidad</h3>
             <p className="text-gray-800 font-medium">
-              {profile?.identity_number || "No disponible"}
+              {formatDocumentForDisplay(
+                profile?.identityNumber || profile?.identity_number
+              )}
             </p>
           </div>
           <div>
