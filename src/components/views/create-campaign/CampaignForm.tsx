@@ -12,6 +12,7 @@ import {
   Calendar,
   ChevronDown,
   Play,
+  Eye,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -2079,17 +2080,162 @@ export function CampaignForm() {
         </div>
       )}
 
-      {/* STEP #3 and all modals remain the same as the original */}
+      {/* STEP #3 */}
       {currentStep === 3 && (
         <div
           className={`form-step ${isAnimating ? (animationDirection === "prev" ? "fade-out" : "fade-in") : ""} max-w-6xl mx-auto space-y-24`}
         >
-          <CampaignPreview
-            campaign={formData}
-            onClose={() => setShowPreview(false)}
-            uploadedUrls={uploadedUrls}
-          />
+          {/* Preview Section - Full Width */}
+          <div className="bg-[#478C5C] w-screen relative left-[50%] right-[50%] ml-[-50vw] mr-[-50vw] pt-8">
+            <div className="max-w-6xl mx-auto px-4">
+              <div className="flex items-start justify-between gap-12 relative">
+                <div className="max-w-xl py-8">
+                  <h2 className="text-[42px] font-bold text-white">
+                    ¡Ya está todo listo!
+                  </h2>
+                  <h2 className="text-[42px] font-bold text-white mb-4">
+                    Revisa cómo quedó
+                  </h2>
+                  <p className="text-lg text-white/90 mb-6">
+                    Antes de publicar tu campaña, verifica que todo esté
+                    correcto. Puedes ver cómo lucirá en Minka.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="bg-white text-[#478C5C] border-white hover:bg-white/90 flex items-center gap-2 px-8 py-2 rounded-full"
+                    onClick={() => setShowPreview(true)}
+                  >
+                    <span>Vista previa</span>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 5.25C4.5 5.25 1.5 12 1.5 12C1.5 12 4.5 18.75 12 18.75C19.5 18.75 22.5 12 22.5 12C22.5 12 19.5 5.25 12 5.25Z"
+                        stroke="#478C5C"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M12 15.75C14.0711 15.75 15.75 14.0711 15.75 12C15.75 9.92893 14.0711 8.25 12 8.25C9.92893 8.25 8.25 9.92893 8.25 12C8.25 14.0711 9.92893 15.75 12 15.75Z"
+                        stroke="#478C5C"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </Button>
+                </div>
+                <div className="flex-1 flex justify-end items-end">
+                  <Image
+                    src="/views/create-campaign/all-ready.svg"
+                    alt="Campaign Preview"
+                    width={502}
+                    height={350}
+                    className="w-full max-w-[502px]"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Verification Section */}
+          <div className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="flex items-start justify-between gap-16">
+                <div className="max-w-md">
+                  <h2 className="text-4xl font-bold mb-4">
+                    Verifica tu campaña
+                  </h2>
+                  <p className="text-lg text-gray-600">
+                    La verificación asegura la transparencia de tu campaña, te
+                    ayuda a generar confianza en los donantes y a destacar.{" "}
+                    <span className="font-bold">
+                      ¡Te recomendamos no saltarte este paso!
+                    </span>
+                  </p>
+                </div>
+                <div className="flex-1">
+                  <div className="bg-white rounded-xl border border-black p-8">
+                    <div className="flex justify-center mb-4">
+                      <Image
+                        src="/views/create-campaign/verified.svg"
+                        alt="Verificación"
+                        width={64}
+                        height={64}
+                      />
+                    </div>
+                    <h3 className="text-xl font-medium mb-2 text-center">
+                      Mejora tu campaña
+                    </h3>
+                    <p className="text-gray-600 mb-6 text-center">
+                      Puedes verificar tu campaña para destacarla y generar
+                      confianza, o publicarla directamente para empezar a
+                      recibir apoyo.
+                    </p>
+                    <div className="w-full h-px bg-gray-200 my-6"></div>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={handleRequestVerification}
+                        className="w-full bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full py-4 flex items-center justify-center gap-2"
+                        disabled={isSubmitting}
+                      >
+                        <span>Solicitar verificación</span>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M14 5L21 12M21 12L14 19M21 12H3"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Button>
+                      <Button
+                        onClick={handlePublish}
+                        className="w-full border border-[#478C5C] text-[#478C5C] hover:bg-[#f0f7f1] rounded-full py-4"
+                        variant="outline"
+                        disabled={isSubmitting}
+                      >
+                        Publicar sin verificar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step navigation */}
+          <div className="flex justify-between mt-8">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={isSubmitting}
+            >
+              Volver
+            </Button>
+          </div>
         </div>
+      )}
+
+      {/* Campaign Preview Modal - Only show when showPreview is true */}
+      {showPreview && (
+        <CampaignPreview
+          campaign={formData}
+          onClose={() => setShowPreview(false)}
+          uploadedUrls={uploadedUrls}
+        />
       )}
 
       {/* Image editor modal */}
