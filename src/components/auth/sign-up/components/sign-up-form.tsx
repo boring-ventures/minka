@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -22,49 +22,74 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { CountryCodeSelector } from "@/components/ui/country-code-selector";
+import { findCountryByCode } from "@/data/country-codes";
+import {
+  formatPhoneNumber,
+  validatePhoneNumber,
+  getPhonePlaceholder,
+} from "@/utils/phone-formatter";
 
-// Improved validation schema with better error messages
-const signUpFormSchema = z
-  .object({
-    firstName: z.string().min(1, "El nombre es requerido"),
-    lastName: z.string().min(1, "Los apellidos son requeridos"),
-    documentId: z.string().min(1, "El número de DNI es requerido"),
-    birthDate: z.date({
-      required_error: "La fecha de nacimiento es requerida",
-      invalid_type_error: "La fecha debe ser válida",
-    }),
-    email: z
-      .string()
-      .min(1, "El correo electrónico es requerido")
-      .email("Ingresa un correo electrónico válido"),
-    phone: z
-      .string()
-      .min(1, "El número de teléfono es requerido")
-      .regex(/^\d+$/, "El número de teléfono debe contener solo dígitos"),
-    password: z
-      .string()
-      .min(1, "La contraseña es requerida")
-      .min(8, "La contraseña debe tener al menos 8 caracteres")
-      .regex(
-        /[A-Z]/,
-        "La contraseña debe contener al menos una letra mayúscula"
-      )
-      .regex(
-        /[a-z]/,
-        "La contraseña debe contener al menos una letra minúscula"
-      )
-      .regex(/[0-9]/, "La contraseña debe contener al menos un número"),
-    confirmPassword: z.string().min(1, "Confirma tu contraseña"),
-    acceptTerms: z.boolean().refine((val) => val === true, {
-      message: "Debes aceptar los términos y condiciones",
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Las contraseñas no coinciden",
-    path: ["confirmPassword"],
-  });
+// Custom phone validation that depends on country code
+const createPhoneValidation = (countryCode: string) => {
+  return z
+    .string()
+    .min(1, "El número de teléfono es requerido")
+    .refine(
+      (phone) => {
+        const result = validatePhoneNumber(phone, countryCode);
+        return result.isValid;
+      },
+      (phone) => {
+        const result = validatePhoneNumber(phone, countryCode);
+        return {
+          message: result.errorMessage || "Número de teléfono no válido",
+        };
+      }
+    );
+};
 
-type SignUpFormData = z.infer<typeof signUpFormSchema>;
+// Dynamic validation schema
+const createSignUpFormSchema = (countryCode: string) =>
+  z
+    .object({
+      firstName: z.string().min(1, "El nombre es requerido"),
+      lastName: z.string().min(1, "Los apellidos son requeridos"),
+      documentId: z.string().min(1, "El número de DNI es requerido"),
+      birthDate: z.date({
+        required_error: "La fecha de nacimiento es requerida",
+        invalid_type_error: "La fecha debe ser válida",
+      }),
+      email: z
+        .string()
+        .min(1, "El correo electrónico es requerido")
+        .email("Ingresa un correo electrónico válido"),
+      countryCode: z.string().min(1, "Selecciona un país"),
+      phone: createPhoneValidation(countryCode),
+      password: z
+        .string()
+        .min(1, "La contraseña es requerida")
+        .min(8, "La contraseña debe tener al menos 8 caracteres")
+        .regex(
+          /[A-Z]/,
+          "La contraseña debe contener al menos una letra mayúscula"
+        )
+        .regex(
+          /[a-z]/,
+          "La contraseña debe contener al menos una letra minúscula"
+        )
+        .regex(/[0-9]/, "La contraseña debe contener al menos un número"),
+      confirmPassword: z.string().min(1, "Confirma tu contraseña"),
+      acceptTerms: z.boolean().refine((val) => val === true, {
+        message: "Debes aceptar los términos y condiciones",
+      }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "Las contraseñas no coinciden",
+      path: ["confirmPassword"],
+    });
+
+type SignUpFormData = z.infer<ReturnType<typeof createSignUpFormSchema>>;
 
 export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -72,6 +97,7 @@ export function SignUpForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [currentCountryCode, setCurrentCountryCode] = useState("BO");
   const { signUp } = useAuth();
 
   const {
@@ -81,20 +107,45 @@ export function SignUpForm() {
     formState: { errors },
     setError,
     reset,
+    watch,
+    setValue,
+    clearErrors,
   } = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpFormSchema),
+    resolver: zodResolver(createSignUpFormSchema(currentCountryCode)),
     defaultValues: {
       firstName: "",
       lastName: "",
       documentId: "",
       birthDate: undefined,
       email: "",
+      countryCode: "BO", // Default to Bolivia
       phone: "",
       password: "",
       confirmPassword: "",
       acceptTerms: false,
     },
   });
+
+  // Watch countryCode and phone to handle formatting
+  const countryCode = watch("countryCode");
+  const phoneValue = watch("phone");
+  const selectedCountry = findCountryByCode(countryCode);
+
+  // Update validation schema when country changes
+  useEffect(() => {
+    if (countryCode !== currentCountryCode) {
+      setCurrentCountryCode(countryCode);
+      // Clear phone errors when country changes
+      clearErrors("phone");
+    }
+  }, [countryCode, currentCountryCode, clearErrors]);
+
+  // Handle phone input formatting
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const formattedValue = formatPhoneNumber(rawValue, countryCode);
+    setValue("phone", formattedValue);
+  };
 
   async function onSubmit(data: SignUpFormData) {
     if (isLoading) return;
@@ -106,6 +157,10 @@ export function SignUpForm() {
       // Format the date to YYYY-MM-DD or DD/MM/YYYY as needed by your API
       const formattedBirthDate = format(data.birthDate, "dd/MM/yyyy");
 
+      // Get clean phone number (digits only) and combine with country code
+      const cleanPhone = data.phone.replace(/\D/g, "");
+      const fullPhoneNumber = `${selectedCountry?.dialCode}${cleanPhone}`;
+
       await signUp({
         email: data.email,
         password: data.password,
@@ -113,7 +168,7 @@ export function SignUpForm() {
         lastName: data.lastName,
         documentId: data.documentId,
         birthDate: formattedBirthDate,
-        phone: data.phone,
+        phone: fullPhoneNumber,
       });
 
       // Note: Success toast and redirection are now handled in the auth provider
@@ -353,33 +408,45 @@ export function SignUpForm() {
           Teléfono
         </label>
         <div className="flex">
-          <div className="relative">
-            <button
-              type="button"
-              className="flex items-center justify-between h-10 px-3 border border-black border-r-0 rounded-l-md bg-white text-sm"
-              disabled={isLoading || isSubmitting}
-            >
-              <div className="flex items-center">
-                <span className="mr-2">🇧🇴</span>
-                <span>+591</span>
-              </div>
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </button>
-          </div>
-          <Input
-            id="phone"
-            type="tel"
-            {...register("phone")}
-            placeholder="XXXXXXXX"
-            className="flex-1 rounded-l-none border-black"
-            aria-invalid={errors.phone ? "true" : "false"}
-            disabled={isLoading || isSubmitting}
+          <Controller
+            name="countryCode"
+            control={control}
+            render={({ field }) => (
+              <CountryCodeSelector
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isLoading || isSubmitting}
+                className="flex-shrink-0 w-[100px]"
+              />
+            )}
+          />
+          <Controller
+            name="phone"
+            control={control}
+            render={({ field }) => (
+              <Input
+                id="phone"
+                type="tel"
+                value={field.value}
+                onChange={(e) => {
+                  const formattedValue = formatPhoneNumber(
+                    e.target.value,
+                    countryCode
+                  );
+                  field.onChange(formattedValue);
+                }}
+                placeholder={getPhonePlaceholder(countryCode)}
+                className="flex-1 rounded-l-none border-black border-l-0"
+                aria-invalid={errors.phone ? "true" : "false"}
+                disabled={isLoading || isSubmitting}
+              />
+            )}
           />
         </div>
-        {errors.phone && (
+        {(errors.countryCode || errors.phone) && (
           <p className="text-sm text-red-500 mt-1 flex items-center">
             <Info className="h-3 w-3 mr-1" />
-            {errors.phone.message}
+            {errors.countryCode?.message || errors.phone?.message}
           </p>
         )}
       </div>
