@@ -34,6 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CountryCodeSelector } from "@/components/ui/country-code-selector";
+import { findCountryByCode } from "@/data/country-codes";
+import {
+  formatPhoneNumber,
+  validatePhoneNumber,
+  getPhonePlaceholder,
+} from "@/utils/phone-formatter";
 
 // Define interface for Campaign
 interface Campaign {
@@ -106,6 +113,7 @@ export function CampaignVerificationView({
     name: "",
     email: "",
     phone: "",
+    countryCode: "BO", // Default to Bolivia
   });
 
   // Add state for image queue
@@ -738,6 +746,16 @@ export function CampaignVerificationView({
     try {
       setIsSubmitting(true);
 
+      // Get country info for phone formatting
+      const selectedCountry = findCountryByCode(referenceContact.countryCode);
+
+      // Format phone number with country code if phone is provided
+      let formattedPhone = undefined;
+      if (referenceContact.phone) {
+        const cleanPhone = referenceContact.phone.replace(/\D/g, "");
+        formattedPhone = `${selectedCountry?.dialCode}${cleanPhone}`;
+      }
+
       const verificationData = {
         campaignId: selectedCampaignId,
         idDocumentFrontUrl,
@@ -746,7 +764,7 @@ export function CampaignVerificationView({
         campaignStory: campaignStory || undefined,
         referenceContactName: referenceContact.name || undefined,
         referenceContactEmail: referenceContact.email || undefined,
-        referenceContactPhone: referenceContact.phone || undefined,
+        referenceContactPhone: formattedPhone,
       };
 
       const response = await fetch("/api/campaign/verification", {
@@ -2328,7 +2346,7 @@ export function CampaignVerificationView({
                     <div className="inline-block w-4 h-4 mr-2 rounded-full border border-gray-400 flex-shrink-0 flex items-center justify-center">
                       <span className="text-gray-600 text-xs">i</span>
                     </div>
-                    Selecciona el código de tu país.
+                    Asegúrate de que el email sea válido.
                   </div>
                 </div>
 
@@ -2337,24 +2355,33 @@ export function CampaignVerificationView({
                     Teléfono
                   </label>
                   <div className="flex">
-                    <div className="flex items-center h-12 px-3 border border-black border-r-0 rounded-l-lg bg-white min-w-[95px]">
-                      <div className="flex items-center">
-                        <span className="inline-block mr-2">🇧🇴</span>
-                        <span>+591</span>
-                        <ChevronDown className="ml-1 h-4 w-4 text-gray-400" />
-                      </div>
-                    </div>
-                    <input
-                      type="tel"
-                      placeholder="Número de teléfono"
-                      className="flex-1 h-12 rounded-l-none rounded-r-lg border border-black bg-white px-4 focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0"
-                      value={referenceContact.phone}
-                      onChange={(e) =>
+                    <CountryCodeSelector
+                      value={referenceContact.countryCode}
+                      onValueChange={(countryCode) =>
                         setReferenceContact({
                           ...referenceContact,
-                          phone: e.target.value,
+                          countryCode,
                         })
                       }
+                      className="flex-shrink-0 w-[100px] h-12"
+                    />
+                    <input
+                      type="tel"
+                      placeholder={getPhonePlaceholder(
+                        referenceContact.countryCode
+                      )}
+                      className="flex-1 h-12 rounded-l-none rounded-r-lg border border-black bg-white px-4 focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 border-l-0"
+                      value={referenceContact.phone}
+                      onChange={(e) => {
+                        const formattedValue = formatPhoneNumber(
+                          e.target.value,
+                          referenceContact.countryCode
+                        );
+                        setReferenceContact({
+                          ...referenceContact,
+                          phone: formattedValue,
+                        });
+                      }}
                     />
                   </div>
                 </div>

@@ -17,6 +17,7 @@ export interface CampaignFormData {
     | "tarija"
     | "beni"
     | "pando";
+  province?: string; // Optional province field
   endDate: string;
   // Story field corresponds to "Presentación de la campaña" in the form
   story: string;
@@ -128,6 +129,7 @@ export function useCampaign() {
         category: formData.category,
         goalAmount: Number(formData.goalAmount),
         location: formData.location,
+        province: formData.province,
         endDate: formData.endDate,
         youtubeUrl: formData.youtubeUrl || "",
         youtubeUrls: formData.youtubeUrls || [], // Include all YouTube links
@@ -207,6 +209,7 @@ export function useCampaign() {
           ? Number(formData.goalAmount)
           : undefined,
         location: formData.location,
+        province: formData.province,
         endDate: formData.endDate,
         youtubeUrl: formData.youtubeUrl || "",
         youtubeUrls: formData.youtubeUrls || [], // Include all YouTube links

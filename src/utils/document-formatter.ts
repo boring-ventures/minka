@@ -201,7 +201,6 @@ export function getDocumentTypeName(countryCode?: string): string {
     SL: "ID",
     LR: "ID",
     CI: "CNI",
-    GH: "ID",
     TG: "CNI",
     BJ: "CNI",
     DZ: "CNI",

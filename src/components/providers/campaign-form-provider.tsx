@@ -30,6 +30,7 @@ export type CampaignFormState = {
     | "tarija"
     | "beni"
     | "pando";
+  province?: string;
   endDate: string;
   youtubeUrl: string;
   media: MediaItem[];
@@ -48,6 +49,7 @@ type CampaignFormAction =
   | { type: "SET_CATEGORY"; payload: string }
   | { type: "SET_GOAL_AMOUNT"; payload: number }
   | { type: "SET_LOCATION"; payload: string }
+  | { type: "SET_PROVINCE"; payload: string | undefined }
   | { type: "SET_END_DATE"; payload: string }
   | { type: "SET_YOUTUBE_URL"; payload: string }
   | { type: "ADD_MEDIA"; payload: MediaItem }
@@ -74,6 +76,7 @@ const initialState: CampaignFormState = {
   category: "",
   goalAmount: 0,
   location: "la_paz",
+  province: undefined,
   endDate: "",
   youtubeUrl: "",
   media: [],
@@ -115,6 +118,8 @@ const reducer = (
           | "beni"
           | "pando",
       };
+    case "SET_PROVINCE":
+      return { ...state, province: action.payload };
     case "SET_END_DATE":
       return { ...state, endDate: action.payload };
     case "SET_YOUTUBE_URL":
