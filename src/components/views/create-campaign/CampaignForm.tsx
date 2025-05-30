@@ -388,6 +388,8 @@ export function CampaignForm() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showOtraPersonaModal, setShowOtraPersonaModal] = useState(false);
   const [showONGsModal, setShowONGsModal] = useState(false);
+  const [showPersonaJuridicaModal, setShowPersonaJuridicaModal] =
+    useState(false);
 
   // Add state to track form validity for each step
   const [isStep1Valid, setIsStep1Valid] = useState(false);
@@ -403,6 +405,11 @@ export function CampaignForm() {
     accountHolderName: "",
     phoneCountryCode: "BO",
     phone: "",
+  });
+
+  // State for "Persona Jurídica" modal form
+  const [personaJuridicaForm, setPersonaJuridicaForm] = useState({
+    entityName: "", // Company/organization name
   });
 
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
@@ -617,6 +624,14 @@ export function CampaignForm() {
 
   const closeONGsModal = () => {
     setShowONGsModal(false);
+  };
+
+  const closePersonaJuridicaModal = () => {
+    setShowPersonaJuridicaModal(false);
+    // Reset form when closing modal
+    setPersonaJuridicaForm({
+      entityName: "",
+    });
   };
 
   // Utility function to help with image URL issues
@@ -1032,6 +1047,10 @@ export function CampaignForm() {
     setShowONGsModal(true);
   };
 
+  const handleSelectPersonaJuridica = () => {
+    setShowPersonaJuridicaModal(true);
+  };
+
   const handleOtraPersonaSubmit = async () => {
     // Validate form data
     const { bank, accountNumber, documentId, accountHolderName, phone } =
@@ -1100,6 +1119,45 @@ export function CampaignForm() {
   const handleONGSubmit = async () => {
     closeONGsModal();
     await handleSelectRecipient("organizacion");
+  };
+
+  const handlePersonaJuridicaSubmit = async () => {
+    // Validate form data
+    const { entityName } = personaJuridicaForm;
+
+    if (!entityName) {
+      toast({
+        title: "Error",
+        description: "Por favor completa todos los campos requeridos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Here you could save the legal entity data to the campaign
+      // For now, we'll just log it and proceed
+      console.log("Persona Jurídica form data:", {
+        ...personaJuridicaForm,
+      });
+
+      toast({
+        title: "Persona Jurídica agregada",
+        description:
+          "Los datos de la persona jurídica se han guardado correctamente.",
+      });
+
+      closePersonaJuridicaModal();
+      await handleSelectRecipient("persona_juridica");
+    } catch (error) {
+      console.error("Error saving legal entity data:", error);
+      toast({
+        title: "Error",
+        description:
+          "No se pudo guardar la información de la persona jurídica.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Add validation function to check all required fields
@@ -2043,22 +2101,22 @@ export function CampaignForm() {
 
                 <label
                   className="block p-6 border-2 border-black rounded-lg hover:border-[#2c6e49] cursor-pointer bg-white"
-                  onClick={handleSelectONG}
+                  onClick={handleSelectPersonaJuridica}
                 >
                   <div className="flex items-center space-x-4">
                     <Image
                       src="/views/create-campaign/organization.svg"
-                      alt="Organización sin fines de lucro"
+                      alt="Persona Jurídica"
                       width={75}
                       height={75}
                     />
                     <div>
                       <div className="font-medium text-lg">
-                        Organización sin fines de lucro
+                        Persona Jurídica
                       </div>
                       <div className="text-base text-gray-600">
-                        Elige la organización, previamente autenticada en Minka,
-                        que recibirá los fondos recaudados.
+                        Designa a la persona jurídica que recibirá los fondos
+                        recaudados.
                       </div>
                     </div>
                   </div>
@@ -2246,6 +2304,70 @@ export function CampaignForm() {
           onCancel={handleCancelImageEdit}
           isLoading={isUploading}
         />
+      )}
+
+      {/* Persona Jurídica Modal */}
+      {showPersonaJuridicaModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold">
+                  Datos de la Persona Jurídica
+                </h3>
+                <button
+                  onClick={closePersonaJuridicaModal}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Legal Entity Information */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium">
+                  Información de la Persona Jurídica
+                </h4>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Nombre de la entidad *
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border border-gray-300 bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-12 px-4"
+                    placeholder="Ej: Fundación Ejemplo S.A."
+                    value={personaJuridicaForm.entityName}
+                    onChange={(e) =>
+                      setPersonaJuridicaForm({
+                        ...personaJuridicaForm,
+                        entityName: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t flex justify-end space-x-4">
+              <Button
+                variant="outline"
+                onClick={closePersonaJuridicaModal}
+                className="rounded-full"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handlePersonaJuridicaSubmit}
+                className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full"
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

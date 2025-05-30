@@ -716,33 +716,6 @@ export function CampaignVerificationView({
       return;
     }
 
-    // Start animation
-    setAnimationDirection("next");
-    setIsAnimating(true);
-
-    // After animation fade-out completes, change step and reset animation
-    setTimeout(() => {
-      setVerificationStep(3);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-
-      // Reset animation state after step change
-      setTimeout(() => {
-        setIsAnimating(false);
-      }, 50);
-    }, 500);
-  };
-
-  // Separate function for sending verification from step 3
-  const handleSendFinalVerification = async () => {
-    if (!selectedCampaignId) {
-      toast({
-        title: "Error",
-        description: "No se encontró la campaña para verificar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsSubmitting(true);
 
@@ -797,7 +770,7 @@ export function CampaignVerificationView({
         throw new Error(errorMessage);
       }
 
-      // Show the success modal
+      // Show the success modal directly
       setShowSubmitModal(true);
     } catch (error) {
       console.error("Error submitting verification:", error);
@@ -2225,20 +2198,14 @@ export function CampaignVerificationView({
                       onClick={handleSubmitVerification}
                       disabled={isSubmitting}
                     >
-                      Siguiente
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        className="ml-2"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z"
-                          fill="currentColor"
-                        />
-                      </svg>
+                      {isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <InlineSpinner className="text-white" />
+                          <span>Enviando solicitud...</span>
+                        </div>
+                      ) : (
+                        "Enviar solicitud de verificación"
+                      )}
                     </Button>
                     <Button
                       variant="outline"
@@ -2256,26 +2223,7 @@ export function CampaignVerificationView({
         </div>
       )}
 
-      {/* Final Review and Submit - Step 3 */}
-      {verificationStep === 3 && (
-        <div
-          className={`verification-step max-w-6xl mx-auto ${isAnimating ? (animationDirection === "prev" ? "fade-out" : "fade-in") : ""}`}
-        >
-          <div className="py-12">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                Revisa tu información
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Verifica que toda la información proporcionada sea correcta
-                antes de enviar tu solicitud de verificación.
-              </p>
-            </div>
-
-            {/* Rest of step 3 content... */}
-          </div>
-        </div>
-      )}
+      {/* Final Review and Submit - Step 3 - REMOVED: Now submitting directly from Step 2 */}
 
       {/* Reference Contact Modal */}
       {showReferenceModal && (
@@ -2352,7 +2300,7 @@ export function CampaignVerificationView({
 
                 <div>
                   <label className="block text-base font-medium mb-2">
-                    Teléfono
+                    Teléfono (opcional)
                   </label>
                   <div className="flex">
                     <CountryCodeSelector
@@ -2491,20 +2439,21 @@ export function CampaignVerificationView({
             {/* Main content area */}
             <div className="p-8 overflow-y-auto flex-1">
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 flex items-center justify-center bg-green-100 rounded-full mb-6">
-                  <CheckCircle2 size={32} className="text-[#478C5C]" />
+                <div className="mb-6">
+                  <Image
+                    src="/views/create-campaign/handshake.svg"
+                    alt="Handshake"
+                    width={64}
+                    height={64}
+                  />
                 </div>
                 <h2 className="text-3xl font-bold mb-4">
                   ¡Solicitud enviada con éxito!
                 </h2>
-                <p className="text-gray-600 text-lg mb-4">
-                  Tu solicitud ha sido recibida y está en proceso de revisión.
-                  Te notificaremos en 48 horas hábiles el resultado de tu
-                  verificación.
-                </p>
                 <p className="text-gray-600 text-lg mb-8">
-                  Mientras tanto, tu campaña seguirá activa y recibiendo
-                  donaciones como siempre.
+                  Estamos revisando tu campaña. La verificación puede tomar
+                  hasta 2 días. Mientras tanto, tu campaña seguirá activa y
+                  disponible en la plataforma.
                 </p>
 
                 <div className="w-full border-t border-gray-300 my-6"></div>
