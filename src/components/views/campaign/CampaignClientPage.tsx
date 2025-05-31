@@ -309,6 +309,16 @@ export default function CampaignClientPage({ id }: { id: string }) {
   const [relatedCampaigns, setRelatedCampaigns] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("descripcion");
 
+  // Debug campaign ID
+  useEffect(() => {
+    console.log("CampaignClientPage: Campaign ID received:", id);
+    console.log(
+      "CampaignClientPage: Campaign data:",
+      campaign?.id,
+      campaign?.title
+    );
+  }, [id, campaign]);
+
   useEffect(() => {
     if (campaign?.category) {
       fetchRelatedCampaigns(campaign.category, id)

@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSavedCampaigns } from "@/hooks/use-saved-campaigns";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -64,7 +64,7 @@ export function CampaignProgress({
   campaignLocation = "",
   campaignId = "",
 }: CampaignProgressProps) {
-  const { session, loading: authLoading } = useAuth();
+  const { session, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const { isCampaignSaved, saveCampaign, unsaveCampaign } = useSavedCampaigns();
   const [isSaving, setIsSaving] = useState(false);
@@ -73,20 +73,31 @@ export function CampaignProgress({
   const router = useRouter();
 
   const isLoggedIn = !!session;
-  console.log(session);
   const isSaved = isCampaignSaved(campaignId);
+
+  // Debug component state
+  useEffect(() => {
+    console.log("CampaignProgress: Props received:", {
+      campaignId,
+      hasSession: !!session,
+      isLoggedIn,
+      authLoading,
+      isSaved,
+    });
+  }, [campaignId, session, isLoggedIn, authLoading, isSaved]);
 
   // Debug session state
   useEffect(() => {
     if (!authLoading) {
       setIsSessionLoaded(true);
-      console.log("Session state:", {
+      console.log("CampaignProgress: Session state updated:", {
         isLoggedIn,
         hasSession: !!session,
         email: session?.user?.email,
+        campaignId,
       });
     }
-  }, [session, authLoading, isLoggedIn]);
+  }, [session, authLoading, isLoggedIn, campaignId]);
 
   const safeCurrentAmount = currentAmount || 0;
   const safeTargetAmount = targetAmount || 1;
@@ -115,20 +126,47 @@ export function CampaignProgress({
       return;
     }
 
+    // Validate campaign ID
+    if (!campaignId || campaignId.trim() === "") {
+      console.error("Campaign ID is missing or empty:", campaignId);
+      toast({
+        title: "Error",
+        description: "ID de campaña no válido. Por favor recarga la página",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Save toggle initiated:", {
+      campaignId: campaignId,
+      isSaved: isSaved,
+      isLoggedIn: isLoggedIn,
+      userEmail: session?.user?.email,
+    });
+
     setIsSaving(true);
     try {
       if (isSaved) {
+        console.log("Attempting to unsave campaign:", campaignId);
         const result = await unsaveCampaign(campaignId);
         console.log("Unsave result:", result);
+        if (result) {
+          console.log("Campaign successfully unsaved");
+        }
       } else {
+        console.log("Attempting to save campaign:", campaignId);
         const result = await saveCampaign(campaignId);
         console.log("Save result:", result);
+        if (result) {
+          console.log("Campaign successfully saved");
+        }
       }
     } catch (error) {
       console.error("Error toggling saved state:", error);
       toast({
         title: "Error",
-        description: "No se pudo completar la operación",
+        description:
+          "No se pudo completar la operación. Por favor intenta nuevamente",
         variant: "destructive",
       });
     } finally {

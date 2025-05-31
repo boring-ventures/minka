@@ -111,9 +111,13 @@ export async function POST(request: NextRequest) {
     const { campaignId } = await request.json();
     console.log("Request to save campaignId:", campaignId);
 
-    if (!campaignId) {
+    if (
+      !campaignId ||
+      typeof campaignId !== "string" ||
+      campaignId.trim() === ""
+    ) {
       return NextResponse.json(
-        { error: "Campaign ID is required" },
+        { error: "Valid campaign ID is required" },
         { status: 400 }
       );
     }
@@ -160,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     // Check if the campaign exists
     const campaign = await prisma.campaign.findUnique({
-      where: { id: campaignId },
+      where: { id: campaignId.trim() },
     });
 
     if (!campaign) {
@@ -175,7 +179,7 @@ export async function POST(request: NextRequest) {
     const existingSave = await prisma.savedCampaign.findFirst({
       where: {
         profileId: profile.id,
-        campaignId,
+        campaignId: campaignId.trim(),
         status: "active",
       },
     });
@@ -192,7 +196,7 @@ export async function POST(request: NextRequest) {
     const savedCampaign = await prisma.savedCampaign.create({
       data: {
         profileId: profile.id,
-        campaignId,
+        campaignId: campaignId.trim(),
       },
     });
 
@@ -218,9 +222,13 @@ export async function DELETE(request: NextRequest) {
     const { campaignId } = await request.json();
     console.log("Request to unsave campaignId:", campaignId);
 
-    if (!campaignId) {
+    if (
+      !campaignId ||
+      typeof campaignId !== "string" ||
+      campaignId.trim() === ""
+    ) {
       return NextResponse.json(
-        { error: "Campaign ID is required" },
+        { error: "Valid campaign ID is required" },
         { status: 400 }
       );
     }
@@ -269,7 +277,7 @@ export async function DELETE(request: NextRequest) {
     const savedCampaign = await prisma.savedCampaign.findFirst({
       where: {
         profileId: profile.id,
-        campaignId,
+        campaignId: campaignId.trim(),
         status: "active",
       },
     });

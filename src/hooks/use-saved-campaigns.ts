@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/providers/auth-provider";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase/client";
 
 type SavedCampaign = {
   id: string;
@@ -17,7 +18,7 @@ export function useSavedCampaigns() {
   const [savedCampaigns, setSavedCampaigns] = useState<SavedCampaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { session, loading: authLoading } = useAuth();
+  const { session, isLoading: authLoading } = useAuth();
 
   // Function to fetch saved campaigns
   const fetchSavedCampaigns = useCallback(async () => {
@@ -37,6 +38,7 @@ export function useSavedCampaigns() {
       setError(null);
 
       console.log("Fetching saved campaigns for session:", !!session);
+
       const response = await fetch("/api/saved-campaign", {
         credentials: "include", // Important to include cookies
         headers: {
@@ -74,7 +76,15 @@ export function useSavedCampaigns() {
 
   // Function to save a campaign
   const saveCampaign = async (campaignId: string) => {
+    console.log("=== SAVE CAMPAIGN DEBUG START ===");
+    console.log("Auth loading:", authLoading);
+    console.log("Session:", session);
+    console.log("Session user:", session?.user);
+    console.log("Session user email:", session?.user?.email);
+    console.log("Campaign ID:", campaignId);
+
     if (authLoading) {
+      console.log("AUTH LOADING - aborting");
       toast({
         title: "Cargando",
         description: "Por favor espera mientras verificamos tu sesión",
@@ -83,6 +93,7 @@ export function useSavedCampaigns() {
     }
 
     if (!session) {
+      console.log("NO SESSION - aborting");
       toast({
         title: "Error",
         description: "Debes iniciar sesión para guardar campañas",
@@ -91,9 +102,19 @@ export function useSavedCampaigns() {
       return false;
     }
 
+    if (!campaignId || campaignId.trim() === "") {
+      console.log("INVALID CAMPAIGN ID - aborting");
+      toast({
+        title: "Error",
+        description: "ID de campaña no válido",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     try {
       setError(null);
-      console.log("Saving campaign:", campaignId);
+      console.log("Making API call to save campaign:", campaignId);
 
       const response = await fetch("/api/saved-campaign", {
         method: "POST",
@@ -102,18 +123,48 @@ export function useSavedCampaigns() {
           "Cache-Control": "no-cache",
         },
         credentials: "include", // Include cookies for auth
-        body: JSON.stringify({ campaignId }),
+        body: JSON.stringify({ campaignId: campaignId.trim() }),
       });
 
-      console.log("Save response status:", response.status);
+      console.log("API Response status:", response.status);
+      console.log(
+        "API Response headers:",
+        Object.fromEntries(response.headers.entries())
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.log("API Error response:", errorData);
+
+        // Handle specific error cases
+        if (response.status === 401) {
+          toast({
+            title: "Error de autenticación",
+            description:
+              "Tu sesión ha expirado. Por favor inicia sesión nuevamente",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (
+          response.status === 400 &&
+          errorData.error === "Campaign already saved"
+        ) {
+          toast({
+            title: "Campaña ya guardada",
+            description: "Esta campaña ya está en tu lista de guardadas",
+          });
+          // Refresh to ensure UI is in sync
+          await fetchSavedCampaigns();
+          return true;
+        }
+
         throw new Error(errorData.error || "Failed to save campaign");
       }
 
       const data = await response.json();
-      console.log("Save response:", data);
+      console.log("API Success response:", data);
 
       // Refresh the list of saved campaigns
       await fetchSavedCampaigns();
@@ -123,9 +174,11 @@ export function useSavedCampaigns() {
         description: "La campaña ha sido guardada exitosamente",
       });
 
+      console.log("=== SAVE CAMPAIGN DEBUG END - SUCCESS ===");
       return true;
     } catch (err) {
       console.error("Error saving campaign:", err);
+      console.log("=== SAVE CAMPAIGN DEBUG END - ERROR ===");
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
       );
@@ -160,6 +213,15 @@ export function useSavedCampaigns() {
       return false;
     }
 
+    if (!campaignId || campaignId.trim() === "") {
+      toast({
+        title: "Error",
+        description: "ID de campaña no válido",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     try {
       setError(null);
       console.log("Unsaving campaign:", campaignId);
@@ -171,13 +233,35 @@ export function useSavedCampaigns() {
           "Cache-Control": "no-cache",
         },
         credentials: "include", // Include cookies for auth
-        body: JSON.stringify({ campaignId }),
+        body: JSON.stringify({ campaignId: campaignId.trim() }),
       });
 
       console.log("Unsave response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle specific error cases
+        if (response.status === 401) {
+          toast({
+            title: "Error de autenticación",
+            description:
+              "Tu sesión ha expirado. Por favor inicia sesión nuevamente",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (response.status === 404) {
+          toast({
+            title: "Campaña no encontrada",
+            description: "Esta campaña ya no está en tu lista de guardadas",
+          });
+          // Refresh to ensure UI is in sync
+          await fetchSavedCampaigns();
+          return true;
+        }
+
         throw new Error(errorData.error || "Failed to unsave campaign");
       }
 
@@ -210,7 +294,12 @@ export function useSavedCampaigns() {
   // Function to check if a campaign is saved
   const isCampaignSaved = useCallback(
     (campaignId: string) => {
-      return savedCampaigns.some((campaign) => campaign.id === campaignId);
+      if (!campaignId || campaignId.trim() === "") {
+        return false;
+      }
+      return savedCampaigns.some(
+        (campaign) => campaign.id === campaignId.trim()
+      );
     },
     [savedCampaigns]
   );
