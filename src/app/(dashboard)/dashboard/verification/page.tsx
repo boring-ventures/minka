@@ -709,17 +709,18 @@ export default function CampaignVerificationPage() {
                             </div>
                             <div className="border rounded-lg overflow-hidden">
                               {selectedRequest.idDocumentUrl
-                                .toLowerCase()
+                                ?.toLowerCase()
                                 .includes(".jpg") ||
                               selectedRequest.idDocumentUrl
-                                .toLowerCase()
+                                ?.toLowerCase()
                                 .includes(".jpeg") ||
                               selectedRequest.idDocumentUrl
-                                .toLowerCase()
+                                ?.toLowerCase()
                                 .includes(".png") ? (
                                 <div
                                   className="cursor-pointer"
                                   onClick={() =>
+                                    selectedRequest.idDocumentUrl &&
                                     openDocumentModal(
                                       selectedRequest.idDocumentUrl,
                                       "Anverso del documento de identidad"
@@ -728,7 +729,7 @@ export default function CampaignVerificationPage() {
                                 >
                                   <div className="relative">
                                     <Image
-                                      src={selectedRequest.idDocumentUrl}
+                                      src={selectedRequest.idDocumentUrl!}
                                       alt="Anverso del documento"
                                       width={300}
                                       height={200}
@@ -746,6 +747,7 @@ export default function CampaignVerificationPage() {
                                 <div
                                   className="flex items-center gap-3 bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 transition-colors"
                                   onClick={() =>
+                                    selectedRequest.idDocumentUrl &&
                                     openDocumentModal(
                                       selectedRequest.idDocumentUrl,
                                       "Anverso del documento de identidad"
@@ -788,18 +790,20 @@ export default function CampaignVerificationPage() {
                                   </span>
                                 </div>
                                 <div className="border rounded-lg overflow-hidden">
-                                  {selectedRequest.supportingDocsUrls[0]
+                                  {selectedRequest.supportingDocsUrls?.[0]
                                     ?.toLowerCase()
                                     .includes(".jpg") ||
-                                  selectedRequest.supportingDocsUrls[0]
+                                  selectedRequest.supportingDocsUrls?.[0]
                                     ?.toLowerCase()
                                     .includes(".jpeg") ||
-                                  selectedRequest.supportingDocsUrls[0]
+                                  selectedRequest.supportingDocsUrls?.[0]
                                     ?.toLowerCase()
                                     .includes(".png") ? (
                                     <div
                                       className="cursor-pointer"
                                       onClick={() =>
+                                        selectedRequest
+                                          .supportingDocsUrls?.[0] &&
                                         openDocumentModal(
                                           selectedRequest.supportingDocsUrls[0],
                                           "Reverso del documento de identidad"
@@ -810,7 +814,7 @@ export default function CampaignVerificationPage() {
                                         <Image
                                           src={
                                             selectedRequest
-                                              .supportingDocsUrls[0]
+                                              .supportingDocsUrls![0]
                                           }
                                           alt="Reverso del documento"
                                           width={300}
@@ -829,6 +833,8 @@ export default function CampaignVerificationPage() {
                                     <div
                                       className="flex items-center gap-3 bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 transition-colors"
                                       onClick={() =>
+                                        selectedRequest
+                                          .supportingDocsUrls?.[0] &&
                                         openDocumentModal(
                                           selectedRequest.supportingDocsUrls[0],
                                           "Reverso del documento de identidad"
