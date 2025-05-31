@@ -34,6 +34,9 @@ import {
   Mail,
   AlertCircle,
   Clock,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,6 +85,15 @@ export default function CampaignVerificationPage() {
   const [processingAction, setProcessingAction] = useState(false);
   const [currentTab, setCurrentTab] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Document viewer modal states
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [currentDocumentUrl, setCurrentDocumentUrl] = useState<string>("");
+  const [currentDocumentTitle, setCurrentDocumentTitle] = useState<string>("");
+  const [currentDocumentIndex, setCurrentDocumentIndex] = useState<number>(0);
+  const [documentList, setDocumentList] = useState<
+    { url: string; title: string }[]
+  >([]);
 
   // Fetch verification requests on component mount
   useEffect(() => {
@@ -259,6 +271,56 @@ export default function CampaignVerificationPage() {
     } finally {
       setProcessingAction(false);
     }
+  };
+
+  // Helper functions for document viewer
+  const openDocumentModal = (
+    url: string,
+    title: string,
+    allDocs?: { url: string; title: string }[],
+    index?: number
+  ) => {
+    setCurrentDocumentUrl(url);
+    setCurrentDocumentTitle(title);
+    if (allDocs && index !== undefined) {
+      setDocumentList(allDocs);
+      setCurrentDocumentIndex(index);
+    } else {
+      setDocumentList([{ url, title }]);
+      setCurrentDocumentIndex(0);
+    }
+    setShowDocumentModal(true);
+  };
+
+  const navigateDocument = (direction: "prev" | "next") => {
+    if (documentList.length <= 1) return;
+
+    let newIndex;
+    if (direction === "prev") {
+      newIndex =
+        currentDocumentIndex > 0
+          ? currentDocumentIndex - 1
+          : documentList.length - 1;
+    } else {
+      newIndex =
+        currentDocumentIndex < documentList.length - 1
+          ? currentDocumentIndex + 1
+          : 0;
+    }
+
+    setCurrentDocumentIndex(newIndex);
+    setCurrentDocumentUrl(documentList[newIndex].url);
+    setCurrentDocumentTitle(documentList[newIndex].title);
+  };
+
+  const isImageFile = (url: string) => {
+    return (
+      url.toLowerCase().includes(".jpg") ||
+      url.toLowerCase().includes(".jpeg") ||
+      url.toLowerCase().includes(".png") ||
+      url.toLowerCase().includes(".gif") ||
+      url.toLowerCase().includes(".webp")
+    );
   };
 
   // Filter requests by status
@@ -617,126 +679,369 @@ export default function CampaignVerificationPage() {
                         <p className="text-gray-500 italic">Sin imagen</p>
                       )}
                     </div>
-
-                    {selectedRequest.campaignStory && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 mb-2">
-                          Historia de la campaña
-                        </p>
-                        <div className="p-4 bg-gray-50 rounded-md max-h-40 overflow-y-auto">
-                          <p className="text-gray-700 whitespace-pre-line text-sm">
-                            {selectedRequest.campaignStory}
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
 
-                {/* Verification Documents */}
+                {/* ID Document Upload - Matching verification form style */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle>Documentos de verificación</CardTitle>
+                    <CardTitle className="text-2xl font-medium">
+                      Documento de Identidad
+                    </CardTitle>
+                    <p className="text-gray-600">
+                      Documentos de identidad subidos para validar la
+                      información personal como responsable de la campaña.
+                    </p>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-6">
                     {selectedRequest.idDocumentUrl && (
-                      <div>
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
-                          <UserCheck className="h-4 w-4" />
-                          <p>Documento de identidad</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="bg-gray-100 p-2 rounded-md">
-                            <FileText className="h-5 w-5 text-gray-600" />
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* ID Document Front */}
+                        <div className="bg-white rounded-xl border border-black p-6">
+                          <h4 className="font-medium text-lg mb-4">
+                            Anverso de la Identificación
+                          </h4>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700 font-medium">
+                                Documento principal
+                              </span>
+                            </div>
+                            <div className="border rounded-lg overflow-hidden">
+                              {selectedRequest.idDocumentUrl
+                                .toLowerCase()
+                                .includes(".jpg") ||
+                              selectedRequest.idDocumentUrl
+                                .toLowerCase()
+                                .includes(".jpeg") ||
+                              selectedRequest.idDocumentUrl
+                                .toLowerCase()
+                                .includes(".png") ? (
+                                <div
+                                  className="cursor-pointer"
+                                  onClick={() =>
+                                    openDocumentModal(
+                                      selectedRequest.idDocumentUrl,
+                                      "Anverso del documento de identidad"
+                                    )
+                                  }
+                                >
+                                  <div className="relative">
+                                    <Image
+                                      src={selectedRequest.idDocumentUrl}
+                                      alt="Anverso del documento"
+                                      width={300}
+                                      height={200}
+                                      className="w-full h-48 object-contain bg-gray-100 hover:opacity-90 transition-opacity"
+                                    />
+                                    <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
+                                      <Eye
+                                        size={16}
+                                        className="text-gray-600"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  className="flex items-center gap-3 bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                                  onClick={() =>
+                                    openDocumentModal(
+                                      selectedRequest.idDocumentUrl,
+                                      "Anverso del documento de identidad"
+                                    )
+                                  }
+                                >
+                                  <FileText
+                                    size={24}
+                                    className="text-gray-500"
+                                  />
+                                  <span className="text-sm text-gray-800">
+                                    Documento de identidad
+                                  </span>
+                                  <div className="ml-auto">
+                                    <Eye size={16} className="text-gray-600" />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
+                              <CheckCircle2 size={16} className="mr-2" />
+                              <span className="text-sm">
+                                Documento cargado correctamente
+                              </span>
+                            </div>
                           </div>
-                          <a
-                            href={selectedRequest.idDocumentUrl}
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-sm"
-                          >
-                            Ver documento
-                          </a>
                         </div>
+
+                        {/* ID Document Back (from supporting docs) */}
+                        {selectedRequest.supportingDocsUrls &&
+                          selectedRequest.supportingDocsUrls.length > 0 && (
+                            <div className="bg-white rounded-xl border border-black p-6">
+                              <h4 className="font-medium text-lg mb-4">
+                                Reverso de la Identificación
+                              </h4>
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-gray-700 font-medium">
+                                    Reverso del documento
+                                  </span>
+                                </div>
+                                <div className="border rounded-lg overflow-hidden">
+                                  {selectedRequest.supportingDocsUrls[0]
+                                    ?.toLowerCase()
+                                    .includes(".jpg") ||
+                                  selectedRequest.supportingDocsUrls[0]
+                                    ?.toLowerCase()
+                                    .includes(".jpeg") ||
+                                  selectedRequest.supportingDocsUrls[0]
+                                    ?.toLowerCase()
+                                    .includes(".png") ? (
+                                    <div
+                                      className="cursor-pointer"
+                                      onClick={() =>
+                                        openDocumentModal(
+                                          selectedRequest.supportingDocsUrls[0],
+                                          "Reverso del documento de identidad"
+                                        )
+                                      }
+                                    >
+                                      <div className="relative">
+                                        <Image
+                                          src={
+                                            selectedRequest
+                                              .supportingDocsUrls[0]
+                                          }
+                                          alt="Reverso del documento"
+                                          width={300}
+                                          height={200}
+                                          className="w-full h-48 object-contain bg-gray-100 hover:opacity-90 transition-opacity"
+                                        />
+                                        <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
+                                          <Eye
+                                            size={16}
+                                            className="text-gray-600"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="flex items-center gap-3 bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                                      onClick={() =>
+                                        openDocumentModal(
+                                          selectedRequest.supportingDocsUrls[0],
+                                          "Reverso del documento de identidad"
+                                        )
+                                      }
+                                    >
+                                      <FileText
+                                        size={24}
+                                        className="text-gray-500"
+                                      />
+                                      <span className="text-sm text-gray-800">
+                                        Reverso del documento
+                                      </span>
+                                      <div className="ml-auto">
+                                        <Eye
+                                          size={16}
+                                          className="text-gray-600"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
+                                  <CheckCircle2 size={16} className="mr-2" />
+                                  <span className="text-sm">
+                                    Documento cargado correctamente
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                       </div>
                     )}
-
-                    {selectedRequest.supportingDocsUrls &&
-                      selectedRequest.supportingDocsUrls.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
-                            <ImageIcon className="h-4 w-4" />
-                            <p>Documentos de respaldo</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            {selectedRequest.supportingDocsUrls.map(
-                              (url, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center gap-2"
-                                >
-                                  <div className="bg-gray-100 p-2 rounded-md">
-                                    <FileText className="h-5 w-5 text-gray-600" />
-                                  </div>
-                                  <a
-                                    href={url}
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline text-sm truncate"
-                                  >
-                                    Documento {index + 1}
-                                  </a>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
                   </CardContent>
                 </Card>
 
-                {/* Contact Reference */}
+                {/* Supporting Documents - Matching verification form style */}
+                {selectedRequest.supportingDocsUrls &&
+                  selectedRequest.supportingDocsUrls.length > 1 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-2xl font-medium">
+                          Documentación de apoyo
+                        </CardTitle>
+                        <p className="text-gray-600">
+                          Documentos que respaldan la legitimidad de la campaña
+                          (cotizaciones, recibos, prescripciones médicas, etc.)
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="bg-white rounded-xl border border-black p-8">
+                          <h3 className="text-lg font-medium mb-3">
+                            Documentos cargados (
+                            {selectedRequest.supportingDocsUrls.length - 1})
+                          </h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            {selectedRequest.supportingDocsUrls
+                              .slice(1)
+                              .map((url, index) => (
+                                <div
+                                  key={index}
+                                  className="relative rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+                                  onClick={() => {
+                                    const allSupportingDocs = selectedRequest
+                                      .supportingDocsUrls!.slice(1)
+                                      .map((docUrl, docIndex) => ({
+                                        url: docUrl,
+                                        title: `Documento de apoyo ${docIndex + 1}`,
+                                      }));
+                                    openDocumentModal(
+                                      url,
+                                      `Documento de apoyo ${index + 1}`,
+                                      allSupportingDocs,
+                                      index
+                                    );
+                                  }}
+                                >
+                                  {url.toLowerCase().includes(".jpg") ||
+                                  url.toLowerCase().includes(".jpeg") ||
+                                  url.toLowerCase().includes(".png") ? (
+                                    <>
+                                      <div className="relative aspect-[4/3] w-full overflow-hidden">
+                                        <Image
+                                          src={url}
+                                          alt={`Documento ${index + 1}`}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                        <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
+                                          <Eye
+                                            size={16}
+                                            className="text-gray-600"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="p-2 bg-white">
+                                        <p className="text-sm font-medium">
+                                          Documento de apoyo {index + 1}
+                                        </p>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex items-center gap-3 bg-white p-3">
+                                      <FileText
+                                        size={24}
+                                        className="text-blue-500"
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-medium">
+                                          Documento de apoyo {index + 1}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          Archivo adjunto
+                                        </p>
+                                      </div>
+                                      <div className="ml-auto">
+                                        <Eye
+                                          size={16}
+                                          className="text-gray-600"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                {/* Campaign History - Matching verification form style */}
+                {selectedRequest.campaignStory && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-2xl font-medium">
+                        Historia de la campaña
+                      </CardTitle>
+                      <p className="text-gray-600">
+                        Descripción de cómo se van a emplear los fondos
+                        recaudados, por qué esta campaña es importante, cómo se
+                        planea llevar a cabo y quién es el responsable.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-white rounded-xl border border-black p-8">
+                        <div className="space-y-6">
+                          <div>
+                            <label className="block text-lg font-medium mb-2">
+                              Historia proporcionada
+                            </label>
+                            <div className="relative">
+                              <div className="w-full rounded-lg border border-black bg-gray-50 p-4 min-h-[120px]">
+                                <p className="text-gray-700 whitespace-pre-line">
+                                  {selectedRequest.campaignStory}
+                                </p>
+                              </div>
+                              <div className="text-sm text-gray-500 text-right mt-1">
+                                {selectedRequest.campaignStory.length}{" "}
+                                caracteres
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Contact Reference - Matching verification form style */}
                 {(selectedRequest.referenceContactName ||
                   selectedRequest.referenceContactEmail ||
                   selectedRequest.referenceContactPhone) && (
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle>Contacto de referencia</CardTitle>
+                      <CardTitle className="text-2xl font-medium">
+                        Contacto de referencia (opcional)
+                      </CardTitle>
+                      <p className="text-gray-600">
+                        Contacto que puede confirmar la autenticidad de la
+                        campaña.
+                      </p>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      {selectedRequest.referenceContactName && (
-                        <div className="flex items-center gap-3">
-                          <UserCheck className="h-4 w-4 text-gray-500" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">
-                              Nombre
-                            </p>
-                            <p>{selectedRequest.referenceContactName}</p>
+                    <CardContent>
+                      <div className="bg-white rounded-xl border border-black p-8">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-medium">
+                              Contacto de referencia
+                            </h4>
+                          </div>
+                          <div className="bg-[#f5f7e9] p-4 rounded-lg space-y-3">
+                            {selectedRequest.referenceContactName && (
+                              <p>
+                                <span className="font-medium">Nombre:</span>{" "}
+                                {selectedRequest.referenceContactName}
+                              </p>
+                            )}
+                            {selectedRequest.referenceContactEmail && (
+                              <p>
+                                <span className="font-medium">Email:</span>{" "}
+                                {selectedRequest.referenceContactEmail}
+                              </p>
+                            )}
+                            {selectedRequest.referenceContactPhone && (
+                              <p>
+                                <span className="font-medium">Teléfono:</span>{" "}
+                                {selectedRequest.referenceContactPhone}
+                              </p>
+                            )}
                           </div>
                         </div>
-                      )}
-
-                      {selectedRequest.referenceContactEmail && (
-                        <div className="flex items-center gap-3">
-                          <Mail className="h-4 w-4 text-gray-500" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">
-                              Email
-                            </p>
-                            <p>{selectedRequest.referenceContactEmail}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedRequest.referenceContactPhone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="h-4 w-4 text-gray-500" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">
-                              Teléfono
-                            </p>
-                            <p>{selectedRequest.referenceContactPhone}</p>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -810,6 +1115,110 @@ export default function CampaignVerificationPage() {
           </div>
         </div>
       )}
+
+      {/* Document Viewer Modal */}
+      <Dialog open={showDocumentModal} onOpenChange={setShowDocumentModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] p-0">
+          <DialogHeader className="p-6 pb-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  {currentDocumentTitle}
+                </DialogTitle>
+                {documentList.length > 1 && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Documento {currentDocumentIndex + 1} de{" "}
+                    {documentList.length}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {documentList.length > 1 && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateDocument("prev")}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft size={16} />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateDocument("next")}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight size={16} />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="px-6 pb-6">
+            <div className="bg-gray-50 rounded-lg overflow-hidden">
+              {isImageFile(currentDocumentUrl) ? (
+                <div className="relative w-full" style={{ height: "70vh" }}>
+                  <Image
+                    src={currentDocumentUrl}
+                    alt={currentDocumentTitle}
+                    fill
+                    className="object-contain"
+                    onError={(e) => {
+                      console.error("Error loading image:", e);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full relative" style={{ height: "70vh" }}>
+                  <iframe
+                    src={currentDocumentUrl}
+                    className="w-full h-full border-0"
+                    title={currentDocumentTitle}
+                    onLoad={(e) => {
+                      // Check if iframe loaded successfully
+                      try {
+                        const iframe = e.target as HTMLIFrameElement;
+                        if (!iframe.contentDocument) {
+                          // Show fallback if can't access content (likely blocked)
+                          const fallback =
+                            iframe.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = "flex";
+                        }
+                      } catch (error) {
+                        console.error("Iframe access error:", error);
+                      }
+                    }}
+                  />
+                  {/* Fallback for documents that can't be embedded */}
+                  <div
+                    className="absolute inset-0 hidden items-center justify-center bg-gray-100 text-gray-600"
+                    style={{ display: "none" }}
+                  >
+                    <div className="text-center">
+                      <FileText size={48} className="mx-auto mb-4" />
+                      <p className="mb-4">
+                        No se puede mostrar este documento en el navegador
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Navigation hints */}
+            {documentList.length > 1 && (
+              <div className="mt-4 flex justify-center">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <span>Usa las flechas ← → para navegar entre documentos</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

@@ -113,6 +113,7 @@ function CustomCampaignDetails({
   organizer,
   description,
   beneficiaries,
+  isVerified,
 }: {
   organizer: {
     name: string;
@@ -124,6 +125,7 @@ function CustomCampaignDetails({
   };
   description: string;
   beneficiaries: string;
+  isVerified: boolean;
 }) {
   return (
     <div className="space-y-8">
@@ -144,27 +146,29 @@ function CustomCampaignDetails({
         </div>
       </div>
 
-      {/* Verification Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/landing-page/step-2.png"
-            alt="Verified"
-            width={32}
-            height={32}
-            className="text-[#2c6e49] flex-shrink-0"
-          />
-          <span className="text-[#2c6e49] text-xl font-medium break-words">
-            Campaña verificada por Minka
-          </span>
+      {/* Verification Badge - Only show if verified */}
+      {isVerified && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/landing-page/step-2.png"
+              alt="Verified"
+              width={32}
+              height={32}
+              className="text-[#2c6e49] flex-shrink-0"
+            />
+            <span className="text-[#2c6e49] text-xl font-medium break-words">
+              Campaña verificada por Minka
+            </span>
+          </div>
+          <Link
+            href="#"
+            className="text-[#2c6e49] underline text-base break-words whitespace-nowrap"
+          >
+            Más información sobre la verificación
+          </Link>
         </div>
-        <Link
-          href="#"
-          className="text-[#2c6e49] underline text-base break-words whitespace-nowrap"
-        >
-          Más información sobre la verificación
-        </Link>
-      </div>
+      )}
 
       {/* Campaign Description */}
       <div className="space-y-4 pb-8 border-b border-gray-200">
@@ -417,6 +421,7 @@ export default function CampaignClientPage({ id }: { id: string }) {
                   organizer={formattedData.organizer}
                   description={formattedData.description}
                   beneficiaries={formattedData.beneficiaries}
+                  isVerified={formattedData.progress.isVerified}
                 />
               )}
 

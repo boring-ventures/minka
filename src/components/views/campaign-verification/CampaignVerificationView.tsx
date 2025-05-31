@@ -716,6 +716,20 @@ export function CampaignVerificationView({
       return;
     }
 
+    // Additional validation to ensure URLs are valid
+    if (
+      !idDocumentFrontUrl.startsWith("http") ||
+      !idDocumentBackUrl.startsWith("http")
+    ) {
+      toast({
+        title: "Error en documentos",
+        description:
+          "Los documentos no se han subido correctamente. Por favor, inténtalo de nuevo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -729,16 +743,31 @@ export function CampaignVerificationView({
         formattedPhone = `${selectedCountry?.dialCode}${cleanPhone}`;
       }
 
+      // Combine all document URLs - store both ID documents and supporting docs
       const verificationData = {
         campaignId: selectedCampaignId,
-        idDocumentFrontUrl,
-        idDocumentBackUrl,
-        supportingDocsUrls,
+        idDocumentUrl: idDocumentFrontUrl, // Use front as primary
+        supportingDocsUrls: [
+          ...(idDocumentBackUrl ? [idDocumentBackUrl] : []),
+          ...supportingDocsUrls,
+        ],
         campaignStory: campaignStory || undefined,
         referenceContactName: referenceContact.name || undefined,
         referenceContactEmail: referenceContact.email || undefined,
         referenceContactPhone: formattedPhone,
       };
+
+      // Debug logging to check what URLs we're sending
+      console.log("Verification data being sent:", {
+        campaignId: selectedCampaignId,
+        idDocumentUrl: !!idDocumentFrontUrl,
+        supportingDocsUrlsLength:
+          verificationData.supportingDocsUrls?.length || 0,
+        supportingDocsUrls: verificationData.supportingDocsUrls,
+        idDocumentFrontUrl: !!idDocumentFrontUrl,
+        idDocumentBackUrl: !!idDocumentBackUrl,
+        originalSupportingDocsLength: supportingDocsUrls?.length || 0,
+      });
 
       const response = await fetch("/api/campaign/verification", {
         method: "POST",
