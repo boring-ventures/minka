@@ -938,6 +938,40 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                           </div>
                         </div>
 
+                        {/* Disclaimer about Minka fee */}
+                        <div className="bg-[#f5f7e9] border border-[#2c6e49]/20 rounded-lg p-4 mb-6">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5">
+                              <svg
+                                className="h-5 w-5 text-[#2c6e49]"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm text-[#2c6e49] font-medium mb-1">
+                                Acerca del aporte adicional a Minka
+                              </p>
+                              <p className="text-sm text-gray-700 leading-relaxed">
+                                El 5% de tu donación va a Minka para mantener la
+                                plataforma funcionando, procesar pagos de forma
+                                segura y brindar soporte a las campañas.
+                                Adicionalmente, puedes agregar un aporte
+                                voluntario extra en el paso anterior.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Error notification */}
                         {errorMessage && (
                           <div className="bg-red-50 border border-red-300 text-red-800 rounded-lg p-4 mb-6">
