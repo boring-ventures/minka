@@ -706,11 +706,11 @@ export function EditCampaignTab({ campaign }: EditCampaignTabProps) {
                 onChange={handleInputChange}
                 placeholder="Describe quiénes se beneficiarán de esta campaña..."
                 className="w-full rounded-md border border-gray-300 p-3 min-h-[100px]"
-                maxLength={300}
+                maxLength={600}
                 required
               />
               <div className="text-right text-xs text-gray-500 mt-1">
-                {formData.beneficiariesDescription.length}/300
+                {formData.beneficiariesDescription.length}/600
               </div>
             </div>
           </div>

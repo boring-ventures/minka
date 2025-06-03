@@ -18,8 +18,8 @@ export function Step2Beneficiaries() {
       setError("La descripción debe tener al menos 10 caracteres");
       return false;
     }
-    if (text.length > 500) {
-      setError("La descripción no puede tener más de 500 caracteres");
+    if (text.length > 600) {
+      setError("La descripción no puede tener más de 600 caracteres");
       return false;
     }
     setError(null);
@@ -94,10 +94,10 @@ export function Step2Beneficiaries() {
                     className={`w-full rounded-lg border ${error ? "border-red-500" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
                     value={state.beneficiariesDescription}
                     onChange={handleDescriptionChange}
-                    maxLength={500}
+                    maxLength={600}
                   />
                   <div className="text-sm text-gray-500 text-right mt-1">
-                    {state.beneficiariesDescription.length}/500
+                    {state.beneficiariesDescription.length}/600
                   </div>
                   {error && (
                     <div className="text-red-500 text-sm mt-1">{error}</div>

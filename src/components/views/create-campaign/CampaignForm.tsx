@@ -1183,6 +1183,9 @@ export function CampaignForm() {
     if (!formData.story || formData.story.length < 10) {
       errors.story =
         "La presentación de la campaña debe tener al menos 10 caracteres";
+    } else if (formData.story.length > 600) {
+      errors.story =
+        "La presentación de la campaña no puede tener más de 600 caracteres";
     }
 
     // Validate at least one image and ensure it's been uploaded properly
@@ -1903,7 +1906,10 @@ export function CampaignForm() {
                     value={formData.story}
                     onChange={(e) => {
                       setFormData({ ...formData, story: e.target.value });
-                      if (e.target.value.length >= 10) {
+                      if (
+                        e.target.value.length >= 10 &&
+                        e.target.value.length <= 600
+                      ) {
                         setFormErrors({ ...formErrors, story: "" });
                       }
                     }}

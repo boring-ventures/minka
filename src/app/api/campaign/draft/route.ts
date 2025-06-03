@@ -11,7 +11,7 @@ const campaignDraftSchema = z.object({
   description: z.string().min(10).max(1000).optional(),
   // Story field corresponds to "Presentación de la campaña" in the form
   story: z.string().min(10).max(600).optional(),
-  beneficiariesDescription: z.string().min(10).max(500).optional(),
+  beneficiariesDescription: z.string().min(10).max(600).optional(),
   category: z
     .enum([
       "cultura_arte",

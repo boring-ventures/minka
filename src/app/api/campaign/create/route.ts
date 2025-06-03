@@ -9,7 +9,7 @@ const campaignCreateSchema = z.object({
   description: z.string().min(10).max(1000),
   // Story field corresponds to "Presentación de la campaña" in the form
   story: z.string().min(10).max(600),
-  beneficiariesDescription: z.string().min(10).max(500),
+  beneficiariesDescription: z.string().min(10).max(600),
   category: z.enum([
     "cultura_arte",
     "educacion",
