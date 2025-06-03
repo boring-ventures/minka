@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 // Types
 export interface CampaignFilters {
@@ -81,6 +81,10 @@ export function useCampaignBrowse() {
     hasMore: false,
   });
 
+  // Ref to track current request and prevent race conditions
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastRequestIdRef = useRef<number>(0);
+
   // Available sort options
   const sortOptions: SortOption[] = [
     { id: "popular", label: "Más populares" },
@@ -89,11 +93,31 @@ export function useCampaignBrowse() {
     { id: "ending_soon", label: "Finalizan pronto" },
   ];
 
-  // Function to fetch campaigns
+  // Function to fetch campaigns with improved error handling and race condition prevention
   const fetchCampaigns = useCallback(
-    async (page = 1) => {
+    async (page = 1, updatePaginationState = true) => {
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      // Generate unique request ID to handle race conditions
+      const requestId = ++lastRequestIdRef.current;
+
       setIsLoading(true);
       setError(null);
+
+      // Update pagination state immediately if requested
+      if (updatePaginationState) {
+        setPagination((prev) => ({
+          ...prev,
+          currentPage: page,
+        }));
+      }
 
       try {
         // Build URL with query parameters
@@ -135,8 +159,18 @@ export function useCampaignBrowse() {
         console.log("Current filters:", filters);
         console.log("Current sort:", sortBy);
         console.log("Current page:", page);
+        console.log("Request ID:", requestId);
 
-        const response = await fetch(url.toString());
+        const response = await fetch(url.toString(), {
+          signal: abortController.signal,
+        });
+
+        // Check if this request is still the latest one
+        if (requestId !== lastRequestIdRef.current) {
+          console.log("Request outdated, ignoring response");
+          return;
+        }
+
         const data = await response.json();
         console.log("API response:", data);
 
@@ -149,7 +183,11 @@ export function useCampaignBrowse() {
             setCampaigns(data.campaigns);
           }
           if (data.pagination) {
-            setPagination(data.pagination);
+            setPagination((prev) => ({
+              ...prev,
+              ...data.pagination,
+              currentPage: page,
+            }));
           }
         } else {
           if (data.campaigns && Array.isArray(data.campaigns)) {
@@ -160,16 +198,35 @@ export function useCampaignBrowse() {
           }
 
           if (data.pagination) {
-            setPagination(data.pagination);
+            setPagination((prev) => ({
+              ...prev,
+              ...data.pagination,
+              currentPage: page,
+            }));
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        // Don't set error if request was aborted
+        if (err.name === "AbortError") {
+          console.log("Request was aborted");
+          return;
+        }
+
+        // Check if this request is still the latest one
+        if (requestId !== lastRequestIdRef.current) {
+          console.log("Request outdated, ignoring error");
+          return;
+        }
+
         setError(
           "Error al cargar campañas. Por favor, intenta de nuevo más tarde."
         );
         console.error("Error fetching campaigns:", err);
       } finally {
-        setIsLoading(false);
+        // Only clear loading if this is still the latest request
+        if (requestId === lastRequestIdRef.current) {
+          setIsLoading(false);
+        }
       }
     },
     [filters, sortBy, pagination.limit]
@@ -268,35 +325,67 @@ export function useCampaignBrowse() {
   ]);
 
   // Update filters
-  const updateFilters = (newFilters: Partial<CampaignFilters>) => {
-    console.log("Updating filters with:", newFilters);
-    console.log("Previous filters:", filters);
-    setFilters((prev) => {
-      const updated = { ...prev, ...newFilters };
-      console.log("New filters will be:", updated);
-      return updated;
-    });
-    // Reset to page 1 when filters change
-    setPagination((prev) => ({ ...prev, currentPage: 1 }));
-  };
+  const updateFilters = useCallback(
+    (newFilters: Partial<CampaignFilters>) => {
+      console.log("Updating filters with:", newFilters);
+      console.log("Previous filters:", filters);
+      setFilters((prev) => {
+        const updated = { ...prev, ...newFilters };
+        console.log("New filters will be:", updated);
+        return updated;
+      });
+      // Reset to page 1 when filters change
+      setPagination((prev) => ({ ...prev, currentPage: 1 }));
+    },
+    [filters]
+  );
 
   // Update sort
-  const updateSort = (newSortBy: string) => {
-    console.log("Updating sortBy from", sortBy, "to", newSortBy);
-    setSortBy(newSortBy);
-    // Reset to page 1 when sort changes
-    setPagination((prev) => ({ ...prev, currentPage: 1 }));
-  };
+  const updateSort = useCallback(
+    (newSortBy: string) => {
+      console.log("Updating sortBy from", sortBy, "to", newSortBy);
+      setSortBy(newSortBy);
+      // Reset to page 1 when sort changes
+      setPagination((prev) => ({ ...prev, currentPage: 1 }));
+    },
+    [sortBy]
+  );
 
-  // Navigate to a specific page
-  const goToPage = (page: number) => {
-    if (page < 1 || page > pagination.totalPages) return;
-    fetchCampaigns(page);
-  };
+  // Navigate to a specific page with improved validation and state management
+  const goToPage = useCallback(
+    (page: number) => {
+      console.log("Navigating to page:", page);
+
+      // Validate page number
+      if (
+        page < 1 ||
+        (pagination.totalPages > 0 && page > pagination.totalPages)
+      ) {
+        console.warn("Invalid page number:", page);
+        return;
+      }
+
+      // Don't fetch if already on the requested page
+      if (page === pagination.currentPage) {
+        console.log("Already on page:", page);
+        return;
+      }
+
+      // Fetch campaigns for the specified page
+      fetchCampaigns(page, true);
+    },
+    [pagination.currentPage, pagination.totalPages, fetchCampaigns]
+  );
 
   // Reset all filters
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     console.log("Resetting all filters");
+
+    // Cancel any ongoing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     // Set loading state immediately for better UX
     setIsLoading(true);
     setError(null);
@@ -304,14 +393,23 @@ export function useCampaignBrowse() {
     setFilters({});
     setSortBy("popular");
     setPagination((prev) => ({ ...prev, currentPage: 1 }));
-  };
+  }, []);
+
+  // Cleanup function to abort requests when component unmounts
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Initial fetch of campaigns, categories, and locations only once on mount
   useEffect(() => {
     // Initial fetch on mount
     if (!isInitialized) {
       console.log("Initial fetch on mount");
-      fetchCampaigns();
+      fetchCampaigns(1, false); // Don't update pagination state immediately
       fetchCategories();
       fetchLocations();
       setIsInitialized(true);
@@ -351,9 +449,10 @@ export function useCampaignBrowse() {
   useEffect(() => {
     if (isInitialized) {
       console.log("Fetching campaigns due to filter/sort change");
-      fetchCampaigns(pagination.currentPage);
+      // Always reset to page 1 when filters or sort change
+      fetchCampaigns(1, false);
     }
-  }, [filters, sortBy, pagination.currentPage, fetchCampaigns, isInitialized]);
+  }, [filters, sortBy, fetchCampaigns, isInitialized]);
 
   return {
     campaigns,

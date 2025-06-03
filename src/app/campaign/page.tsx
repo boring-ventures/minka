@@ -6,6 +6,7 @@ import { MobileFilterModal } from "@/components/views/campaigns/MobileFilterModa
 import { CampaignCard } from "@/components/views/campaigns/CampaignCard";
 import { Header } from "@/components/views/landing-page/Header";
 import { Footer } from "@/components/views/landing-page/Footer";
+import { EnhancedPagination } from "@/components/ui/enhanced-pagination";
 import { ChevronDown, Search, Filter } from "lucide-react";
 import { useState, useEffect, Suspense, memo } from "react";
 import { useCampaignBrowse, SortOption } from "@/hooks/use-campaign-browse";
@@ -65,19 +66,6 @@ const CampaignResults = memo(function CampaignResults({
   const selectedSortOption =
     sortOptions.find((option) => option.id === sortBy) || sortOptions[0];
 
-  // Handle pagination
-  const handlePrevPage = () => {
-    if (pagination.currentPage > 1) {
-      goToPage(pagination.currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (pagination.currentPage < pagination.totalPages) {
-      goToPage(pagination.currentPage + 1);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] w-full">
@@ -109,6 +97,7 @@ const CampaignResults = memo(function CampaignResults({
                 type="button"
                 onClick={toggleDropdown}
                 className="flex items-center justify-between bg-transparent py-2 px-4 min-w-[160px] text-[#333333] font-medium focus:outline-none"
+                disabled={isLoading}
               >
                 <span>{selectedSortOption.label}</span>
                 <ChevronDown
@@ -116,7 +105,7 @@ const CampaignResults = memo(function CampaignResults({
                 />
               </button>
 
-              {isDropdownOpen && (
+              {isDropdownOpen && !isLoading && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-sm z-10">
                   {sortOptions.map((option) => (
                     <button
@@ -147,71 +136,46 @@ const CampaignResults = memo(function CampaignResults({
       )}
 
       {campaigns.length > 0 ? (
-        <>
+        <div
+          className={`transition-opacity duration-300 ${isLoading ? "opacity-60" : "opacity-100"}`}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 lg:px-0">
-            {campaigns.map((campaign) => (
-              <CampaignCard
+            {campaigns.map((campaign, index) => (
+              <div
                 key={campaign.id}
-                id={campaign.id}
-                title={campaign.title}
-                image={campaign.primaryImage || ""}
-                category={campaign.category}
-                location={campaign.location as any}
-                progress={campaign.percentageFunded}
-                verified={campaign.verified}
-                description={campaign.description}
-                donorCount={campaign.donorCount}
-                amountRaised={`Bs. ${campaign.collectedAmount.toLocaleString("es-BO")}`}
-              />
+                className="animate-fadeIn"
+                style={{
+                  animationDelay: `${index * 0.1}s`,
+                  animationFillMode: "both",
+                }}
+              >
+                <CampaignCard
+                  id={campaign.id}
+                  title={campaign.title}
+                  image={campaign.primaryImage || ""}
+                  category={campaign.category}
+                  location={campaign.location as any}
+                  progress={campaign.percentageFunded}
+                  verified={campaign.verified}
+                  description={campaign.description}
+                  donorCount={campaign.donorCount}
+                  amountRaised={`Bs. ${campaign.collectedAmount.toLocaleString("es-BO")}`}
+                />
+              </div>
             ))}
           </div>
 
-          {/* Pagination controls */}
-          {pagination.totalPages > 1 && (
-            <div className="flex justify-center items-center mt-12 space-x-2">
-              <Button
-                variant="outline"
-                onClick={handlePrevPage}
-                disabled={pagination.currentPage === 1}
-              >
-                Anterior
-              </Button>
-
-              {/* Page numbers */}
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: pagination.totalPages }).map(
-                  (_, index) => (
-                    <Button
-                      key={index}
-                      variant={
-                        pagination.currentPage === index + 1
-                          ? "default"
-                          : "outline"
-                      }
-                      className={
-                        pagination.currentPage === index + 1
-                          ? "bg-[#2c6e49] hover:bg-[#2c6e49]/90"
-                          : ""
-                      }
-                      onClick={() => goToPage(index + 1)}
-                    >
-                      {index + 1}
-                    </Button>
-                  )
-                )}
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={handleNextPage}
-                disabled={pagination.currentPage === pagination.totalPages}
-              >
-                Siguiente
-              </Button>
-            </div>
-          )}
-        </>
-      ) : (
+          {/* Enhanced Pagination */}
+          <EnhancedPagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            onPageChange={goToPage}
+            isLoading={isLoading}
+            className="mt-12"
+          />
+        </div>
+      ) : !isLoading ? (
         <div className="text-center py-16 rounded-lg">
           <p className="text-xl text-gray-600 mb-4">
             No se encontraron campañas con estos filtros.
@@ -223,7 +187,7 @@ const CampaignResults = memo(function CampaignResults({
             Limpiar filtros
           </Button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 });
