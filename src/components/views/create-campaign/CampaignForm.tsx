@@ -665,6 +665,11 @@ export function CampaignForm() {
   const nextStep = async () => {
     if (currentStep === 1) {
       if (!validateForm()) {
+        // Show alert for validation errors
+        alert(
+          "Por favor completa todos los campos requeridos antes de continuar."
+        );
+
         // Show toast for validation errors
         toast({
           title: "Campos incompletos",
@@ -1938,6 +1943,11 @@ export function CampaignForm() {
                     setIsSubmitting(true);
                     // Validate form and save as draft
                     if (!validateForm()) {
+                      // Show alert for validation errors
+                      alert(
+                        "Por favor completa todos los campos requeridos antes de guardar."
+                      );
+
                       // Scroll to the first error
                       const firstError = Object.keys(formErrors)[0];
                       const errorElement = document.getElementById(firstError);
@@ -1989,7 +1999,6 @@ export function CampaignForm() {
                     setIsSubmitting(false);
                   }
                 }}
-                disabled={isSubmitting || !isStep1Valid}
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
@@ -2003,7 +2012,6 @@ export function CampaignForm() {
               <Button
                 className="w-full sm:w-auto rounded-full bg-[#2c6e49] hover:bg-[#1e4d33] px-8"
                 onClick={nextStep}
-                disabled={isSubmitting || !isStep1Valid}
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
