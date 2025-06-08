@@ -32,6 +32,7 @@ model Profile {
   donations            Donation[]      @relation("DonorDonations")
   savedCampaigns       SavedCampaign[] @relation("ProfileSavedCampaigns")
   notifications        Notification[]  @relation("UserNotifications")
+  systemNotificationLogs SystemNotificationLog[] @relation("AdminSystemNotifications")
 
   @@map("profiles")
 }
@@ -205,6 +206,21 @@ model Notification {
   comment      Comment?           @relation("CommentNotifications", fields: [commentId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model SystemNotificationLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  adminId         String   @map("admin_id") @db.Uuid
+  title           String
+  content         String   @db.Text
+  target          String   // "all", "donors", "organizers", "admins"
+  recipientCount  Int      @map("recipient_count")
+  status          Status   @default(active)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+  admin           Profile  @relation("AdminSystemNotifications", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("system_notification_logs")
 }
 
 model FundTransfer {

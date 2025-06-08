@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,41 +34,44 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Mail, Bell, Users, Info, Check } from "lucide-react";
+import { Mail, Bell, Users, Info, Check, Send } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 
-interface NotificationTemplate {
+interface SystemNotificationLog {
   id: string;
   title: string;
   content: string;
   target: "all" | "donors" | "organizers" | "admins";
+  recipientCount: number;
   createdAt: string;
+  admin: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
-interface SentNotification {
-  id: string;
-  title: string;
-  content: string;
-  sentAt: string;
-  recipientCount: number;
-  target: "all" | "donors" | "organizers" | "admins";
+interface NotificationStats {
+  totalUsers: number;
+  totalDonors: number;
+  totalOrganizers: number;
+  totalAdmins: number;
+  usersWithNewsUpdates: number;
+  usersWithCampaignUpdates: number;
+  usersWithoutPreferences: number;
 }
 
 export default function AdminNotificationsPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const supabase = createClientComponentClient();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [sentNotifications, setSentNotifications] = useState<
-    SentNotification[]
+    SystemNotificationLog[]
   >([]);
-  const [selectedTemplate, setSelectedTemplate] =
-    useState<NotificationTemplate | null>(null);
 
   // State for new notification form
   const [notificationTitle, setNotificationTitle] = useState("");
@@ -82,10 +84,14 @@ export default function AdminNotificationsPage() {
   const [showDialog, setShowDialog] = useState(false);
 
   // Stats
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<NotificationStats>({
     totalUsers: 0,
+    totalDonors: 0,
+    totalOrganizers: 0,
+    totalAdmins: 0,
     usersWithNewsUpdates: 0,
     usersWithCampaignUpdates: 0,
+    usersWithoutPreferences: 0,
   });
 
   useEffect(() => {
@@ -98,116 +104,36 @@ export default function AdminNotificationsPage() {
       try {
         setLoading(true);
 
-        // Check if user is admin
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
+        // Check if user is admin via API endpoint
+        const statsResponse = await fetch("/api/admin/notifications/stats", {
+          credentials: "include",
+        });
 
-        if (!profile || profile.role !== "admin") {
+        if (statsResponse.status === 403) {
           router.push("/dashboard/notifications");
           return;
         }
 
+        if (!statsResponse.ok) {
+          throw new Error("Failed to fetch notification stats");
+        }
+
+        const statsData = await statsResponse.json();
+        setStats(statsData);
         setIsAdmin(true);
 
-        // In a real application, fetch templates and sent notifications from the database
-        // For now, let's use placeholder data
-
-        // Get notification stats
-        const { data: usersData, error: usersError } = await supabase
-          .from("profiles")
-          .select("id");
-
-        if (usersError) throw usersError;
-
-        const { data: preferencesData, error: preferencesError } =
-          await supabase.from("notification_preferences").select("*");
-
-        if (preferencesError) throw preferencesError;
-
-        // Calculate stats
-        const totalUsers = usersData?.length || 0;
-        const usersWithNewsUpdates =
-          preferencesData?.filter((p) => p.news_updates).length || 0;
-        const usersWithCampaignUpdates =
-          preferencesData?.filter((p) => p.campaign_updates).length || 0;
-
-        setStats({
-          totalUsers,
-          usersWithNewsUpdates,
-          usersWithCampaignUpdates,
-        });
-
-        // Sample template data (in a real app, fetch from database)
-        const sampleTemplates: NotificationTemplate[] = [
+        // Load notification history
+        const historyResponse = await fetch(
+          "/api/admin/notifications/history",
           {
-            id: "1",
-            title: "Nueva funcionalidad: Compartir campaña",
-            content:
-              "Ahora puedes compartir tus campañas favoritas directamente en redes sociales con un solo clic.",
-            target: "all",
-            createdAt: "2023-06-15T10:30:00Z",
-          },
-          {
-            id: "2",
-            title: "Actualización de plataforma",
-            content:
-              "Hemos mejorado la velocidad y rendimiento de Minka. Ahora disfrutarás de una experiencia más fluida.",
-            target: "all",
-            createdAt: "2023-07-20T14:45:00Z",
-          },
-          {
-            id: "3",
-            title: "Consejos para organizadores",
-            content:
-              "Descubre cómo aumentar la visibilidad de tu campaña con estos 5 consejos prácticos.",
-            target: "organizers",
-            createdAt: "2023-08-10T09:15:00Z",
-          },
-          {
-            id: "4",
-            title: "Nuevas opciones de pago",
-            content:
-              "Ahora aceptamos QR y transferencias bancarias para facilitar tus donaciones.",
-            target: "donors",
-            createdAt: "2023-09-05T16:20:00Z",
-          },
-        ];
+            credentials: "include",
+          }
+        );
 
-        const sampleSentNotifications: SentNotification[] = [
-          {
-            id: "1",
-            title: "Lanzamiento de Minka 2.0",
-            content:
-              "Nos complace anunciar el lanzamiento de Minka 2.0 con nuevas funcionalidades y un diseño renovado.",
-            sentAt: "2023-05-10T08:30:00Z",
-            recipientCount: 342,
-            target: "all",
-          },
-          {
-            id: "2",
-            title: "Mantenimiento programado",
-            content:
-              "El sistema estará en mantenimiento el día 15 de agosto de 10:00 a 12:00.",
-            sentAt: "2023-08-01T11:45:00Z",
-            recipientCount: 156,
-            target: "all",
-          },
-          {
-            id: "3",
-            title: "Guía para organizar campañas exitosas",
-            content:
-              "Descubre cómo crear campañas que generen un mayor impacto y alcancen sus metas.",
-            sentAt: "2023-09-15T14:20:00Z",
-            recipientCount: 78,
-            target: "organizers",
-          },
-        ];
-
-        setTemplates(sampleTemplates);
-        setSentNotifications(sampleSentNotifications);
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          setSentNotifications(historyData.notifications);
+        }
       } catch (error) {
         console.error("Error loading admin notifications data:", error);
         toast({
@@ -221,7 +147,7 @@ export default function AdminNotificationsPage() {
     };
 
     checkAdminAndLoadData();
-  }, [user, router, supabase, toast]);
+  }, [user, router, toast]);
 
   // Handle sending notification
   const handleSendNotification = async () => {
@@ -243,40 +169,46 @@ export default function AdminNotificationsPage() {
     setIsSending(true);
 
     try {
-      // In a real application, this would call an API to send the notification
-      // For now, simulate a delay and success
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch("/api/admin/notifications/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title: notificationTitle,
+          content: notificationContent,
+          target: notificationTarget,
+        }),
+      });
 
-      // Create a new sent notification entry
-      const newSentNotification: SentNotification = {
-        id: `sent-${Date.now()}`,
-        title: notificationTitle,
-        content: notificationContent,
-        sentAt: new Date().toISOString(),
-        recipientCount:
-          notificationTarget === "all"
-            ? stats.totalUsers
-            : notificationTarget === "donors"
-              ? Math.round(stats.totalUsers * 0.7)
-              : notificationTarget === "organizers"
-                ? Math.round(stats.totalUsers * 0.2)
-                : Math.round(stats.totalUsers * 0.05),
-        target: notificationTarget,
-      };
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send notification");
+      }
 
-      // Update state
-      setSentNotifications((prev) => [newSentNotification, ...prev]);
+      const result = await response.json();
+
+      // Show success message
+      toast({
+        title: "Notificación enviada",
+        description: `La notificación ha sido enviada a ${result.recipientCount} usuarios.`,
+      });
 
       // Reset form
       setNotificationTitle("");
       setNotificationContent("");
       setNotificationTarget("all");
 
-      // Show success message
-      toast({
-        title: "Notificación enviada",
-        description: `La notificación ha sido enviada a ${newSentNotification.recipientCount} usuarios.`,
+      // Refresh notification history
+      const historyResponse = await fetch("/api/admin/notifications/history", {
+        credentials: "include",
       });
+
+      if (historyResponse.ok) {
+        const historyData = await historyResponse.json();
+        setSentNotifications(historyData.notifications);
+      }
 
       // Close dialog
       setShowDialog(false);
@@ -284,7 +216,7 @@ export default function AdminNotificationsPage() {
       console.error("Error sending notification:", error);
       toast({
         title: "Error",
-        description: "No se pudo enviar la notificación. Intente nuevamente.",
+        description: `No se pudo enviar la notificación: ${error instanceof Error ? error.message : "Error desconocido"}`,
         variant: "destructive",
       });
     } finally {
@@ -292,16 +224,34 @@ export default function AdminNotificationsPage() {
     }
   };
 
-  // Use template
-  const useTemplate = (template: NotificationTemplate) => {
-    setNotificationTitle(template.title);
-    setNotificationContent(template.content);
-    setNotificationTarget(template.target);
+  const getTargetLabel = (target: string) => {
+    switch (target) {
+      case "all":
+        return "Todos los usuarios";
+      case "donors":
+        return "Solo donadores";
+      case "organizers":
+        return "Solo organizadores";
+      case "admins":
+        return "Solo administradores";
+      default:
+        return target;
+    }
+  };
 
-    toast({
-      title: "Plantilla cargada",
-      description: "La plantilla se ha cargado en el formulario.",
-    });
+  const getEstimatedRecipients = () => {
+    switch (notificationTarget) {
+      case "all":
+        return stats.usersWithNewsUpdates;
+      case "donors":
+        return Math.round(stats.totalDonors * 0.8); // Estimate based on news preferences
+      case "organizers":
+        return Math.round(stats.totalOrganizers * 0.9); // Most organizers want updates
+      case "admins":
+        return stats.totalAdmins;
+      default:
+        return 0;
+    }
   };
 
   if (loading) {
@@ -318,12 +268,18 @@ export default function AdminNotificationsPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <h1 className="text-3xl font-bold text-gray-800">
-        Gestión de Notificaciones
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-800">
+          Gestión de Notificaciones del Sistema
+        </h1>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Send className="h-4 w-4" />
+          Panel de Administrador
+        </div>
+      </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base text-blue-600 flex items-center">
@@ -360,19 +316,30 @@ export default function AdminNotificationsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base text-orange-600 flex items-center">
               <Mail className="h-5 w-5 mr-2" />
-              Suscriptores de campañas
+              Donadores activos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.usersWithCampaignUpdates}
-            </div>
+            <div className="text-2xl font-bold">{stats.totalDonors}</div>
             <p className="text-xs text-muted-foreground">
-              {(
-                (stats.usersWithCampaignUpdates / stats.totalUsers) *
-                100
-              ).toFixed(1)}
-              % de usuarios
+              {((stats.totalDonors / stats.totalUsers) * 100).toFixed(1)}% de
+              usuarios
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-purple-600 flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              Organizadores
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalOrganizers}</div>
+            <p className="text-xs text-muted-foreground">
+              {((stats.totalOrganizers / stats.totalUsers) * 100).toFixed(1)}%
+              de usuarios
             </p>
           </CardContent>
         </Card>
@@ -381,14 +348,17 @@ export default function AdminNotificationsPage() {
       <Tabs defaultValue="send" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="send">Enviar Notificación</TabsTrigger>
-          <TabsTrigger value="templates">Plantillas</TabsTrigger>
           <TabsTrigger value="history">Historial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="send" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Nueva Notificación</CardTitle>
+              <CardTitle>Nueva Notificación del Sistema</CardTitle>
+              <p className="text-sm text-gray-600">
+                Envía notificaciones importantes a todos los usuarios de la
+                plataforma
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -397,7 +367,11 @@ export default function AdminNotificationsPage() {
                   placeholder="Ingrese el título de la notificación"
                   value={notificationTitle}
                   onChange={(e) => setNotificationTitle(e.target.value)}
+                  maxLength={100}
                 />
+                <p className="text-xs text-gray-500">
+                  {notificationTitle.length}/100 caracteres
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -407,7 +381,11 @@ export default function AdminNotificationsPage() {
                   className="min-h-[120px]"
                   value={notificationContent}
                   onChange={(e) => setNotificationContent(e.target.value)}
+                  maxLength={500}
                 />
+                <p className="text-xs text-gray-500">
+                  {notificationContent.length}/500 caracteres
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -431,16 +409,27 @@ export default function AdminNotificationsPage() {
                   </SelectContent>
                 </Select>
 
-                <p className="text-xs text-muted-foreground mt-1">
-                  <Info className="inline-block mr-1 h-3 w-3" />
-                  Solo se enviará a usuarios que han activado las notificaciones
-                </p>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-blue-800 flex items-center">
+                    <Info className="inline-block mr-2 h-4 w-4" />
+                    <strong>
+                      Destinatarios estimados: {getEstimatedRecipients()}
+                    </strong>
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Solo se enviará a usuarios que han activado las
+                    notificaciones de novedades
+                  </p>
+                </div>
               </div>
 
               <div className="pt-4">
                 <Button
                   onClick={handleSendNotification}
                   className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white"
+                  disabled={
+                    !notificationTitle.trim() || !notificationContent.trim()
+                  }
                 >
                   <Mail className="mr-2 h-4 w-4" />
                   Enviar Notificación
@@ -450,102 +439,66 @@ export default function AdminNotificationsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="templates" className="space-y-4">
-          <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[250px]">Título</TableHead>
-                  <TableHead className="w-[500px]">Contenido</TableHead>
-                  <TableHead>Destinatarios</TableHead>
-                  <TableHead>Fecha creación</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {templates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell className="font-medium">
-                      {template.title}
-                    </TableCell>
-                    <TableCell className="truncate max-w-xs">
-                      {template.content}
-                    </TableCell>
-                    <TableCell>
-                      {template.target === "all"
-                        ? "Todos"
-                        : template.target === "donors"
-                          ? "Donadores"
-                          : template.target === "organizers"
-                            ? "Organizadores"
-                            : "Administradores"}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(template.createdAt), "dd/MM/yyyy", {
-                        locale: es,
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => useTemplate(template)}
-                      >
-                        Usar
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-
         <TabsContent value="history" className="space-y-4">
-          <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[250px]">Título</TableHead>
-                  <TableHead className="w-[400px]">Contenido</TableHead>
-                  <TableHead>Fecha envío</TableHead>
-                  <TableHead>Destinatarios</TableHead>
-                  <TableHead>Alcance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sentNotifications.map((notification) => (
-                  <TableRow key={notification.id}>
-                    <TableCell className="font-medium">
-                      {notification.title}
-                    </TableCell>
-                    <TableCell className="truncate max-w-xs">
-                      {notification.content}
-                    </TableCell>
-                    <TableCell>
-                      {format(
-                        new Date(notification.sentAt),
-                        "dd/MM/yyyy HH:mm",
-                        { locale: es }
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {notification.target === "all"
-                        ? "Todos"
-                        : notification.target === "donors"
-                          ? "Donadores"
-                          : notification.target === "organizers"
-                            ? "Organizadores"
-                            : "Administradores"}
-                    </TableCell>
-                    <TableCell>
-                      {notification.recipientCount} usuarios
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Historial de Notificaciones Enviadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sentNotifications.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Destinatarios</TableHead>
+                      <TableHead>Enviados</TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Admin</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sentNotifications.map((notification) => (
+                      <TableRow key={notification.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">
+                              {notification.title}
+                            </div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                              {notification.content}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {getTargetLabel(notification.target)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {notification.recipientCount}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(notification.createdAt), "PPp", {
+                            locale: es,
+                          })}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {notification.admin.name}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">
+                    No se han enviado notificaciones del sistema aún.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
@@ -555,36 +508,22 @@ export default function AdminNotificationsPage() {
           <DialogHeader>
             <DialogTitle>Confirmar envío de notificación</DialogTitle>
             <DialogDescription>
-              Esta notificación será enviada a todos los usuarios que han
-              activado las notificaciones.
+              ¿Está seguro de que desea enviar esta notificación a{" "}
+              <strong>{getEstimatedRecipients()} usuarios</strong>?
             </DialogDescription>
           </DialogHeader>
-
-          <div className="py-4 space-y-3">
+          <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-medium text-gray-500">Título</h4>
-              <p className="font-medium">{notificationTitle}</p>
+              <strong>Título:</strong> {notificationTitle}
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-500">Contenido</h4>
-              <p>{notificationContent}</p>
+              <strong>Contenido:</strong> {notificationContent}
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-500">
-                Destinatarios
-              </h4>
-              <p>
-                {notificationTarget === "all"
-                  ? "Todos los usuarios"
-                  : notificationTarget === "donors"
-                    ? "Solo donadores"
-                    : notificationTarget === "organizers"
-                      ? "Solo organizadores"
-                      : "Solo administradores"}
-              </p>
+              <strong>Destinatarios:</strong>{" "}
+              {getTargetLabel(notificationTarget)}
             </div>
           </div>
-
           <DialogFooter>
             <Button
               variant="outline"
@@ -600,7 +539,7 @@ export default function AdminNotificationsPage() {
             >
               {isSending ? (
                 <>
-                  <LoadingSpinner className="mr-2" size="sm" />
+                  <LoadingSpinner size="sm" className="mr-2" />
                   Enviando...
                 </>
               ) : (
