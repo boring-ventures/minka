@@ -31,6 +31,7 @@ model Profile {
   comments             Comment[]       @relation("ProfileComments")
   donations            Donation[]      @relation("DonorDonations")
   savedCampaigns       SavedCampaign[] @relation("ProfileSavedCampaigns")
+  notifications        Notification[]  @relation("UserNotifications")
 
   @@map("profiles")
 }
@@ -67,6 +68,7 @@ model Campaign {
   savedBy                  SavedCampaign[]      @relation("CampaignSaved")
   verificationRequests     CampaignVerification? @relation("CampaignVerificationRequests")
   fundTransfers            FundTransfer[]       @relation("CampaignFundTransfers")
+  notifications            Notification[]       @relation("CampaignNotifications")
 
   @@map("campaigns")
 }
@@ -139,6 +141,7 @@ model Donation {
   updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
   campaign            Campaign      @relation("CampaignDonations", fields: [campaignId], references: [id], onDelete: Cascade)
   donor               Profile       @relation("DonorDonations", fields: [donorId], references: [id], onDelete: Cascade)
+  notifications       Notification[] @relation("DonationNotifications")
 
   @@map("donations")
 }
@@ -153,6 +156,7 @@ model Comment {
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
   campaign   Campaign @relation("CampaignComments", fields: [campaignId], references: [id], onDelete: Cascade)
   profile    Profile  @relation("ProfileComments", fields: [profileId], references: [id], onDelete: Cascade)
+  notifications Notification[] @relation("CommentNotifications")
 
   @@map("comments")
 }
@@ -180,6 +184,27 @@ model NotificationPreference {
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
 
   @@map("notification_preferences")
+}
+
+model Notification {
+  id           String             @id @default(uuid()) @db.Uuid
+  userId       String             @map("user_id") @db.Uuid
+  type         NotificationType
+  title        String
+  message      String
+  isRead       Boolean            @default(false) @map("is_read")
+  campaignId   String?            @map("campaign_id") @db.Uuid
+  donationId   String?            @map("donation_id") @db.Uuid
+  commentId    String?            @map("comment_id") @db.Uuid
+  status       Status             @default(active)
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamp(6)
+  user         Profile            @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  campaign     Campaign?          @relation("CampaignNotifications", fields: [campaignId], references: [id], onDelete: Cascade)
+  donation     Donation?          @relation("DonationNotifications", fields: [donationId], references: [id], onDelete: Cascade)
+  comment      Comment?           @relation("CommentNotifications", fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
 
 model FundTransfer {
@@ -406,4 +431,11 @@ enum TransferFrequency {
   monthly_once
   monthly_twice
   every_90_days
+}
+
+enum NotificationType {
+  donation_received
+  comment_received
+  campaign_update
+  general_news
 }

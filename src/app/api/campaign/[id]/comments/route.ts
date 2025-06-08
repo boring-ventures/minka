@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { createCommentNotification } from "@/lib/notifications";
 
 export async function GET(
   req: NextRequest,
@@ -89,10 +90,15 @@ export async function POST(
       );
     }
 
-    // Check if the campaign exists
+    // Check if the campaign exists and get campaign info for notification
     const existingCampaign = await db.campaign.findUnique({
       where: {
         id: campaignId,
+      },
+      select: {
+        id: true,
+        title: true,
+        organizerId: true,
       },
     });
 
@@ -130,6 +136,26 @@ export async function POST(
         },
       },
     });
+
+    // Create notification for campaign owner (only if commenter is not the owner)
+    if (profile.id !== existingCampaign.organizerId) {
+      try {
+        await createCommentNotification(
+          newComment.id,
+          existingCampaign.id,
+          existingCampaign.organizerId,
+          profile.name,
+          existingCampaign.title,
+          content
+        );
+      } catch (notificationError) {
+        // Log error but don't fail the comment creation
+        console.error(
+          "Failed to create comment notification:",
+          notificationError
+        );
+      }
+    }
 
     return NextResponse.json(newComment);
   } catch (error) {

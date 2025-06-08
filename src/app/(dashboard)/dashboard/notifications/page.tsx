@@ -2,25 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Info } from "lucide-react";
+import { Info, CheckCheck, Bell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/providers/auth-provider";
-import { useDb, NotificationPreferences } from "@/hooks/use-db";
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-  read: boolean;
-}
+import { useDb, NotificationPreferences, Notification } from "@/hooks/use-db";
 
 export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [markingAsRead, setMarkingAsRead] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     newsUpdates: false,
     campaignUpdates: true,
@@ -28,7 +23,12 @@ export default function NotificationsPage() {
 
   const router = useRouter();
   const { user } = useAuth();
-  const { getNotificationPreferences, updateNotificationPreferences } = useDb();
+  const {
+    getNotificationPreferences,
+    updateNotificationPreferences,
+    getNotifications,
+    markNotificationsAsRead,
+  } = useDb();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,47 +51,37 @@ export default function NotificationsPage() {
           });
         }
 
-        // Placeholder notifications for demo
-        const placeholderNotifications = [
-          {
-            id: "1",
-            title: "¡Gracias por tu donación!",
-            message:
-              "Tu donación de Bs. 200 a la campaña 'Esperanza en acción' ha sido recibida. ¡Gracias por tu generosidad!",
-            created_at: "2023-11-15T14:30:00Z",
-            read: true,
-          },
-          {
-            id: "2",
-            title: "Actualización de campaña",
-            message:
-              "La campaña 'Unidos por la alegría' a la que donaste ha alcanzado el 75% de su meta. ¡Gracias por ser parte de este logro!",
-            created_at: "2023-11-10T09:15:00Z",
-            read: false,
-          },
-          {
-            id: "3",
-            title: "Confirmación de cuenta",
-            message:
-              "Tu cuenta ha sido verificada exitosamente. Ahora puedes aprovechar todas las funciones de Minka.",
-            created_at: "2023-11-05T16:45:00Z",
-            read: true,
-          },
-        ];
+        // Fetch real notifications
+        const notificationData = await getNotifications(50, 0, false);
 
-        // Use placeholder data in development
-        setNotifications(
-          process.env.NODE_ENV === "development" ? placeholderNotifications : [] // In production, we would fetch from the database
-        );
+        if (notificationData.error) {
+          console.error(
+            "Error fetching notifications:",
+            notificationData.error
+          );
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar las notificaciones.",
+            variant: "destructive",
+          });
+        } else {
+          setNotifications(notificationData.notifications);
+          setUnreadCount(notificationData.unreadCount);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Ocurrió un error al cargar los datos.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, [user, router, getNotificationPreferences]);
+  }, [user, router, getNotificationPreferences, getNotifications, toast]);
 
   const handleToggle = async (key: "newsUpdates" | "campaignUpdates") => {
     try {
@@ -137,6 +127,72 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleMarkAllAsRead = async () => {
+    try {
+      setMarkingAsRead(true);
+
+      const { error } = await markNotificationsAsRead(undefined, true);
+
+      if (error) throw error;
+
+      // Update local state
+      setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+
+      toast({
+        title: "Notificaciones marcadas",
+        description: "Todas las notificaciones se han marcado como leídas.",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron marcar las notificaciones como leídas.",
+        variant: "destructive",
+      });
+    } finally {
+      setMarkingAsRead(false);
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if unread
+    if (!notification.isRead) {
+      try {
+        await markNotificationsAsRead([notification.id]);
+
+        // Update local state
+        setNotifications(
+          notifications.map((n) =>
+            n.id === notification.id ? { ...n, isRead: true } : n
+          )
+        );
+        setUnreadCount(Math.max(0, unreadCount - 1));
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+      }
+    }
+
+    // Navigate to related campaign if available
+    if (notification.campaignId) {
+      router.push(`/campaign/${notification.campaignId}`);
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "donation_received":
+        return "💰";
+      case "comment_received":
+        return "💬";
+      case "campaign_update":
+        return "📢";
+      default:
+        return "🔔";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[70vh]">
@@ -151,7 +207,21 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800">Notificaciones</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-800">Notificaciones</h1>
+        {unreadCount > 0 && (
+          <Button
+            onClick={handleMarkAllAsRead}
+            disabled={markingAsRead}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <CheckCheck className="h-4 w-4" />
+            {markingAsRead ? "Marcando..." : "Marcar todas como leídas"}
+          </Button>
+        )}
+      </div>
 
       {/* Notification Settings Card */}
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -193,9 +263,17 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          Historial de notificaciones
-        </h1>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Historial de notificaciones
+          </h2>
+          {unreadCount > 0 && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Bell className="h-4 w-4" />
+              {unreadCount} sin leer
+            </div>
+          )}
+        </div>
 
         {notifications && notifications.length > 0 ? (
           <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -203,24 +281,48 @@ export default function NotificationsPage() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
                   className={`border-l-4 ${
-                    notification.read ? "border-gray-300" : "border-[#2c6e49]"
-                  } pl-4 py-3 hover:bg-gray-50 transition-colors`}
+                    notification.isRead ? "border-gray-300" : "border-[#2c6e49]"
+                  } pl-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                    !notification.isRead ? "bg-blue-50/30" : ""
+                  }`}
                 >
-                  <h3 className="font-medium text-lg">{notification.title}</h3>
-                  <p className="text-gray-600 mt-1">{notification.message}</p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {new Date(notification.created_at).toLocaleDateString(
-                      "es-ES",
-                      {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-lg">
+                          {notification.title}
+                        </h3>
+                        {!notification.isRead && (
+                          <div className="w-2 h-2 bg-[#2c6e49] rounded-full"></div>
+                        )}
+                      </div>
+                      <p className="text-gray-600 mt-1">
+                        {notification.message}
+                      </p>
+                      {notification.campaign && (
+                        <p className="text-sm text-[#2c6e49] mt-1 font-medium">
+                          Campaña: {notification.campaign.title}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500 mt-2">
+                        {new Date(notification.createdAt).toLocaleDateString(
+                          "es-ES",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -232,6 +334,10 @@ export default function NotificationsPage() {
             </div>
             <p className="text-gray-800 text-lg text-center">
               No tienes notificaciones en este momento
+            </p>
+            <p className="text-gray-600 text-sm text-center mt-2">
+              Cuando alguien done o comente en tus campañas, recibirás
+              notificaciones aquí.
             </p>
           </div>
         )}

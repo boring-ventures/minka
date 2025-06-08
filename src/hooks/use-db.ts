@@ -63,6 +63,30 @@ export interface NotificationPreferences {
   campaignUpdates: boolean;
 }
 
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  campaignId?: string;
+  donationId?: string;
+  commentId?: string;
+  createdAt: string;
+  campaign?: {
+    id: string;
+    title: string;
+  };
+  donation?: {
+    id: string;
+    amount: number;
+  };
+  comment?: {
+    id: string;
+    message: string;
+  };
+}
+
 // Simple request cache
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 60000; // 60 seconds in milliseconds
@@ -436,6 +460,96 @@ export function useDb() {
     []
   );
 
+  // Notification functions
+  const getNotifications = useCallback(
+    async (
+      limit: number = 20,
+      offset: number = 0,
+      unreadOnly: boolean = false
+    ): Promise<{
+      notifications: Notification[];
+      total: number;
+      unreadCount: number;
+      hasMore: boolean;
+      error?: any;
+    }> => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          limit: limit.toString(),
+          offset: offset.toString(),
+          ...(unreadOnly && { unread_only: "true" }),
+        });
+
+        const response = await fetch(`/api/notifications?${params}`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to fetch notifications");
+        }
+
+        const data = await response.json();
+        return {
+          notifications: data.notifications,
+          total: data.total,
+          unreadCount: data.unreadCount,
+          hasMore: data.hasMore,
+        };
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+        return {
+          notifications: [],
+          total: 0,
+          unreadCount: 0,
+          hasMore: false,
+          error,
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const markNotificationsAsRead = useCallback(
+    async (
+      notificationIds?: string[],
+      markAllAsRead: boolean = false
+    ): Promise<{ error?: any }> => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/notifications", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            notificationIds,
+            markAllAsRead,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(
+            error.error || "Failed to mark notifications as read"
+          );
+        }
+
+        return {};
+      } catch (error) {
+        console.error("Error marking notifications as read:", error);
+        return { error };
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
   // Fund transfer operations
   const createFundTransfer = useCallback(
     async (data: {
@@ -543,6 +657,8 @@ export function useDb() {
       // Notifications
       getNotificationPreferences,
       updateNotificationPreferences,
+      getNotifications,
+      markNotificationsAsRead,
       // Fund transfers
       createFundTransfer,
       getFundTransferHistory,
@@ -557,6 +673,8 @@ export function useDb() {
       getAnalytics,
       getNotificationPreferences,
       updateNotificationPreferences,
+      getNotifications,
+      markNotificationsAsRead,
       createFundTransfer,
       getFundTransferHistory,
     ]
