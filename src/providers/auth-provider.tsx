@@ -61,8 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  // Debounced profile fetch to prevent multiple simultaneous calls
-  const fetchProfile = async (userId: string) => {
+  // Optimized profile fetch with timeout and retry logic
+  const fetchProfile = async (userId: string, retryCount = 0) => {
     // Skip if a fetch is already in progress for the same user
     if (profileFetchInProgress) {
       console.log("Profile fetch already in progress, skipping redundant call");
@@ -71,28 +71,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setProfileFetchInProgress(true);
-      console.log("Fetching profile for user:", userId);
+      console.log(
+        `Fetching profile for user: ${userId} (attempt ${retryCount + 1})`
+      );
+
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       const response = await fetch(`/api/profile/${userId}`, {
-        // Add cache headers to prevent duplicate requests
+        signal: controller.signal,
         headers: {
-          "Cache-Control": "max-age=60",
+          "Cache-Control": "no-cache",
           Pragma: "no-cache",
         },
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Network error" }));
         console.error("Error fetching profile:", errorData);
         throw new Error(errorData.error || "Failed to fetch profile");
       }
 
       const data = await response.json();
-      setProfile(data.profile);
-      return data.profile;
+
+      if (data.profile) {
+        setProfile(data.profile);
+        console.log("Profile fetched successfully:", data.profile);
+        return data.profile;
+      } else {
+        throw new Error("No profile data received");
+      }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error(
+        `Error fetching profile (attempt ${retryCount + 1}):`,
+        error
+      );
+
+      // Retry logic for network errors (max 2 retries)
+      if (
+        retryCount < 2 &&
+        error instanceof Error &&
+        (error.name === "AbortError" ||
+          error.message.includes("network") ||
+          error.message.includes("fetch"))
+      ) {
+        console.log(
+          `Retrying profile fetch in ${(retryCount + 1) * 1000}ms...`
+        );
+        setTimeout(
+          () => fetchProfile(userId, retryCount + 1),
+          (retryCount + 1) * 1000
+        );
+        return null;
+      }
+
+      // If all retries failed or it's not a retry-able error, set profile to null
       setProfile(null);
+
+      // Only show toast for final failure
+      if (
+        retryCount >= 2 ||
+        (error instanceof Error && !error.message.includes("AbortError"))
+      ) {
+        toast({
+          title: "Error",
+          description:
+            "No se pudo cargar la información del perfil. Algunos datos pueden no estar disponibles.",
+          variant: "destructive",
+        });
+      }
+
       return null;
     } finally {
       setProfileFetchInProgress(false);

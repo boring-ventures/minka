@@ -187,31 +187,58 @@ export function useDb() {
 
   // Profile operations
   const getProfile = useCallback(
-    async (userId: string): Promise<ProfileData | null> => {
-      const cacheKey = `profile:${userId}`;
+    async (
+      userId: string,
+      includeRelated = false
+    ): Promise<ProfileData | null> => {
+      const cacheKey = `profile:${userId}:${includeRelated ? "full" : "basic"}`;
 
       setLoading(true);
       try {
         return await debouncedRequest(cacheKey, async () => {
-          console.log(`Fetching profile for user ${userId} (no cache hit)`);
+          console.log(
+            `Fetching profile for user ${userId} (${includeRelated ? "with" : "without"} related data)`
+          );
 
-          const response = await fetch(`/api/profile/${userId}`, {
+          // Create AbortController for timeout handling
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+          const url = `/api/profile/${userId}${includeRelated ? "?include_related=true" : ""}`;
+
+          const response = await fetch(url, {
+            signal: controller.signal,
             credentials: "include",
             headers: {
-              "Cache-Control": "max-age=60",
+              "Cache-Control": "no-cache",
               Pragma: "no-cache",
             },
           });
 
+          clearTimeout(timeoutId);
+
           if (!response.ok) {
-            throw new Error("Failed to fetch profile");
+            const errorData = await response
+              .json()
+              .catch(() => ({ error: "Network error" }));
+            throw new Error(errorData.error || "Failed to fetch profile");
           }
 
           const data = await response.json();
+          if (!data.profile) {
+            throw new Error("No profile data received");
+          }
+
           return data.profile;
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
+
+        // If it's a timeout error, return null gracefully
+        if (error instanceof Error && error.name === "AbortError") {
+          console.warn("Profile fetch timed out");
+        }
+
         return null;
       } finally {
         setLoading(false);

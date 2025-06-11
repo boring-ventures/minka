@@ -1027,6 +1027,18 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                           Sigue el avance de la campaña y descubre el impacto de
                           tu aporte.
                         </p>
+                        {/* Clarification for unregistered users */}
+                        {!user && (
+                          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
+                            <p className="text-sm text-blue-800">
+                              <strong>Nota:</strong> Para activar las
+                              notificaciones, serás dirigido a crear una cuenta.
+                              Una vez registrado, podrás recibir actualizaciones
+                              sobre el progreso de esta campaña y el impacto de
+                              tu donación.
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Notification preferences form centered */}
@@ -1357,9 +1369,9 @@ export function DonatePageContent({ campaignId }: { campaignId: string }) {
                   <button
                     type="button"
                     className="block mx-auto text-sm text-[#2c6e49] hover:text-[#1e4d33] underline focus:outline-none transition-colors"
-                    onClick={handleSignUpRedirect}
+                    onClick={handleLoginRedirect}
                   >
-                    Crear cuenta
+                    Iniciar sesión
                   </button>
                 )}
               </div>

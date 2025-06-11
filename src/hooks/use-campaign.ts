@@ -26,6 +26,7 @@ export interface CampaignFormData {
   youtubeUrls?: string[];
   recipient?: string;
   beneficiariesDescription?: string;
+  legalEntityId?: string; // Optional legal entity ID field
   campaignStatus?: "draft" | "active" | "completed" | "cancelled";
   verificationStatus?: boolean;
   media?: Array<{

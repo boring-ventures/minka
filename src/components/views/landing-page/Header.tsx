@@ -140,8 +140,6 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
                 className={`font-medium text-lg transition-colors ${
                   isScrolled
                     ? "text-white hover:text-gray-200"
@@ -155,12 +153,7 @@ export function Header() {
           <div className="flex items-center gap-4 ml-auto">
             {user ? (
               <>
-                <Link
-                  href="/dashboard"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
+                <Link href="/dashboard" className="flex items-center gap-2">
                   <User
                     className={`h-5 w-5 ${isScrolled ? "text-white" : "text-[#2c6e49]"}`}
                   />
@@ -191,7 +184,7 @@ export function Header() {
                 </Button>
               </>
             ) : (
-              <Link href="/sign-in" target="_blank" rel="noopener noreferrer">
+              <Link href="/sign-in">
                 <Button
                   variant="outline"
                   className={`rounded-full px-6 py-2 ${
@@ -260,8 +253,6 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="px-4 py-4 text-[#2c6e49] font-medium text-lg border-b"
                 onClick={toggleMenu}
               >
@@ -274,12 +265,7 @@ export function Header() {
           <div className="p-4 flex flex-col gap-3">
             {user ? (
               <>
-                <Link
-                  href="/dashboard"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full"
-                >
+                <Link href="/dashboard" className="w-full">
                   <Button
                     className="w-full flex items-center justify-center gap-2 bg-white border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
                     onClick={toggleMenu}
@@ -304,12 +290,7 @@ export function Header() {
                 </Button>
               </>
             ) : (
-              <Link
-                href="/sign-in"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full"
-              >
+              <Link href="/sign-in" className="w-full">
                 <Button
                   className="w-full bg-transparent border border-[#2c6e49] text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white rounded-full"
                   onClick={toggleMenu}

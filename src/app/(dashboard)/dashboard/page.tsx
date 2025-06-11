@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -29,13 +30,18 @@ export default function DashboardPage() {
     address: "",
   });
   const router = useRouter();
-  // Get auth context including the existing profile if available
-  const { user, profile: authProfile } = useAuth();
+
+  // Get auth context
+  const { user, profile: authProfile, isLoading: authLoading } = useAuth();
   const { getProfile, updateProfile } = useDb();
 
   // Helper to convert any profile object to our consistent DashboardProfile format
   const formatProfileData = useCallback(
     (data: Profile | ProfileData | any): DashboardProfile => {
+      if (!data) {
+        throw new Error("No profile data provided");
+      }
+
       // Function to safely get ISO string
       const getISOString = (dateVal: any): string => {
         if (typeof dateVal === "string") return dateVal;
@@ -43,56 +49,104 @@ export default function DashboardPage() {
         return new Date().toISOString();
       };
 
-      console.log("formatProfileData - raw data:", data);
-      console.log("formatProfileData - data keys:", Object.keys(data || {}));
-
-      const result = {
-        id: data.id,
+      const result: DashboardProfile = {
+        id: data.id || "",
         name: data.name || "",
         email: data.email || "",
         phone: data.phone || "",
-        address: data.address || "",
+        address: data.address || null,
         role: data.role || "user",
-        created_at: data.created_at || getISOString(data.createdAt),
+        created_at:
+          data.created_at || data.createdAt || getISOString(new Date()),
         profile_picture: data.profile_picture || data.profilePicture || null,
+        identity_number: data.identity_number || data.identityNumber,
+        birth_date: data.birth_date || data.birthDate,
         // Include any other fields that might be expected
-        ...(data as object),
+        ...data,
       };
-
-      console.log("formatProfileData - result:", result);
-      console.log("formatProfileData - result keys:", Object.keys(result));
 
       return result;
     },
     []
   );
 
-  // Load profile data from auth context if available or fetch it if needed
-  const loadProfileData = useCallback(async () => {
+  // Optimized profile loading that prioritizes auth context
+  const loadProfile = useCallback(async () => {
+    // Don't start loading if auth is still loading
+    if (authLoading) {
+      return;
+    }
+
+    // Redirect if no user
     if (!user) {
       router.push("/sign-in");
-      return null;
+      return;
     }
 
-    // If we already have a profile in auth context, use it instead of fetching again
-    if (authProfile && Object.keys(authProfile).length > 0) {
-      console.log("Using profile from auth context:", authProfile);
-      return authProfile;
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      let profileData: Profile | ProfileData | null = null;
+
+      // First, try to use the profile from auth context if it's complete
+      if (authProfile && authProfile.id && authProfile.email) {
+        console.log("Using profile from auth context:", authProfile);
+        profileData = authProfile;
+      } else {
+        // Fallback: fetch fresh profile data from API
+        console.log("Fetching fresh profile data from API for user:", user.id);
+        profileData = await getProfile(user.id);
+
+        if (!profileData) {
+          throw new Error("No se pudo cargar la información del perfil");
+        }
+      }
+
+      // Format and set the profile data
+      const formattedProfile = formatProfileData(profileData);
+      setProfile(formattedProfile);
+      setIsAdmin(formattedProfile.role === "admin");
+
+      // Initialize form data
+      setProfileForm({
+        name: formattedProfile.name || "",
+        email: formattedProfile.email || "",
+        phone: formattedProfile.phone || "",
+        address: formattedProfile.address || "",
+      });
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Error desconocido al cargar el perfil";
+      setError(errorMessage);
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  }, [user, authProfile, authLoading, router, getProfile, formatProfileData]);
 
-    console.log("Fetching profile from API for user:", user.id);
-    // Otherwise fetch the profile
-    return await getProfile(user.id);
-  }, [user, authProfile, router, getProfile]);
+  // Load profile when dependencies change
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
-  // Function to refresh profile data
+  // Function to refresh profile data after updates
   const refreshProfileData = useCallback(async () => {
     if (!user) return;
 
     try {
       setIsLoading(true);
+      setError(null);
 
-      // Always fetch fresh data from the API
+      // Always fetch fresh data from the API after updates
       const freshProfileData = await getProfile(user.id);
 
       if (freshProfileData) {
@@ -110,58 +164,15 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error("Error refreshing profile data:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Error al actualizar el perfil";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   }, [user, getProfile, formatProfileData]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function initializeDashboard() {
-      try {
-        setIsLoading(true);
-
-        // Try to use existing profile data first
-        const profileData = await loadProfileData();
-
-        if (!isMounted || !profileData) return;
-
-        // Format the profile data consistently
-        const formattedProfile = formatProfileData(profileData);
-
-        setProfile(formattedProfile);
-        setIsAdmin(formattedProfile.role === "admin");
-
-        // Initialize form data with profile data
-        setProfileForm({
-          name: formattedProfile.name || "",
-          email: formattedProfile.email || "",
-          phone: formattedProfile.phone || "",
-          address: formattedProfile.address || "",
-        });
-      } catch (error) {
-        console.error("Error loading dashboard:", error);
-        if (isMounted) {
-          toast({
-            title: "Error",
-            description: "No se pudo cargar el dashboard. Intenta nuevamente.",
-            variant: "destructive",
-          });
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    initializeDashboard();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user, loadProfileData, formatProfileData]);
 
   const handleSaveChanges = async () => {
     try {
@@ -194,14 +205,41 @@ export default function DashboardPage() {
     }
   };
 
-  if (isLoading) {
+  // Show loading spinner while auth or profile is loading
+  if (authLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
+      <div className="flex flex-col items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
+        <p className="mt-4 text-[#2c6e49] font-medium text-lg">
+          {authLoading
+            ? "Verificando autenticación..."
+            : "Cargando información del perfil..."}
+        </p>
       </div>
     );
   }
 
+  // Show error state if there's an error and no profile
+  if (error && !profile) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <p className="text-red-600 font-medium">
+            Error al cargar el dashboard
+          </p>
+          <p className="text-gray-600">{error}</p>
+          <Button
+            onClick={loadProfile}
+            className="bg-[#2c6e49] hover:bg-[#2c6e49]/90"
+          >
+            Intentar nuevamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show dashboard content
   return (
     <>
       {isAdmin ? (
@@ -251,6 +289,22 @@ export default function DashboardPage() {
                 readOnly
                 disabled
                 className="w-full border border-black bg-transparent opacity-70 cursor-not-allowed"
+              />
+            </div>
+
+            {/* Name Field */}
+            <div className="space-y-2">
+              <label htmlFor="name" className="block text-gray-700 font-medium">
+                Nombre completo
+              </label>
+              <Input
+                id="name"
+                value={profileForm.name}
+                onChange={(e) =>
+                  setProfileForm({ ...profileForm, name: e.target.value })
+                }
+                placeholder="Ingresa tu nombre completo"
+                className="w-full border border-black bg-transparent"
               />
             </div>
 

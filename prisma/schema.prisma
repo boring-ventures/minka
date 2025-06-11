@@ -58,12 +58,14 @@ model Campaign {
   campaignStatus           CampaignStatus       @default(draft) @map("campaign_status")
   status                   Status               @default(active)
   organizerId              String               @map("organizer_id") @db.Uuid
+  legalEntityId            String?              @map("legal_entity_id") @db.Uuid
   createdAt                DateTime             @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt                DateTime             @updatedAt @map("updated_at") @db.Timestamp(6)
   youtubeUrls              String[]             @default([]) @map("youtube_urls")
   media                    CampaignMedia[]      @relation("CampaignMedia")
   updates                  CampaignUpdate[]     @relation("CampaignUpdates")
   organizer                Profile              @relation("OrganizerCampaigns", fields: [organizerId], references: [id])
+  legalEntity              LegalEntity?         @relation("LegalEntityCampaigns", fields: [legalEntityId], references: [id])
   comments                 Comment[]            @relation("CampaignComments")
   donations                Donation[]           @relation("CampaignDonations")
   savedBy                  SavedCampaign[]      @relation("CampaignSaved")
@@ -239,6 +241,32 @@ model FundTransfer {
   campaign          Campaign            @relation("CampaignFundTransfers", fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@map("fund_transfers")
+}
+
+model LegalEntity {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String    // Organization/company name
+  taxId             String?   @map("tax_id") // Tax identification number (NIT in Bolivia)
+  registrationNumber String? @map("registration_number") // Business registration number
+  legalForm         String?   @map("legal_form") // Legal form (S.A., S.R.L., etc.)
+  address           String?
+  city              String?
+  province          Province?
+  department        Region?
+  phone             String?
+  email             String?
+  website           String?
+  description       String?   @db.Text
+  documentUrls      String[]  @default([]) @map("document_urls") // Legal documents
+  isActive          Boolean   @default(true) @map("is_active")
+  status            Status    @default(active)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+  
+  // Relations
+  campaigns         Campaign[] @relation("LegalEntityCampaigns")
+
+  @@map("legal_entities")
 }
 
 enum UserRole {

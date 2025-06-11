@@ -1160,6 +1160,89 @@ export function CampaignVerificationView({
         <div
           className={`verification-step max-w-6xl mx-auto ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""}`}
         >
+          {/* Steps Section */}
+          <div className="py-12">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Pasos a seguir
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Verificar tu campaña es muy sencillo, solo debes seguir unos
+                pocos pasos.
+              </p>
+            </div>
+
+            <div className="relative max-w-4xl mx-auto pt-8 pb-12">
+              {/* Horizontal line connecting the circles */}
+              <div className="absolute top-16 left-[calc(12.5%+20px)] right-[calc(12.5%+20px)] h-[2px] bg-[#478C5C]"></div>
+
+              <div className="flex justify-between items-start">
+                {/* Step 1 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
+                    <Image
+                      src="/icons/doc.svg"
+                      alt="Iniciar verificación"
+                      width={32}
+                      height={32}
+                    />
+                  </div>
+                  <h3 className="text-base font-medium">
+                    Iniciar verificación
+                  </h3>
+                </div>
+
+                {/* Step 2 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
+                    <Image
+                      src="/icons/file_present.svg"
+                      alt="Cargar documentación"
+                      width={32}
+                      height={32}
+                    />
+                  </div>
+                  <h3 className="text-base font-medium">
+                    Cargar documentación
+                  </h3>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
+                    <Image
+                      src="/icons/document_search.svg"
+                      alt="Enviar solicitud"
+                      width={32}
+                      height={32}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base font-medium">Enviar solicitud</h3>
+                    <p className="text-sm">y esperar revisión</p>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className="flex flex-col items-center text-center w-1/4">
+                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
+                    <Image
+                      src="/icons/verified.svg"
+                      alt="Obtener sello"
+                      width={32}
+                      height={32}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base font-medium">Obtener el sello</h3>
+                    <p className="text-sm">de verificación</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 border-b border-[#478C5C]/20" />
+          </div>
+
           {/* Benefits Section */}
           {selectedCampaignId && (
             <div className="py-12">
@@ -1284,89 +1367,6 @@ export function CampaignVerificationView({
               <div className="mt-16 border-b border-[#478C5C]/20" />
             </div>
           )}
-
-          {/* Steps Section */}
-          <div className="py-12">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                Pasos a seguir
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Verificar tu campaña es muy sencillo, solo debes seguir unos
-                pocos pasos.
-              </p>
-            </div>
-
-            <div className="relative max-w-4xl mx-auto pt-8 pb-12">
-              {/* Horizontal line connecting the circles */}
-              <div className="absolute top-16 left-[calc(12.5%+20px)] right-[calc(12.5%+20px)] h-[2px] bg-[#478C5C]"></div>
-
-              <div className="flex justify-between items-start">
-                {/* Step 1 */}
-                <div className="flex flex-col items-center text-center w-1/4">
-                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                    <Image
-                      src="/icons/doc.svg"
-                      alt="Iniciar verificación"
-                      width={32}
-                      height={32}
-                    />
-                  </div>
-                  <h3 className="text-base font-medium">
-                    Iniciar verificación
-                  </h3>
-                </div>
-
-                {/* Step 2 */}
-                <div className="flex flex-col items-center text-center w-1/4">
-                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                    <Image
-                      src="/icons/file_present.svg"
-                      alt="Cargar documentación"
-                      width={32}
-                      height={32}
-                    />
-                  </div>
-                  <h3 className="text-base font-medium">
-                    Cargar documentación
-                  </h3>
-                </div>
-
-                {/* Step 3 */}
-                <div className="flex flex-col items-center text-center w-1/4">
-                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                    <Image
-                      src="/icons/document_search.svg"
-                      alt="Enviar solicitud"
-                      width={32}
-                      height={32}
-                    />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-base font-medium">Enviar solicitud</h3>
-                    <p className="text-sm">y esperar revisión</p>
-                  </div>
-                </div>
-
-                {/* Step 4 */}
-                <div className="flex flex-col items-center text-center w-1/4">
-                  <div className="relative z-10 h-14 w-14 rounded-full border-2 border-[#478C5C] bg-white flex items-center justify-center mb-4">
-                    <Image
-                      src="/icons/verified.svg"
-                      alt="Obtener sello"
-                      width={32}
-                      height={32}
-                    />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-base font-medium">Obtener el sello</h3>
-                    <p className="text-sm">de verificación</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 border-b border-[#478C5C]/20" />
-          </div>
 
           {/* Requirements Section */}
           <div className="py-12">

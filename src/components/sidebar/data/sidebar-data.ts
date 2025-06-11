@@ -23,6 +23,7 @@ import {
   Users,
   AreaChart,
   HeartHandshake,
+  Building2,
 } from "lucide-react";
 import type { SidebarData } from "../types";
 
@@ -36,7 +37,7 @@ export const sidebarData: SidebarData = {
     {
       name: "MINKA",
       logo: HeartHandshake,
-      plan: "Admin Dashboard",
+      plan: "Panel de Administración",
     },
   ],
   navGroups: [
@@ -44,22 +45,27 @@ export const sidebarData: SidebarData = {
       title: "General",
       items: [
         {
-          title: "Dashboard",
+          title: "Panel Principal",
           url: "/dashboard",
           icon: LayoutDashboard,
         },
         {
-          title: "Campaigns",
+          title: "Campañas",
           url: "/dashboard/campaigns",
           icon: LayoutDashboard,
         },
         {
-          title: "Users",
+          title: "Usuarios",
           url: "/dashboard/users",
           icon: Users,
         },
         {
-          title: "Analytics",
+          title: "Personas Jurídicas",
+          url: "/dashboard/legal-entities",
+          icon: Building2,
+        },
+        {
+          title: "Estadísticas",
           url: "/dashboard/analytics",
           icon: AreaChart,
         },

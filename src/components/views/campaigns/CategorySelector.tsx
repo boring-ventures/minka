@@ -296,7 +296,7 @@ export function CategorySelector({
                   alt="Todas las categorías"
                   width={24}
                   height={24}
-                  className="mb-3"
+                  className={`mb-3 ${activeCategory === undefined ? "brightness-0 invert" : ""}`}
                 />
                 <span className="font-medium">Todas las categorías</span>
               </button>
@@ -320,7 +320,15 @@ export function CategorySelector({
                     }`}
                     disabled={isLoading}
                   >
-                    {getCategoryIcon(category.name)}
+                    <div
+                      className={
+                        activeCategory === category.name
+                          ? "brightness-0 invert"
+                          : ""
+                      }
+                    >
+                      {getCategoryIcon(category.name)}
+                    </div>
                     <div className="flex items-center gap-2 mt-3 mb-1">
                       <span className="font-medium">{category.name}</span>
                       <span

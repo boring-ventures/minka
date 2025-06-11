@@ -8,9 +8,36 @@ export async function GET(
   try {
     const { userId } = await params;
 
-    // First, fetch the profile without related campaigns
+    // Validate userId format
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      return new Response(JSON.stringify({ error: "Invalid user ID" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch the profile with essential data only for faster loading
     const profile = await prisma.profile.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        profilePicture: true,
+        identityNumber: true,
+        birthDate: true,
+        bio: true,
+        location: true,
+        verificationStatus: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        activeCampaignsCount: true,
+        // Exclude password and other sensitive fields
+      },
     });
 
     if (!profile) {
@@ -20,58 +47,88 @@ export async function GET(
       });
     }
 
-    // Then fetch campaigns separately with proper handling
-    const campaigns = await prisma.campaign.findMany({
-      where: { organizerId: userId },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        category: true,
-        goalAmount: true,
-        collectedAmount: true,
-        donorCount: true,
-        percentageFunded: true,
-        daysRemaining: true,
-        location: true,
-        endDate: true,
-        verificationStatus: true,
-        campaignStatus: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        // Explicitly exclude verificationDate and any other problematic fields
-      },
-    });
+    // Get query parameter to determine if we need related data
+    const { searchParams } = new URL(request.url);
+    const includeRelated = searchParams.get("include_related") === "true";
 
-    // Fetch other related data
-    const donations = await prisma.donation.findMany({
-      where: { donorId: userId },
-    });
-
-    const comments = await prisma.comment.findMany({
-      where: { profileId: userId },
-    });
-
-    const savedCampaigns = await prisma.savedCampaign.findMany({
-      where: { profileId: userId },
-    });
-
-    // Combine all data
-    const result = {
+    let result: any = {
       ...profile,
-      campaigns,
-      donations,
-      comments,
-      savedCampaigns,
+      // Convert dates to ISO strings for consistency
+      createdAt: profile.createdAt.toISOString(),
+      updatedAt: profile.updatedAt.toISOString(),
+      birthDate: profile.birthDate?.toISOString() || null,
+      // Map field names for compatibility
+      created_at: profile.createdAt.toISOString(),
+      profile_picture: profile.profilePicture,
+      identity_number: profile.identityNumber,
+      birth_date: profile.birthDate?.toISOString() || null,
     };
+
+    // Only fetch related data if specifically requested (for dashboard, we don't need it initially)
+    if (includeRelated) {
+      const [campaigns, donations, savedCampaigns] = await Promise.all([
+        prisma.campaign.findMany({
+          where: { organizerId: userId },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            category: true,
+            goalAmount: true,
+            collectedAmount: true,
+            donorCount: true,
+            percentageFunded: true,
+            daysRemaining: true,
+            location: true,
+            endDate: true,
+            verificationStatus: true,
+            campaignStatus: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 10, // Limit for performance
+        }),
+        prisma.donation.findMany({
+          where: { donorId: userId },
+          select: {
+            id: true,
+            amount: true,
+            createdAt: true,
+            campaignId: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 10, // Limit for performance
+        }),
+        prisma.savedCampaign.findMany({
+          where: { profileId: userId },
+          select: {
+            campaignId: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 10, // Limit for performance
+        }),
+      ]);
+
+      result = {
+        ...result,
+        campaigns,
+        donations,
+        savedCampaigns,
+      };
+    }
 
     return new Response(JSON.stringify({ profile: result }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=300", // Cache for 5 minutes
+      },
     });
   } catch (error) {
-    console.error("prisma:error", error);
+    console.error("Profile API error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return new Response(
@@ -90,7 +147,43 @@ export async function PATCH(
 ) {
   try {
     const { userId } = await params;
+
+    // Validate userId format
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      return new Response(JSON.stringify({ error: "Invalid user ID" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const json = await request.json();
+
+    // Validate that we have at least one field to update
+    const allowedFields = [
+      "name",
+      "phone",
+      "address",
+      "bio",
+      "location",
+      "profilePicture",
+      "profile_picture",
+      "birthDate",
+      "verificationStatus",
+      "status",
+    ];
+    const updateData = Object.keys(json).filter((key) =>
+      allowedFields.includes(key)
+    );
+
+    if (updateData.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "No valid fields to update" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const profile = await prisma.profile.update({
       where: { id: userId },
@@ -105,13 +198,43 @@ export async function PATCH(
         verificationStatus: json.verificationStatus,
         status: json.status,
       },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        profilePicture: true,
+        identityNumber: true,
+        birthDate: true,
+        bio: true,
+        location: true,
+        verificationStatus: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
-    return new Response(JSON.stringify({ profile }), {
+    // Format response consistently
+    const result: any = {
+      ...profile,
+      createdAt: profile.createdAt.toISOString(),
+      updatedAt: profile.updatedAt.toISOString(),
+      birthDate: profile.birthDate?.toISOString() || null,
+      created_at: profile.createdAt.toISOString(),
+      profile_picture: profile.profilePicture,
+      identity_number: profile.identityNumber,
+      birth_date: profile.birthDate?.toISOString() || null,
+    };
+
+    return new Response(JSON.stringify({ profile: result }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("Profile update error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return new Response(

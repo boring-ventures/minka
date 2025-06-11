@@ -16,6 +16,7 @@ import {
   Users,
   LibraryBig,
   ArrowRight,
+  Building2,
 } from "lucide-react";
 
 interface AdminDashboardContentProps {
@@ -149,6 +150,23 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
             className="text-[#2c6e49] hover:underline font-medium flex items-center"
           >
             Gestionar usuarios <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center mb-4">
+            <Building2 className="h-6 w-6 mr-2 text-[#2c6e49]" />
+            <h3 className="text-xl font-semibold">Personas Jurídicas</h3>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Gestiona las organizaciones registradas que pueden crear campañas
+            institucionales en la plataforma.
+          </p>
+          <Link
+            href="/dashboard/legal-entities"
+            className="text-[#2c6e49] hover:underline font-medium flex items-center"
+          >
+            Gestionar organizaciones <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   X,
   Check,
+  Plus,
   Clock,
   MapPin,
   Share2,
@@ -13,12 +14,15 @@ import {
   ChevronDown,
   Play,
   Eye,
+  Search,
+  Building2,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useCampaign, CampaignFormData } from "@/hooks/use-campaign";
 import { useUpload } from "@/hooks/use-upload";
+import { useLegalEntities, LegalEntity } from "@/hooks/use-legal-entities";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { UploadProgress } from "./UploadProgress";
 import { ImageEditor } from "./ImageEditor";
@@ -58,6 +62,16 @@ import {
   getProvincesForDepartment,
   DEPARTMENT_LABELS,
 } from "@/constants/bolivia-provinces";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useCurrentStep } from "@/contexts/current-step-context";
 
 // Campaign Preview component
 const CampaignPreview = ({
@@ -356,7 +370,11 @@ export function CampaignForm() {
     uploadFile,
     uploadFiles,
   } = useUpload();
+  const { fetchActiveLegalEntities } = useLegalEntities();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use the context to sync step changes with the parent page
+  const { setCurrentStep: setContextStep } = useCurrentStep();
 
   // Format currency helper
   const formatCurrency = (amount: string | number) => {
@@ -366,11 +384,24 @@ export function CampaignForm() {
   };
 
   const [currentStep, setCurrentStep] = useState(1);
+  // Add new state for sub-steps within step 1
+  const [currentSubStep, setCurrentSubStep] = useState(1);
+  const [isSubStepAnimating, setIsSubStepAnimating] = useState(false);
+  const [subStepAnimationDirection, setSubStepAnimationDirection] = useState<
+    "next" | "prev"
+  >("next");
+
   // Add new state for animation
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
     "next"
   );
+
+  // Sync the current step with the context
+  useEffect(() => {
+    setContextStep(currentStep);
+  }, [currentStep, setContextStep]);
+
   const [formData, setFormData] = useState<CampaignFormData>({
     title: "",
     description: "",
@@ -384,6 +415,7 @@ export function CampaignForm() {
     youtubeUrl: "",
     youtubeUrls: [],
     beneficiariesDescription: "",
+    legalEntityId: undefined, // Add legal entity ID field
   });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showOtraPersonaModal, setShowOtraPersonaModal] = useState(false);
@@ -410,7 +442,13 @@ export function CampaignForm() {
   // State for "Persona Jurídica" modal form
   const [personaJuridicaForm, setPersonaJuridicaForm] = useState({
     entityName: "", // Company/organization name
+    selectedEntityId: "", // Selected legal entity ID
   });
+
+  // State for legal entities
+  const [legalEntities, setLegalEntities] = useState<LegalEntity[]>([]);
+  const [loadingLegalEntities, setLoadingLegalEntities] = useState(false);
+  const [legalEntitiesSearch, setLegalEntitiesSearch] = useState("");
 
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
@@ -472,15 +510,29 @@ export function CampaignForm() {
     try {
       setIsSubmitting(true);
 
-      // Update form data with the selected recipient
+      // Prepare the update data
+      const updateData: any = {
+        recipient,
+      };
+
+      // If selecting persona_juridica, include the legal entity ID
+      if (
+        recipient === "persona_juridica" &&
+        personaJuridicaForm.selectedEntityId
+      ) {
+        updateData.legalEntityId = personaJuridicaForm.selectedEntityId;
+      }
+
+      // Update form data with the selected recipient and legal entity ID
       setFormData((prev) => ({
         ...prev,
         recipient,
+        legalEntityId: updateData.legalEntityId,
       }));
 
       // If we already have a campaignId, update it instead of creating a new one
       if (campaignId) {
-        const success = await updateCampaign({ recipient }, campaignId);
+        const success = await updateCampaign(updateData, campaignId);
 
         if (!success) {
           throw new Error("Failed to update campaign recipient");
@@ -631,7 +683,12 @@ export function CampaignForm() {
     // Reset form when closing modal
     setPersonaJuridicaForm({
       entityName: "",
+      selectedEntityId: "",
     });
+    // Reset legal entities state
+    setLegalEntities([]);
+    setLegalEntitiesSearch("");
+    setLoadingLegalEntities(false);
   };
 
   // Utility function to help with image URL issues
@@ -1052,8 +1109,10 @@ export function CampaignForm() {
     setShowONGsModal(true);
   };
 
-  const handleSelectPersonaJuridica = () => {
+  const handleSelectPersonaJuridica = async () => {
     setShowPersonaJuridicaModal(true);
+    // Load legal entities when modal opens
+    await loadLegalEntities();
   };
 
   const handleOtraPersonaSubmit = async () => {
@@ -1128,34 +1187,49 @@ export function CampaignForm() {
 
   const handlePersonaJuridicaSubmit = async () => {
     // Validate form data
-    const { entityName } = personaJuridicaForm;
+    const { selectedEntityId } = personaJuridicaForm;
 
-    if (!entityName) {
+    if (!selectedEntityId) {
       toast({
         title: "Error",
-        description: "Por favor completa todos los campos requeridos.",
+        description: "Por favor selecciona una organización.",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      // Find the selected entity for logging and validation
+      const selectedEntity = legalEntities.find(
+        (e) => e.id === selectedEntityId
+      );
+
+      if (!selectedEntity) {
+        toast({
+          title: "Error",
+          description: "La organización seleccionada no es válida.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Here you could save the legal entity data to the campaign
       // For now, we'll just log it and proceed
-      console.log("Persona Jurídica form data:", {
-        ...personaJuridicaForm,
+      console.log("Selected Legal Entity:", {
+        id: selectedEntity.id,
+        name: selectedEntity.name,
+        taxId: selectedEntity.taxId,
       });
 
       toast({
-        title: "Persona Jurídica agregada",
-        description:
-          "Los datos de la persona jurídica se han guardado correctamente.",
+        title: "Persona Jurídica seleccionada",
+        description: `Se ha seleccionado "${selectedEntity.name}" como destinatario de los fondos.`,
       });
 
       closePersonaJuridicaModal();
       await handleSelectRecipient("persona_juridica");
     } catch (error) {
-      console.error("Error saving legal entity data:", error);
+      console.error("Error saving legal entity selection:", error);
       toast({
         title: "Error",
         description:
@@ -1246,6 +1320,172 @@ export function CampaignForm() {
     }
   };
 
+  // Function to load legal entities
+  const loadLegalEntities = async (search?: string) => {
+    try {
+      setLoadingLegalEntities(true);
+      const entities = await fetchActiveLegalEntities(search);
+      setLegalEntities(entities);
+    } catch (error) {
+      console.error("Error loading legal entities:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las organizaciones disponibles.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingLegalEntities(false);
+    }
+  };
+
+  // Add constants for sub-steps
+  const STEP_1_SUB_STEPS = [
+    {
+      id: 1,
+      title: "Nombre de la campaña",
+      description:
+        "Dale un nombre claro a tu campaña y agrega una breve explicación o detalle para transmitir rápidamente su esencia y objetivo.",
+    },
+    {
+      id: 2,
+      title: "Selecciona una categoría",
+      description:
+        "Categoriza una categoría y tu campaña va ser encontrada más fácilmente por los donadores potenciales.",
+    },
+    {
+      id: 3,
+      title: "Establece una meta de recaudación",
+      description:
+        "Define una meta realista que te ayude a alcanzar el objetivo de tu campaña.",
+    },
+    {
+      id: 4,
+      title: "Agrega fotos y videos que ilustren tu causa",
+      description:
+        "Imágenes poderosas que cuenten tu historia harán que tu campaña sea más personal y emotiva. Esto ayudará a inspirar y conectar con más personas que apoyen tu causa.",
+    },
+    {
+      id: 5,
+      title: "Señala la ubicación de tu campaña",
+      description: "¿Dónde se desarrolla tu campaña? Agrega su ubicación.",
+    },
+    {
+      id: 6,
+      title: "Define el tiempo que durará tu campaña",
+      description:
+        "¿Hasta qué fecha deberá estar vigente tu campaña? Establece un tiempo de duración. Toma en cuenta que, una vez publicada tu campaña, no podrás modificar este plazo.",
+    },
+    {
+      id: 7,
+      title: "Ahora sí: ¡Cuenta tu historia!",
+      description:
+        "Inspira a los demás compartiendo el propósito de tu proyecto. Sé claro y directo para que tu causa conecte de manera profunda con quienes pueden hacer la diferencia.",
+    },
+  ];
+
+  // Add sub-step navigation functions
+  const nextSubStep = () => {
+    if (currentSubStep < STEP_1_SUB_STEPS.length) {
+      // Validate current sub-step before proceeding
+      if (!validateCurrentSubStep()) {
+        return;
+      }
+
+      setSubStepAnimationDirection("next");
+      setIsSubStepAnimating(true);
+      setTimeout(() => {
+        setCurrentSubStep(currentSubStep + 1);
+        setTimeout(() => {
+          setIsSubStepAnimating(false);
+        }, 50);
+      }, 300);
+    } else {
+      // All sub-steps completed, proceed to step 2
+      nextStep();
+    }
+  };
+
+  const prevSubStep = () => {
+    if (currentSubStep > 1) {
+      setSubStepAnimationDirection("prev");
+      setIsSubStepAnimating(true);
+      setTimeout(() => {
+        setCurrentSubStep(currentSubStep - 1);
+        setTimeout(() => {
+          setIsSubStepAnimating(false);
+        }, 50);
+      }, 300);
+    }
+  };
+
+  // Add validation for current sub-step
+  const validateCurrentSubStep = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    switch (currentSubStep) {
+      case 1: // Campaign Name
+        if (!formData.title || formData.title.length < 3) {
+          errors.title = "El título debe tener al menos 3 caracteres";
+        }
+        if (!formData.description || formData.description.length < 10) {
+          errors.description =
+            "La descripción debe tener al menos 10 caracteres";
+        }
+        break;
+      case 2: // Category
+        if (!formData.category) {
+          errors.category = "Debes seleccionar una categoría";
+        }
+        break;
+      case 3: // Goal Amount
+        if (
+          !formData.goalAmount ||
+          removeNumberSeparators(String(formData.goalAmount)) === ""
+        ) {
+          errors.goalAmount = "Debes establecer una meta de recaudación";
+        }
+        break;
+      case 4: // Media
+        if (mediaPreviewUrls.length === 0 || uploadedUrls.length === 0) {
+          errors.media = "Debes subir al menos una imagen";
+        }
+        break;
+      case 5: // Location
+        if (!formData.location) {
+          errors.location = "Debes seleccionar una ubicación";
+        }
+        break;
+      case 6: // End Date
+        if (!formData.endDate) {
+          errors.endDate = "Debes seleccionar una fecha de finalización";
+        }
+        break;
+      case 7: // Story
+        if (!formData.story || formData.story.length < 10) {
+          errors.story =
+            "La presentación de la campaña debe tener al menos 10 caracteres";
+        } else if (formData.story.length > 600) {
+          errors.story =
+            "La presentación de la campaña no puede tener más de 600 caracteres";
+        }
+        break;
+    }
+
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      toast({
+        title: "Campos incompletos",
+        description:
+          "Por favor completa todos los campos requeridos antes de continuar.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   // Add style block for transitions at the beginning of the component return statement
   return (
     <>
@@ -1270,6 +1510,14 @@ export function CampaignForm() {
           color: #e11d48;
           font-size: 0.875rem;
           margin-top: 0.25rem;
+        }
+
+        /* Line clamp utility */
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
 
         /* Custom select styling */
@@ -1313,6 +1561,33 @@ export function CampaignForm() {
           opacity: 1;
         }
 
+        /* Sub-step animations */
+        .sub-step {
+          opacity: 1;
+          transform: translateX(0);
+          transition: all 0.3s ease-in-out;
+        }
+
+        .sub-step.fade-out-next {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+
+        .sub-step.fade-out-prev {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+
+        .sub-step.fade-in-next {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
+        .sub-step.fade-in-prev {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
         /* Modal animations */
         .modal-overlay {
           opacity: 0;
@@ -1333,695 +1608,752 @@ export function CampaignForm() {
           transform: translateY(0);
           opacity: 1;
         }
+
+        /* Progress indicator */
+        .progress-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+          background-color: #2c6e49;
+          transform: scale(1.2);
+        }
+
+        .progress-dot.inactive {
+          background-color: #e5e7eb;
+        }
+
+        .progress-dot.completed {
+          background-color: #2c6e49;
+        }
       `}</style>
 
-      {/* STEP #1 */}
+      {/* STEP #1 - Now with sub-steps */}
       {currentStep === 1 && (
-        <div
-          className={`form-step ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""} max-w-6xl mx-auto space-y-16 md:space-y-24 px-4 sm:px-6 md:px-0`}
-        >
-          {/* Campaign Name */}
-          <div className="py-6 md:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="pt-0 md:pt-4">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
-                  Nombre de la campaña
-                </h2>
-                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                  Dale un nombre claro a tu campaña y agrega una breve
-                  explicación o detalle para transmitir rápidamente su esencia y
-                  objetivo.
-                </p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-0">
+          {/* Sub-step Content */}
+          <div
+            className={`sub-step min-h-[70vh] flex items-center ${
+              isSubStepAnimating
+                ? subStepAnimationDirection === "next"
+                  ? "fade-out-next"
+                  : "fade-out-prev"
+                : "fade-in-next"
+            }`}
+          >
+            {/* Sub-step 1: Campaign Name */}
+            {currentSubStep === 1 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_1_SUB_STEPS[0].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_1_SUB_STEPS[0].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="space-y-6">
+                      <div id="title">
+                        <label className="block text-lg font-medium mb-2">
+                          Nombre de la campaña
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Ingresa el nombre de tu campaña"
+                            className={`w-full rounded-lg border ${formErrors.title ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
+                            value={formData.title}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                title: e.target.value,
+                              });
+                              if (e.target.value.length >= 3) {
+                                setFormErrors({ ...formErrors, title: "" });
+                              }
+                            }}
+                            maxLength={80}
+                          />
+                          <div className="text-sm text-gray-500 text-right mt-1">
+                            {formData.title.length}/80
+                          </div>
+                          {formErrors.title && (
+                            <div className="error-text">{formErrors.title}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div id="description">
+                        <label className="block text-lg font-medium mb-2">
+                          Detalle
+                        </label>
+                        <div className="relative">
+                          <textarea
+                            placeholder="Ejemplo: Su conservación depende de nosotros"
+                            rows={4}
+                            className={`w-full rounded-lg border ${formErrors.description ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
+                            value={formData.description}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                description: e.target.value,
+                              });
+                              if (e.target.value.length >= 10) {
+                                setFormErrors({
+                                  ...formErrors,
+                                  description: "",
+                                });
+                              }
+                            }}
+                            maxLength={150}
+                          />
+                          <div className="text-sm text-gray-500 text-right mt-1">
+                            {formData.description.length}/150
+                          </div>
+                          {formErrors.description && (
+                            <div className="error-text">
+                              {formErrors.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white rounded-xl border border-black p-6 md:p-8">
-                <div className="space-y-6">
-                  <div id="title">
-                    <label className="block text-lg font-medium mb-2">
-                      Nombre de la campaña
+            )}
+
+            {/* Sub-step 2: Category */}
+            {currentSubStep === 2 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_1_SUB_STEPS[1].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_1_SUB_STEPS[1].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      id="category"
+                    >
+                      Categoría
                     </label>
-                    <div className="relative">
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, category: value });
+                        if (value) {
+                          setFormErrors({ ...formErrors, category: "" });
+                        }
+                      }}
+                    >
+                      <SelectTrigger
+                        className={`ui-select-trigger w-full rounded-lg border ${formErrors.category ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4 text-base`}
+                      >
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectGroup>
+                          <SelectItem value="cultura_arte">
+                            Cultura y arte
+                          </SelectItem>
+                          <SelectItem value="educacion">Educación</SelectItem>
+                          <SelectItem value="emergencia">
+                            Emergencias
+                          </SelectItem>
+                          <SelectItem value="igualdad">Igualdad</SelectItem>
+                          <SelectItem value="medioambiente">
+                            Medioambiente
+                          </SelectItem>
+                          <SelectItem value="salud">Salud</SelectItem>
+                          <SelectItem value="otros">Otros</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {formErrors.category && (
+                      <div className="error-text">{formErrors.category}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-step 3: Fundraising Goal */}
+            {currentSubStep === 3 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_1_SUB_STEPS[2].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_1_SUB_STEPS[2].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="space-y-4">
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        id="goalAmount"
+                      >
+                        Meta de recaudación
+                      </label>
                       <input
                         type="text"
-                        placeholder="Ingresa el nombre de tu campaña"
-                        className={`w-full rounded-lg border ${formErrors.title ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
-                        value={formData.title}
-                        onChange={(e) => {
-                          setFormData({ ...formData, title: e.target.value });
-                          if (e.target.value.length >= 3) {
-                            setFormErrors({ ...formErrors, title: "" });
-                          }
-                        }}
-                        maxLength={80}
+                        placeholder="Ingresa el monto a recaudar"
+                        className={`w-full rounded-lg border ${formErrors.goalAmount ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
+                        value={formatNumberWithSeparators(formData.goalAmount)}
+                        onChange={handleGoalAmountChange}
                       />
-                      <div className="text-sm text-gray-500 text-right mt-1">
-                        {formData.title.length}/80
-                      </div>
-                      {formErrors.title && (
-                        <div className="error-text">{formErrors.title}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div id="description">
-                    <label className="block text-lg font-medium mb-2">
-                      Detalle
-                    </label>
-                    <div className="relative">
-                      <textarea
-                        placeholder="Ejemplo: Su conservación depende de nosotros"
-                        rows={4}
-                        className={`w-full rounded-lg border ${formErrors.description ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
-                        value={formData.description}
-                        onChange={(e) => {
-                          setFormData({
-                            ...formData,
-                            description: e.target.value,
-                          });
-                          if (e.target.value.length >= 10) {
-                            setFormErrors({ ...formErrors, description: "" });
-                          }
-                        }}
-                        maxLength={150}
-                      />
-                      <div className="text-sm text-gray-500 text-right mt-1">
-                        {formData.description.length}/150
-                      </div>
-                      {formErrors.description && (
+                      {formErrors.goalAmount && (
                         <div className="error-text">
-                          {formErrors.description}
+                          {formErrors.goalAmount}
                         </div>
                       )}
+                      <div className="flex items-center gap-2 bg-[#EDF2FF] border border-[#365AFF] rounded-lg p-2 mt-4">
+                        <Image
+                          src="/views/create-campaign/Form/info.svg"
+                          alt="Info"
+                          width={20}
+                          height={20}
+                        />
+                        <span className="text-base text-gray-600">
+                          Este será el monto objetivo de tu campaña
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-8 md:mt-16 border-b border-[#478C5C]/20" />
-          </div>
+            )}
 
-          {/* Category */}
-          <div className="py-6 md:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="pt-0 md:pt-4">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
-                  Selecciona una categoría
-                </h2>
-                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                  Categoriza una categoría y tu campaña va ser encontrada más
-                  fácilmente por los donadores potenciales.
-                </p>
-              </div>
-              <div className="bg-white rounded-xl border border-black p-6 md:p-8">
-                <label className="block text-lg font-medium mb-2" id="category">
-                  Categoría
-                </label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, category: value });
-                    if (value) {
-                      setFormErrors({ ...formErrors, category: "" });
-                    }
-                  }}
-                >
-                  <SelectTrigger
-                    className={`ui-select-trigger w-full rounded-lg border ${formErrors.category ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4 text-base`}
-                  >
-                    <SelectValue placeholder="Seleccionar" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectGroup>
-                      <SelectItem value="cultura_arte">
-                        Cultura y arte
-                      </SelectItem>
-                      <SelectItem value="educacion">Educación</SelectItem>
-                      <SelectItem value="emergencia">Emergencias</SelectItem>
-                      <SelectItem value="igualdad">Igualdad</SelectItem>
-                      <SelectItem value="medioambiente">
-                        Medioambiente
-                      </SelectItem>
-                      <SelectItem value="salud">Salud</SelectItem>
-                      <SelectItem value="otros">Otros</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                {formErrors.category && (
-                  <div className="error-text">{formErrors.category}</div>
-                )}
-              </div>
-            </div>
-            <div className="mt-8 md:mt-16 border-b border-[#478C5C]/20" />
-          </div>
-
-          {/* Fundraising Goal */}
-          <div className="py-6 md:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="pt-0 md:pt-4">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
-                  Establece una meta de recaudación
-                </h2>
-                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                  Define una meta realista que te ayude a alcanzar el objetivo
-                  de tu campaña.
-                </p>
-              </div>
-              <div className="bg-white rounded-xl border border-black p-6 md:p-8">
-                <div className="space-y-4">
-                  <label
-                    className="block text-lg font-medium mb-2"
-                    id="goalAmount"
-                  >
-                    Meta de recaudación
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ingresa el monto a recaudar"
-                    className={`w-full rounded-lg border ${formErrors.goalAmount ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4`}
-                    value={formatNumberWithSeparators(formData.goalAmount)}
-                    onChange={handleGoalAmountChange}
-                  />
-                  {formErrors.goalAmount && (
-                    <div className="error-text">{formErrors.goalAmount}</div>
-                  )}
-                  <div className="flex items-center gap-2 bg-[#EDF2FF] border border-[#365AFF] rounded-lg p-2 mt-4">
-                    <Image
-                      src="/views/create-campaign/Form/info.svg"
-                      alt="Info"
-                      width={20}
-                      height={20}
-                    />
-                    <span className="text-base text-gray-600">
-                      Este será el monto objetivo de tu campaña
-                    </span>
+            {/* Sub-step 4: Media Upload */}
+            {currentSubStep === 4 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_1_SUB_STEPS[3].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_1_SUB_STEPS[3].description}
+                    </p>
                   </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 md:mt-16 border-b border-[#478C5C]/20" />
-          </div>
-
-          {/* Media Upload */}
-          <div className="py-6 md:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="pt-0 md:pt-4">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
-                  Agrega fotos y videos que ilustren tu causa
-                </h2>
-                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                  Imágenes poderosas que cuenten tu historia harán que tu
-                  campaña sea más personal y emotiva. Esto ayudará a inspirar y
-                  conectar con más personas que apoyen tu causa.
-                </p>
-              </div>
-              <div className="bg-white rounded-xl border border-black p-6 md:p-8">
-                <div className="space-y-6" id="media">
-                  <div
-                    className={`border-2 border-dashed ${formErrors.media ? "border-red-500" : "border-gray-400"} rounded-lg p-10 text-center bg-white`}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <div className="flex flex-col items-center justify-center">
-                      <Image
-                        src="/icons/add_ad.svg"
-                        alt="Add media"
-                        width={42}
-                        height={42}
-                        className="mb-4"
-                      />
-                      <p className="text-sm text-gray-500 mb-4">
-                        Arrastra o carga tus fotos aquí
-                      </p>
-                      <p className="text-xs text-gray-400 mb-4">
-                        Sólo archivos en formato JPEG, PNG y máximo 2 MB
-                      </p>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/jpeg,image/png"
-                        onChange={handleFileChange}
-                        disabled={isUploading}
-                      />
-                      <Button
-                        variant="outline"
-                        className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] border-0 rounded-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fileInputRef.current?.click();
-                        }}
-                        disabled={isUploading}
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="space-y-6" id="media">
+                      <div
+                        className={`border-2 border-dashed ${formErrors.media ? "border-red-500" : "border-gray-400"} rounded-lg p-10 text-center bg-white`}
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        {isUploading ? (
-                          <div className="flex items-center gap-2">
-                            <InlineSpinner className="text-white" />
-                            <span>Subiendo...</span>
-                          </div>
-                        ) : (
-                          "Seleccionar"
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  {formErrors.media && (
-                    <div className="error-text">{formErrors.media}</div>
-                  )}
-
-                  {/* Show upload progress */}
-                  {uploadingFile && (
-                    <UploadProgress
-                      progress={progress}
-                      fileName={uploadingFile.name}
-                    />
-                  )}
-
-                  {/* Preview uploaded images */}
-                  {mediaPreviewUrls.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-lg font-medium mb-3">
-                        Imágenes cargadas
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {mediaPreviewUrls.map((url, index) => (
-                          <div
-                            key={index}
-                            className={`relative rounded-lg overflow-hidden border ${index === 0 ? "border-[#2c6e49] ring-2 ring-[#2c6e49]" : "border-gray-200"}`}
+                        <div className="flex flex-col items-center justify-center">
+                          <Image
+                            src="/icons/add_ad.svg"
+                            alt="Add media"
+                            width={42}
+                            height={42}
+                            className="mb-4"
+                          />
+                          <p className="text-sm text-gray-500 mb-4">
+                            Arrastra o carga tus fotos aquí
+                          </p>
+                          <p className="text-xs text-gray-400 mb-4">
+                            Sólo archivos en formato JPEG, PNG y máximo 2 MB
+                          </p>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/jpeg,image/png"
+                            onChange={handleFileChange}
+                            disabled={isUploading}
+                          />
+                          <Button
+                            variant="outline"
+                            className="bg-[#2c6e49] text-white hover:bg-[#1e4d33] border-0 rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fileInputRef.current?.click();
+                            }}
+                            disabled={isUploading}
                           >
-                            <Image
-                              src={url}
-                              alt={`Media ${index + 1}`}
-                              width={200}
-                              height={150}
-                              className="w-full h-32 object-cover"
-                            />
-                            {index === 0 && (
-                              <div className="absolute top-2 left-2 bg-[#2c6e49] text-white text-xs px-2 py-1 rounded-full">
-                                Imagen principal
+                            {isUploading ? (
+                              <div className="flex items-center gap-2">
+                                <InlineSpinner className="text-white" />
+                                <span>Subiendo...</span>
                               </div>
+                            ) : (
+                              "Seleccionar"
                             )}
-                            <div className="absolute top-2 right-2 flex gap-1">
-                              <button
-                                className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditImage(index);
-                                }}
+                          </Button>
+                        </div>
+                      </div>
+                      {formErrors.media && (
+                        <div className="error-text">{formErrors.media}</div>
+                      )}
+
+                      {/* Show upload progress */}
+                      {uploadingFile && (
+                        <UploadProgress
+                          progress={progress}
+                          fileName={uploadingFile.name}
+                        />
+                      )}
+
+                      {/* Preview uploaded images */}
+                      {mediaPreviewUrls.length > 0 && (
+                        <div className="mt-4">
+                          <h3 className="text-lg font-medium mb-3">
+                            Imágenes cargadas
+                          </h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            {mediaPreviewUrls.map((url, index) => (
+                              <div
+                                key={index}
+                                className={`relative rounded-lg overflow-hidden border ${index === 0 ? "border-[#2c6e49] ring-2 ring-[#2c6e49]" : "border-gray-200"}`}
                               >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="text-blue-500"
-                                >
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                              </button>
-                              <button
-                                className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeMedia(index);
-                                }}
-                              >
-                                <X size={16} className="text-red-500" />
-                              </button>
-                            </div>
+                                <Image
+                                  src={url}
+                                  alt={`Media ${index + 1}`}
+                                  width={200}
+                                  height={150}
+                                  className="w-full h-32 object-cover"
+                                />
+                                {index === 0 && (
+                                  <div className="absolute top-2 left-2 bg-[#2c6e49] text-white text-xs px-2 py-1 rounded-full">
+                                    Imagen principal
+                                  </div>
+                                )}
+                                <div className="absolute top-2 right-2 flex gap-1">
+                                  <button
+                                    className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditImage(index);
+                                    }}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="text-blue-500"
+                                    >
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                  </button>
+                                  <button
+                                    className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeMedia(index);
+                                    }}
+                                  >
+                                    <X size={16} className="text-red-500" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-center my-6">
+                        <div className="flex-1 h-px bg-gray-300"></div>
+                        <div className="px-4 text-gray-500">O</div>
+                        <div className="flex-1 h-px bg-gray-300"></div>
                       </div>
+
+                      {/* YouTubeLinks Component */}
+                      <YouTubeLinks
+                        links={formData.youtubeUrls || []}
+                        onChange={handleYouTubeLinksChange}
+                      />
                     </div>
-                  )}
-
-                  <div className="flex items-center justify-center my-6">
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                    <div className="px-4 text-gray-500">O</div>
-                    <div className="flex-1 h-px bg-gray-300"></div>
                   </div>
-
-                  {/* YouTubeLinks Component */}
-                  <YouTubeLinks
-                    links={formData.youtubeUrls || []}
-                    onChange={handleYouTubeLinksChange}
-                  />
                 </div>
               </div>
-            </div>
-            <div className="mt-8 md:mt-16 border-b border-[#478C5C]/20" />
-          </div>
+            )}
 
-          {/* Location */}
-          <div className="py-6 md:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="pt-0 md:pt-4">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
-                  Señala la ubicación de tu campaña
-                </h2>
-                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                  ¿Dónde se desarrolla tu campaña? Agrega su ubicación.
-                </p>
-              </div>
-              <div className="bg-white rounded-xl border border-black p-6 md:p-8">
-                {/* Department Selector */}
-                <label className="block text-lg font-medium mb-2">
-                  Departamento
-                </label>
-                <div className="relative mb-4">
-                  <Select
-                    value={formData.location}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, location: value as any })
-                    }
-                  >
-                    <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4">
-                      <div className="flex items-center w-full">
-                        <MapPin className="h-5 w-5 mr-2 text-gray-400 shrink-0" />
-                        <SelectValue
-                          placeholder="Selecciona un departamento"
-                          className="text-sm md:text-base"
-                        />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectGroup>
-                        <SelectItem
-                          value="la_paz"
-                          className="text-sm md:text-base py-2"
-                        >
-                          La Paz
-                        </SelectItem>
-                        <SelectItem
-                          value="santa_cruz"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Santa Cruz
-                        </SelectItem>
-                        <SelectItem
-                          value="cochabamba"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Cochabamba
-                        </SelectItem>
-                        <SelectItem
-                          value="sucre"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Sucre
-                        </SelectItem>
-                        <SelectItem
-                          value="oruro"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Oruro
-                        </SelectItem>
-                        <SelectItem
-                          value="potosi"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Potosí
-                        </SelectItem>
-                        <SelectItem
-                          value="tarija"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Tarija
-                        </SelectItem>
-                        <SelectItem
-                          value="beni"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Beni
-                        </SelectItem>
-                        <SelectItem
-                          value="pando"
-                          className="text-sm md:text-base py-2"
-                        >
-                          Pando
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Province Selector */}
-                <label className="block text-lg font-medium mb-2">
-                  Provincia (opcional)
-                </label>
-                <div className="relative">
-                  <Select
-                    value={formData.province || ""}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, province: value || undefined })
-                    }
-                  >
-                    <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4">
-                      <div className="flex items-center w-full">
-                        <MapPin className="h-5 w-5 mr-2 text-gray-400 shrink-0" />
-                        <SelectValue
-                          placeholder={
-                            availableProvinces.length > 0
-                              ? "Selecciona una provincia"
-                              : "Primero selecciona un departamento"
-                          }
-                          className="text-sm md:text-base"
-                        />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectGroup>
-                        {availableProvinces.map((province) => (
-                          <SelectItem
-                            key={province.value}
-                            value={province.value}
-                            className="text-sm md:text-base py-2"
-                          >
-                            {province.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center gap-2 mt-4">
-                  <Image
-                    src="/views/create-campaign/Form/Base/info.svg"
-                    alt="Info"
-                    width={16}
-                    height={16}
-                  />
-                  <span className="text-base text-gray-600">
-                    Departamento es requerido, provincia es opcional
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 md:mt-16 border-b border-[#478C5C]/20" />
-          </div>
-
-          {/* Duration - REPLACED WITH DATE PICKER */}
-          <div className="py-6 md:py-12" id="endDate">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="pt-0 md:pt-4">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
-                  Define el tiempo que durará tu campaña
-                </h2>
-                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                  ¿Hasta qué fecha deberá estar vigente tu campaña? Establece un
-                  tiempo de duración. Toma en cuenta que, una vez publicada tu
-                  campaña, no podrás modificar este plazo.
-                </p>
-              </div>
-              <div className="bg-white rounded-xl border border-black p-6 md:p-8">
-                <label className="block text-lg font-medium mb-2">
-                  Fecha de finalización
-                </label>
-                <div className="relative">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="DD/MM/AAAA"
-                          className={`w-full rounded-lg border ${formErrors.endDate ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 pl-10 h-14 px-4 cursor-pointer`}
-                          value={formData.endDate ? formData.endDate : ""}
-                          readOnly
-                        />
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={
-                          formData.endDate
-                            ? new Date(formData.endDate)
-                            : undefined
+            {/* Sub-step 5: Location */}
+            {currentSubStep === 5 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_1_SUB_STEPS[4].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_1_SUB_STEPS[4].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    {/* Department Selector */}
+                    <label className="block text-lg font-medium mb-2">
+                      Departamento
+                    </label>
+                    <div className="relative mb-4">
+                      <Select
+                        value={formData.location}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, location: value as any })
                         }
-                        onSelect={(date) => {
-                          if (date) {
-                            const formattedDate = format(date, "yyyy-MM-dd");
-                            setFormData({
-                              ...formData,
-                              endDate: formattedDate,
-                            });
-                            setFormErrors({ ...formErrors, endDate: "" });
+                      >
+                        <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4">
+                          <div className="flex items-center w-full">
+                            <MapPin className="h-5 w-5 mr-2 text-gray-400 shrink-0" />
+                            <SelectValue
+                              placeholder="Selecciona un departamento"
+                              className="text-sm md:text-base"
+                            />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                          <SelectGroup>
+                            <SelectItem
+                              value="la_paz"
+                              className="text-sm md:text-base py-2"
+                            >
+                              La Paz
+                            </SelectItem>
+                            <SelectItem
+                              value="santa_cruz"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Santa Cruz
+                            </SelectItem>
+                            <SelectItem
+                              value="cochabamba"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Cochabamba
+                            </SelectItem>
+                            <SelectItem
+                              value="sucre"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Sucre
+                            </SelectItem>
+                            <SelectItem
+                              value="oruro"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Oruro
+                            </SelectItem>
+                            <SelectItem
+                              value="potosi"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Potosí
+                            </SelectItem>
+                            <SelectItem
+                              value="tarija"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Tarija
+                            </SelectItem>
+                            <SelectItem
+                              value="beni"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Beni
+                            </SelectItem>
+                            <SelectItem
+                              value="pando"
+                              className="text-sm md:text-base py-2"
+                            >
+                              Pando
+                            </SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Province Selector */}
+                    <label className="block text-lg font-medium mb-2">
+                      Provincia (opcional)
+                    </label>
+                    <div className="relative">
+                      <Select
+                        value={formData.province || ""}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            province: value || undefined,
+                          })
+                        }
+                      >
+                        <SelectTrigger className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-14 px-4">
+                          <div className="flex items-center w-full">
+                            <MapPin className="h-5 w-5 mr-2 text-gray-400 shrink-0" />
+                            <SelectValue
+                              placeholder={
+                                availableProvinces.length > 0
+                                  ? "Selecciona una provincia"
+                                  : "Primero selecciona un departamento"
+                              }
+                              className="text-sm md:text-base"
+                            />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                          <SelectGroup>
+                            {availableProvinces.map((province) => (
+                              <SelectItem
+                                key={province.value}
+                                value={province.value}
+                                className="text-sm md:text-base py-2"
+                              >
+                                {province.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-4">
+                      <Image
+                        src="/views/create-campaign/Form/Base/info.svg"
+                        alt="Info"
+                        width={16}
+                        height={16}
+                      />
+                      <span className="text-base text-gray-600">
+                        Departamento es requerido, provincia es opcional
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-step 6: Duration */}
+            {currentSubStep === 6 && (
+              <div className="w-full py-6 md:py-12" id="endDate">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_1_SUB_STEPS[5].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_1_SUB_STEPS[5].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <label className="block text-lg font-medium mb-2">
+                      Fecha de finalización
+                    </label>
+                    <div className="relative">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="DD/MM/AAAA"
+                              className={`w-full rounded-lg border ${formErrors.endDate ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 pl-10 h-14 px-4 cursor-pointer`}
+                              value={formData.endDate ? formData.endDate : ""}
+                              readOnly
+                            />
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={
+                              formData.endDate
+                                ? new Date(formData.endDate)
+                                : undefined
+                            }
+                            onSelect={(date) => {
+                              if (date) {
+                                const formattedDate = format(
+                                  date,
+                                  "yyyy-MM-dd"
+                                );
+                                setFormData({
+                                  ...formData,
+                                  endDate: formattedDate,
+                                });
+                                setFormErrors({ ...formErrors, endDate: "" });
+                              }
+                            }}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {formErrors.endDate && (
+                        <div className="error-text">{formErrors.endDate}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-step 7: Campaign Story */}
+            {currentSubStep === 7 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_1_SUB_STEPS[6].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_1_SUB_STEPS[6].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="relative" id="story">
+                      <label className="block text-lg font-medium mb-2">
+                        Presentación de la campaña (historia)
+                      </label>
+                      <textarea
+                        rows={4}
+                        placeholder="Ejemplo: Su conservación depende de nosotros"
+                        className={`w-full rounded-lg border ${formErrors.story ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
+                        value={formData.story}
+                        onChange={(e) => {
+                          setFormData({ ...formData, story: e.target.value });
+                          if (
+                            e.target.value.length >= 10 &&
+                            e.target.value.length <= 600
+                          ) {
+                            setFormErrors({ ...formErrors, story: "" });
                           }
                         }}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
+                        maxLength={600}
                       />
-                    </PopoverContent>
-                  </Popover>
-                  {formErrors.endDate && (
-                    <div className="error-text">{formErrors.endDate}</div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 md:mt-16 border-b border-[#478C5C]/20" />
-          </div>
-
-          {/* Campaign Story */}
-          <div className="py-6 md:py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="pt-0 md:pt-4">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
-                  Ahora sí: ¡Cuenta tu historia!
-                </h2>
-                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                  Inspira a los demás compartiendo el propósito de tu proyecto.
-                  Sé claro y directo para que tu causa conecte de manera
-                  profunda con quienes pueden hacer la diferencia.
-                </p>
-              </div>
-              <div className="bg-white rounded-xl border border-black p-6 md:p-8">
-                <div className="relative" id="story">
-                  <label className="block text-lg font-medium mb-2">
-                    Presentación de la campaña (historia)
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Ejemplo: Su conservación depende de nosotros"
-                    className={`w-full rounded-lg border ${formErrors.story ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
-                    value={formData.story}
-                    onChange={(e) => {
-                      setFormData({ ...formData, story: e.target.value });
-                      if (
-                        e.target.value.length >= 10 &&
-                        e.target.value.length <= 600
-                      ) {
-                        setFormErrors({ ...formErrors, story: "" });
-                      }
-                    }}
-                    maxLength={600}
-                  />
-                  <div className="text-sm text-gray-500 text-right mt-1">
-                    {formData.story.length}/600
+                      <div className="text-sm text-gray-500 text-right mt-1">
+                        {formData.story.length}/600
+                      </div>
+                      {formErrors.story && (
+                        <div className="error-text">{formErrors.story}</div>
+                      )}
+                    </div>
                   </div>
-                  {formErrors.story && (
-                    <div className="error-text">{formErrors.story}</div>
-                  )}
                 </div>
               </div>
-            </div>
-            <div className="mt-8 md:mt-16 border-b border-[#478C5C]/20" />
+            )}
           </div>
 
-          {/* Submit Buttons */}
+          {/* Navigation Buttons */}
           <div className="py-6 md:py-12">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
               <Button
                 variant="outline"
                 className="w-full sm:w-auto rounded-full bg-white text-[#2c6e49] border-[#2c6e49] hover:bg-[#f0f7f1] px-8"
-                onClick={async () => {
-                  try {
-                    setIsSubmitting(true);
-                    // Validate form and save as draft
-                    if (!validateForm()) {
-                      // Show alert for validation errors
-                      alert(
-                        "Por favor completa todos los campos requeridos antes de guardar."
-                      );
+                onClick={prevSubStep}
+                disabled={currentSubStep === 1 || isSubStepAnimating}
+              >
+                Anterior
+              </Button>
 
-                      // Scroll to the first error
-                      const firstError = Object.keys(formErrors)[0];
-                      const errorElement = document.getElementById(firstError);
-                      if (errorElement) {
-                        errorElement.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                {currentSubStep === STEP_1_SUB_STEPS.length && (
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto rounded-full bg-white text-[#2c6e49] border-[#2c6e49] hover:bg-[#f0f7f1] px-8"
+                    onClick={async () => {
+                      try {
+                        setIsSubmitting(true);
+                        // Validate form and save as draft
+                        if (!validateForm()) {
+                          // Show alert for validation errors
+                          alert(
+                            "Por favor completa todos los campos requeridos antes de guardar."
+                          );
+                          return;
+                        }
+
+                        // Process media if not already done
+                        const mediaUploaded = await ensureMediaIsUploaded();
+                        if (!mediaUploaded) {
+                          return;
+                        }
+
+                        // Prepare data for API
+                        const apiData = {
+                          ...formData,
+                          // Convert goalAmount to number by removing separators
+                          goalAmount: removeNumberSeparators(
+                            String(formData.goalAmount)
+                          ),
+                          media: uploadedUrls.map((url, index) => ({
+                            mediaUrl: url,
+                            type: "image" as const,
+                            isPrimary: index === 0,
+                            orderIndex: index,
+                          })),
+                          youtubeUrls: formData.youtubeUrls || [],
+                        };
+
+                        // Save as draft and go to next step
+                        const success = await saveCampaignDraft(apiData);
+                        if (success) {
+                          setCurrentStep(2);
+                          setCurrentSubStep(1);
+                          window.scrollTo(0, 0);
+                        }
+                      } catch (error) {
+                        console.error("Error saving draft:", error);
+                        toast({
+                          title: "Error",
+                          description: "Error al guardar el borrador",
+                          variant: "destructive",
                         });
+                      } finally {
+                        setIsSubmitting(false);
                       }
-                      return;
-                    }
-
-                    // Process media if not already done
-                    const mediaUploaded = await ensureMediaIsUploaded();
-                    if (!mediaUploaded) {
-                      return;
-                    }
-
-                    // Prepare data for API
-                    const apiData = {
-                      ...formData,
-                      // Convert goalAmount to number by removing separators
-                      goalAmount: removeNumberSeparators(
-                        String(formData.goalAmount)
-                      ),
-                      media: uploadedUrls.map((url, index) => ({
-                        mediaUrl: url,
-                        type: "image" as const,
-                        isPrimary: index === 0,
-                        orderIndex: index,
-                      })),
-                      youtubeUrls: formData.youtubeUrls || [],
-                    };
-
-                    // Save as draft and go to next step
-                    const success = await saveCampaignDraft(apiData);
-                    if (success) {
-                      setCurrentStep(2);
-                      window.scrollTo(0, 0);
-                    }
-                  } catch (error) {
-                    console.error("Error saving draft:", error);
-                    toast({
-                      title: "Error",
-                      description: "Error al guardar el borrador",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setIsSubmitting(false);
-                  }
-                }}
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <InlineSpinner className="text-[#2c6e49]" />
-                    <span>Guardando...</span>
-                  </div>
-                ) : (
-                  "Guardar como borrador"
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <InlineSpinner className="text-[#2c6e49]" />
+                        <span>Guardando...</span>
+                      </div>
+                    ) : (
+                      "Guardar como borrador"
+                    )}
+                  </Button>
                 )}
-              </Button>
-              <Button
-                className="w-full sm:w-auto rounded-full bg-[#2c6e49] hover:bg-[#1e4d33] px-8"
-                onClick={nextStep}
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <InlineSpinner className="text-white" />
-                    <span>Guardando...</span>
-                  </div>
-                ) : (
-                  "Continuar"
-                )}
-              </Button>
+
+                <Button
+                  className="w-full sm:w-auto rounded-full bg-[#2c6e49] hover:bg-[#1e4d33] px-8"
+                  onClick={nextSubStep}
+                  disabled={isSubStepAnimating || isSubmitting}
+                >
+                  {currentSubStep === STEP_1_SUB_STEPS.length ? (
+                    isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <InlineSpinner className="text-white" />
+                        <span>Guardando...</span>
+                      </div>
+                    ) : (
+                      "Continuar"
+                    )
+                  ) : (
+                    "Siguiente"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -2033,7 +2365,7 @@ export function CampaignForm() {
           className={`form-step ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""} max-w-6xl mx-auto space-y-24`}
         >
           {/* Full-width header for "Destino de los fondos" */}
-          <div className="w-screen relative left-[50%] right-[50%] ml-[-50vw] mr-[-50vw] h-[400px] mt-16">
+          <div className="w-screen relative left-[50%] right-[50%] ml-[-50vw] mr-[-50vw] h-[300px] md:h-[500px]">
             <Image
               src="/page-header.svg"
               alt="Page Header"
@@ -2042,7 +2374,7 @@ export function CampaignForm() {
               priority
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <h1 className="text-[80px] font-bold text-white">
+              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[90px] font-bold text-white">
                 Destino de los fondos
               </h1>
             </div>
@@ -2321,68 +2653,209 @@ export function CampaignForm() {
       )}
 
       {/* Persona Jurídica Modal */}
-      {showPersonaJuridicaModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold">
-                  Datos de la Persona Jurídica
-                </h3>
-                <button
-                  onClick={closePersonaJuridicaModal}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X size={24} />
-                </button>
+      <Dialog
+        open={showPersonaJuridicaModal}
+        onOpenChange={setShowPersonaJuridicaModal}
+      >
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Seleccionar Persona Jurídica</DialogTitle>
+            <DialogDescription>
+              Selecciona la organización que recibirá los fondos recaudados en
+              tu campaña
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Search Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Buscar organización
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  className="w-full pl-10 h-11 border-gray-300 focus:border-[#478C5C] focus:ring-[#478C5C]"
+                  placeholder="Buscar por nombre, NIT, ciudad..."
+                  value={legalEntitiesSearch}
+                  onChange={(e) => {
+                    setLegalEntitiesSearch(e.target.value);
+                    // Debounce search
+                    clearTimeout((window as any).searchTimeout);
+                    (window as any).searchTimeout = setTimeout(() => {
+                      loadLegalEntities(e.target.value);
+                    }, 300);
+                  }}
+                />
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Legal Entity Information */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium">
-                  Información de la Persona Jurídica
-                </h4>
+            {/* Legal Entities Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700">
+                Organizaciones disponibles *
+              </label>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Nombre de la entidad *
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-lg border border-gray-300 bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 h-12 px-4"
-                    placeholder="Ej: Fundación Ejemplo S.A."
-                    value={personaJuridicaForm.entityName}
-                    onChange={(e) =>
-                      setPersonaJuridicaForm({
-                        ...personaJuridicaForm,
-                        entityName: e.target.value,
-                      })
-                    }
-                  />
+              {loadingLegalEntities ? (
+                <div className="flex items-center justify-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                  <div className="text-center">
+                    <InlineSpinner className="mx-auto mb-3 text-[#478C5C]" />
+                    <p className="text-sm text-gray-600">
+                      Cargando organizaciones...
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : legalEntities.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                  <Building2 className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                  <p className="text-lg font-medium text-gray-600 mb-2">
+                    No se encontraron organizaciones
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {legalEntitiesSearch
+                      ? "Intenta con otros términos de búsqueda"
+                      : "No hay organizaciones registradas en el sistema"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg">
+                  {legalEntities.map((entity) => (
+                    <div
+                      key={entity.id}
+                      className={`p-4 cursor-pointer transition-all duration-200 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
+                        personaJuridicaForm.selectedEntityId === entity.id
+                          ? "bg-[#f0f7f1] border-l-4 border-l-[#478C5C]"
+                          : ""
+                      }`}
+                      onClick={() =>
+                        setPersonaJuridicaForm({
+                          ...personaJuridicaForm,
+                          selectedEntityId: entity.id,
+                          entityName: entity.name,
+                        })
+                      }
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold text-gray-900">
+                              {entity.name}
+                            </h4>
+                            {personaJuridicaForm.selectedEntityId ===
+                              entity.id && (
+                              <div className="bg-[#478C5C] text-white text-xs px-2 py-1 rounded-full">
+                                Seleccionado
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-600">
+                            {entity.taxId && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">NIT:</span>
+                                <span>{entity.taxId}</span>
+                              </div>
+                            )}
+                            {entity.legalForm && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">
+                                  Forma legal:
+                                </span>
+                                <span>{entity.legalForm}</span>
+                              </div>
+                            )}
+                            {entity.city && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">Ciudad:</span>
+                                <span>{entity.city}</span>
+                              </div>
+                            )}
+                            {entity.department && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">
+                                  Departamento:
+                                </span>
+                                <span className="capitalize">
+                                  {entity.department.replace("_", " ")}
+                                </span>
+                              </div>
+                            )}
+                            {entity.email && (
+                              <div className="flex items-center gap-1 md:col-span-2">
+                                <span className="font-medium">Email:</span>
+                                <span>{entity.email}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {entity.description && (
+                            <p className="text-sm text-gray-500 mt-2 line-clamp-2">
+                              {entity.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="p-6 border-t flex justify-end space-x-4">
-              <Button
-                variant="outline"
-                onClick={closePersonaJuridicaModal}
-                className="rounded-full"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handlePersonaJuridicaSubmit}
-                className="bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full"
-              >
-                Continuar
-              </Button>
-            </div>
+            {/* Selected Entity Summary */}
+            {personaJuridicaForm.selectedEntityId && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                {(() => {
+                  const selectedEntity = legalEntities.find(
+                    (e) => e.id === personaJuridicaForm.selectedEntityId
+                  );
+                  return selectedEntity ? (
+                    <div>
+                      <h5 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Organización seleccionada
+                      </h5>
+                      <div className="text-sm space-y-1">
+                        <p className="font-medium text-gray-900">
+                          {selectedEntity.name}
+                        </p>
+                        {selectedEntity.taxId && (
+                          <p className="text-gray-700">
+                            NIT: {selectedEntity.taxId}
+                          </p>
+                        )}
+                        {selectedEntity.city && selectedEntity.department && (
+                          <p className="text-gray-700">
+                            {selectedEntity.city},{" "}
+                            {selectedEntity.department.replace("_", " ")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+
+          <DialogFooter className="flex justify-between gap-3">
+            <Button
+              variant="outline"
+              onClick={closePersonaJuridicaModal}
+              className="flex-1 rounded-full"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handlePersonaJuridicaSubmit}
+              className="flex-1 bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full"
+              disabled={!personaJuridicaForm.selectedEntityId}
+            >
+              Continuar con esta organización
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
