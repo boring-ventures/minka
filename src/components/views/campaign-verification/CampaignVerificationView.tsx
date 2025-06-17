@@ -93,6 +93,13 @@ export function CampaignVerificationView({
     "next"
   );
 
+  // Add sub-step state management for step 2
+  const [currentSubStep, setCurrentSubStep] = useState(1);
+  const [isSubStepAnimating, setIsSubStepAnimating] = useState(false);
+  const [subStepAnimationDirection, setSubStepAnimationDirection] = useState<
+    "next" | "prev"
+  >("next");
+
   // Form states
   const [idDocumentFrontFile, setIdDocumentFrontFile] = useState<File | null>(
     null
@@ -115,6 +122,9 @@ export function CampaignVerificationView({
     phone: "",
     countryCode: "BO", // Default to Bolivia
   });
+
+  // Add state for form validation errors
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Add state for image queue
   const [pendingImageQueue, setPendingImageQueue] = useState<File[]>([]);
@@ -162,6 +172,112 @@ export function CampaignVerificationView({
   });
   const [isLoadingVerificationStatus, setIsLoadingVerificationStatus] =
     useState(false);
+
+  // Add constants for sub-steps in step 2
+  const STEP_2_SUB_STEPS = [
+    {
+      id: 1,
+      title: "Documento de Identidad",
+      description:
+        "Adjunta la foto del anverso y reverso de tu Documento de Identidad para validar tu información personal como responsable de la campaña.",
+    },
+    {
+      id: 2,
+      title: "Documentación de respaldo",
+      description:
+        "Adjunta documentos adicionales que respalden tu campaña según su tipo y propósito.",
+    },
+    {
+      id: 3,
+      title: "Historia de tu campaña",
+      description:
+        "Cuenta la historia completa de tu campaña para que nuestro equipo pueda entender mejor tu propósito.",
+    },
+    {
+      id: 4,
+      title: "Contacto de referencia (opcional)",
+      description:
+        "Incluye un contacto que puedo confirmar la autenticidad de tu campaña.",
+    },
+  ];
+
+  // Add sub-step navigation functions
+  const nextSubStep = () => {
+    if (currentSubStep < STEP_2_SUB_STEPS.length) {
+      // Validate current sub-step before proceeding
+      if (!validateCurrentSubStep()) {
+        return;
+      }
+
+      setSubStepAnimationDirection("next");
+      setIsSubStepAnimating(true);
+      setTimeout(() => {
+        setCurrentSubStep(currentSubStep + 1);
+        setTimeout(() => {
+          setIsSubStepAnimating(false);
+        }, 50);
+      }, 300);
+    }
+  };
+
+  const prevSubStep = () => {
+    if (currentSubStep > 1) {
+      setSubStepAnimationDirection("prev");
+      setIsSubStepAnimating(true);
+      setTimeout(() => {
+        setCurrentSubStep(currentSubStep - 1);
+        setTimeout(() => {
+          setIsSubStepAnimating(false);
+        }, 50);
+      }, 300);
+    }
+  };
+
+  // Add validation for current sub-step
+  const validateCurrentSubStep = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    switch (currentSubStep) {
+      case 1: // ID Document
+        if (!idDocumentFrontFile) {
+          errors.idDocumentFront = "Debes adjuntar el anverso de tu documento";
+        }
+        if (!idDocumentBackFile) {
+          errors.idDocumentBack = "Debes adjuntar el reverso de tu documento";
+        }
+        break;
+      case 2: // Supporting Documents - Optional, no validation needed
+        break;
+      case 3: // Campaign Story
+        if (!campaignStory || campaignStory.length < 50) {
+          errors.campaignStory =
+            "La historia debe tener al menos 50 caracteres";
+        }
+        break;
+      case 4: // Reference Contact - Optional, no validation needed
+        break;
+    }
+
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      toast({
+        title: "Campos incompletos",
+        description:
+          "Por favor completa todos los campos requeridos antes de continuar.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  // Helper function to validate email
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   // Get campaign ID from props or fetch unverified campaigns on mount
   useEffect(() => {
@@ -375,6 +491,7 @@ export function CampaignVerificationView({
     // After animation fade-out completes, change step and reset animation
     setTimeout(() => {
       setVerificationStep(2);
+      setCurrentSubStep(1); // Initialize sub-steps
       window.scrollTo({ top: 0, behavior: "smooth" });
 
       // Reset animation state after step change
@@ -818,11 +935,49 @@ export function CampaignVerificationView({
 
   // Handle reference contact form submission
   const handleReferenceSubmit = () => {
+    // Validate email if provided
+    if (referenceContact.email && !isValidEmail(referenceContact.email)) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor ingresa un email válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate name if provided
+    if (referenceContact.name && referenceContact.name.trim().length < 2) {
+      toast({
+        title: "Nombre inválido",
+        description: "El nombre debe tener al menos 2 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Require both name and email if any contact info is provided
+    if (
+      (referenceContact.name ||
+        referenceContact.email ||
+        referenceContact.phone) &&
+      (!referenceContact.name || !referenceContact.email)
+    ) {
+      toast({
+        title: "Información incompleta",
+        description:
+          "Si agregas un contacto de referencia, el nombre y email son obligatorios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setShowReferenceModal(false);
-    toast({
-      title: "Contacto agregado",
-      description: "Se ha agregado el contacto de referencia correctamente.",
-    });
+    if (referenceContact.name && referenceContact.email) {
+      toast({
+        title: "Contacto agregado",
+        description: "Se ha agregado el contacto de referencia correctamente.",
+      });
+    }
   };
 
   // Return to campaign after success
@@ -982,6 +1137,56 @@ export function CampaignVerificationView({
 
         .verification-step.fade-in {
           opacity: 1;
+        }
+
+        /* Sub-step animations */
+        .sub-step {
+          opacity: 1;
+          transform: translateX(0);
+          transition: all 0.3s ease-in-out;
+        }
+
+        .sub-step.fade-out-next {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+
+        .sub-step.fade-out-prev {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+
+        .sub-step.fade-in-next {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
+        .sub-step.fade-in-prev {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
+        /* Form input styling */
+        input,
+        textarea,
+        select,
+        .bg-card {
+          background-color: white !important;
+        }
+        input:focus,
+        textarea:focus,
+        select:focus,
+        [data-state="open"] > .ui-select-trigger {
+          border-color: #478c5c !important;
+          outline: none !important;
+        }
+        .error-input {
+          border-color: #e11d48 !important;
+        }
+        .error-text {
+          color: #e11d48;
+          font-size: 0.875rem;
+          margin-top: 0.25rem;
         }
       `}</style>
 
@@ -1521,732 +1726,703 @@ export function CampaignVerificationView({
         </div>
       )}
 
-      {/* Verification Form Section - Step 2 */}
+      {/* Verification Form Section - Step 2 with Sub-steps */}
       {verificationStep === 2 && (
         <div
           className={`verification-step max-w-6xl mx-auto ${isAnimating ? (animationDirection === "next" ? "fade-out" : "fade-in") : ""}`}
         >
-          <div className="py-12">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">
-                Completa tu verificación
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Completa los datos requeridos para validar y fortalecer la
-                credibilidad de tu campaña. El proceso es totalmente gratuito.
-              </p>
-            </div>
-
-            {/* ID Document Upload */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-8">
-              <div>
-                <h3 className="text-2xl font-medium mb-4">
-                  Documento de Identidad
-                </h3>
-                <p className="text-lg text-gray-600 leading-relaxed mb-2">
-                  Adjunta la foto del anverso y reverso de tu Documento de
-                  Identidad para validar tu información personal como
-                  responsable de la campaña.
-                </p>
-                <p className="text-md text-gray-500 italic">
-                  Asegúrate de que ambos lados sean legibles y que todos los
-                  datos sean visibles.
-                </p>
-              </div>
-
-              <div className="space-y-8">
-                {/* Anverso (Front) Upload */}
-                <div className="bg-white rounded-xl border border-black p-6">
-                  <h4 className="font-medium text-lg mb-4">
-                    Anverso de la Identificación
-                  </h4>
-
-                  {idDocumentFrontFile ? (
-                    <div className="w-full">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-gray-700 font-medium">
+          {/* Sub-step Content */}
+          <div
+            className={`sub-step min-h-[70vh] flex items-center ${
+              isSubStepAnimating
+                ? subStepAnimationDirection === "next"
+                  ? "fade-out-next"
+                  : "fade-out-prev"
+                : "fade-in-next"
+            }`}
+          >
+            {/* Sub-step 1: ID Document Upload */}
+            {currentSubStep === 1 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_2_SUB_STEPS[0].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_2_SUB_STEPS[0].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="space-y-6">
+                      {/* Front Side Upload */}
+                      <div>
+                        <label className="block text-lg font-medium mb-2">
                           Anverso del documento
-                        </span>
-                        <div className="flex gap-2">
-                          {getImageType(idDocumentFrontFile) === "image" && (
-                            <button
-                              onClick={() => {
-                                const objectUrl =
-                                  URL.createObjectURL(idDocumentFrontFile);
-                                setEditingImageUrl(objectUrl);
-                                setEditingIdDocumentSide("front");
-                                setIsIdDocumentEditing(true);
-                              }}
-                              className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                              title="Editar imagen"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="text-blue-500"
-                              >
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                              </svg>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setIdDocumentFrontFile(null)}
-                            className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                            title="Eliminar documento"
-                          >
-                            <X size={16} className="text-red-500" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {getImageType(idDocumentFrontFile) === "image" ? (
-                        <div className="relative rounded-lg overflow-hidden border border-gray-200 mb-3">
-                          <Image
-                            src={URL.createObjectURL(idDocumentFrontFile)}
-                            alt="Anverso del documento"
-                            width={300}
-                            height={200}
-                            className="w-full h-48 object-contain bg-gray-100"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
-                          <FileText size={24} className="text-gray-500" />
-                          <span className="text-sm text-gray-800 truncate">
-                            {idDocumentFrontFile.name}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
-                        <CheckCircle2 size={16} className="mr-2" />
-                        <span className="text-sm">
-                          Anverso cargado correctamente
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-white"
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.classList.add("border-[#2c6e49]");
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.classList.remove("border-[#2c6e49]");
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.classList.remove("border-[#2c6e49]");
-
-                        if (
-                          e.dataTransfer.files &&
-                          e.dataTransfer.files.length > 0
-                        ) {
-                          // Create a synthetic event object to pass to the handler
-                          const fileList = e.dataTransfer.files;
-                          const event = {
-                            target: {
-                              files: fileList,
-                            },
-                          } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-                          handleIdDocumentUpload(event, "front");
-                        }
-                      }}
-                    >
-                      <div className="flex flex-col items-center justify-center">
-                        <Image
-                          src="/icons/add_ad.svg"
-                          alt="Add front ID"
-                          width={42}
-                          height={42}
-                          className="mb-4"
-                        />
-                        <p className="text-sm text-gray-500 mb-2">
-                          Arrastra o carga el anverso de tu CI aquí
-                        </p>
-                        <p className="text-xs text-gray-400 mb-4">
-                          Archivos JPG, PNG, PDF (máx. 10 MB)
-                        </p>
-                        <div>
-                          <input
-                            id="id-document-front-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleIdDocumentUpload(e, "front")}
-                            className="hidden"
-                          />
-                          <Button
-                            onClick={() =>
-                              document
-                                .getElementById("id-document-front-upload")
-                                ?.click()
-                            }
-                            className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full cursor-pointer"
-                            type="button"
-                            disabled={isSubmitting}
-                          >
-                            {isSubmitting &&
-                            currentUploadingFile === idDocumentFrontFile ? (
-                              <div className="flex items-center gap-2">
-                                <InlineSpinner className="text-white" />
-                                <span>Subiendo...</span>
+                        </label>
+                        {idDocumentFrontFile ? (
+                          <div className="w-full">
+                            <div className="flex justify-between items-center mb-4">
+                              <span className="text-gray-700 font-medium">
+                                Anverso del documento
+                              </span>
+                              <div className="flex gap-2">
+                                {getImageType(idDocumentFrontFile) ===
+                                  "image" && (
+                                  <button
+                                    onClick={() => {
+                                      const objectUrl =
+                                        URL.createObjectURL(
+                                          idDocumentFrontFile
+                                        );
+                                      setEditingImageUrl(objectUrl);
+                                      setEditingIdDocumentSide("front");
+                                      setIsIdDocumentEditing(true);
+                                    }}
+                                    className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                    title="Editar imagen"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="text-blue-500"
+                                    >
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setIdDocumentFrontFile(null);
+                                    setFormErrors({
+                                      ...formErrors,
+                                      idDocumentFront: "",
+                                    });
+                                  }}
+                                  className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                  title="Eliminar documento"
+                                >
+                                  <X size={16} className="text-red-500" />
+                                </button>
+                              </div>
+                            </div>
+                            {getImageType(idDocumentFrontFile) === "image" ? (
+                              <div className="relative rounded-lg overflow-hidden border border-gray-200 mb-3">
+                                <Image
+                                  src={URL.createObjectURL(idDocumentFrontFile)}
+                                  alt="Anverso del documento"
+                                  width={300}
+                                  height={200}
+                                  className="w-full h-48 object-contain bg-gray-100"
+                                />
                               </div>
                             ) : (
-                              "Seleccionar"
+                              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                                <FileText size={24} className="text-gray-500" />
+                                <span className="text-sm text-gray-800 truncate">
+                                  {idDocumentFrontFile.name}
+                                </span>
+                              </div>
                             )}
-                          </Button>
-                        </div>
+                            <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
+                              <CheckCircle2 size={16} className="mr-2" />
+                              <span className="text-sm">
+                                Anverso cargado correctamente
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={`border-2 border-dashed ${formErrors.idDocumentFront ? "border-red-500" : "border-gray-400"} rounded-lg p-6 text-center bg-white cursor-pointer`}
+                            onClick={() =>
+                              document.getElementById("front-upload")?.click()
+                            }
+                          >
+                            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-lg font-medium text-gray-900 mb-2">
+                              Sube el anverso de tu documento
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Formatos: JPG, PNG, PDF. Máximo 5MB
+                            </p>
+                            <input
+                              id="front-upload"
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={(e) =>
+                                handleIdDocumentUpload(e, "front")
+                              }
+                              className="hidden"
+                            />
+                          </div>
+                        )}
+                        {formErrors.idDocumentFront && (
+                          <div className="error-text">
+                            {formErrors.idDocumentFront}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
 
-                  {/* Progress indicator for front side */}
-                  {currentUploadingFile &&
-                    currentUploadingFile === idDocumentFrontFile && (
-                      <div className="mt-4">
-                        <UploadProgress
-                          progress={progress}
-                          fileName={currentUploadingFile.name}
-                        />
-                      </div>
-                    )}
-                </div>
-
-                {/* Reverso (Back) Upload */}
-                <div className="bg-white rounded-xl border border-black p-6">
-                  <h4 className="font-medium text-lg mb-4">
-                    Reverso de la Identificación
-                  </h4>
-
-                  {idDocumentBackFile ? (
-                    <div className="w-full">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-gray-700 font-medium">
+                      {/* Back Side Upload */}
+                      <div>
+                        <label className="block text-lg font-medium mb-2">
                           Reverso del documento
-                        </span>
-                        <div className="flex gap-2">
-                          {getImageType(idDocumentBackFile) === "image" && (
-                            <button
-                              onClick={() => {
-                                const objectUrl =
-                                  URL.createObjectURL(idDocumentBackFile);
-                                setEditingImageUrl(objectUrl);
-                                setEditingIdDocumentSide("back");
-                                setIsIdDocumentEditing(true);
-                              }}
-                              className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                              title="Editar imagen"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="text-blue-500"
-                              >
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                              </svg>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setIdDocumentBackFile(null)}
-                            className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                            title="Eliminar documento"
-                          >
-                            <X size={16} className="text-red-500" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {getImageType(idDocumentBackFile) === "image" ? (
-                        <div className="relative rounded-lg overflow-hidden border border-gray-200 mb-3">
-                          <Image
-                            src={URL.createObjectURL(idDocumentBackFile)}
-                            alt="Reverso del documento"
-                            width={300}
-                            height={200}
-                            className="w-full h-48 object-contain bg-gray-100"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
-                          <FileText size={24} className="text-gray-500" />
-                          <span className="text-sm text-gray-800 truncate">
-                            {idDocumentBackFile.name}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
-                        <CheckCircle2 size={16} className="mr-2" />
-                        <span className="text-sm">
-                          Reverso cargado correctamente
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-white"
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.classList.add("border-[#2c6e49]");
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.classList.remove("border-[#2c6e49]");
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.classList.remove("border-[#2c6e49]");
-
-                        if (
-                          e.dataTransfer.files &&
-                          e.dataTransfer.files.length > 0
-                        ) {
-                          // Create a synthetic event object to pass to the handler
-                          const fileList = e.dataTransfer.files;
-                          const event = {
-                            target: {
-                              files: fileList,
-                            },
-                          } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-                          handleIdDocumentUpload(event, "back");
-                        }
-                      }}
-                    >
-                      <div className="flex flex-col items-center justify-center">
-                        <Image
-                          src="/icons/add_ad.svg"
-                          alt="Add back ID"
-                          width={42}
-                          height={42}
-                          className="mb-4"
-                        />
-                        <p className="text-sm text-gray-500 mb-2">
-                          Arrastra o carga el reverso de tu CI aquí
-                        </p>
-                        <p className="text-xs text-gray-400 mb-4">
-                          Archivos JPG, PNG, PDF (máx. 10 MB)
-                        </p>
-                        <div>
-                          <input
-                            id="id-document-back-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleIdDocumentUpload(e, "back")}
-                            className="hidden"
-                          />
-                          <Button
-                            onClick={() =>
-                              document
-                                .getElementById("id-document-back-upload")
-                                ?.click()
-                            }
-                            className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full cursor-pointer"
-                            type="button"
-                            disabled={isSubmitting}
-                          >
-                            {isSubmitting &&
-                            currentUploadingFile === idDocumentBackFile ? (
-                              <div className="flex items-center gap-2">
-                                <InlineSpinner className="text-white" />
-                                <span>Subiendo...</span>
+                        </label>
+                        {idDocumentBackFile ? (
+                          <div className="w-full">
+                            <div className="flex justify-between items-center mb-4">
+                              <span className="text-gray-700 font-medium">
+                                Reverso del documento
+                              </span>
+                              <div className="flex gap-2">
+                                {getImageType(idDocumentBackFile) ===
+                                  "image" && (
+                                  <button
+                                    onClick={() => {
+                                      const objectUrl =
+                                        URL.createObjectURL(idDocumentBackFile);
+                                      setEditingImageUrl(objectUrl);
+                                      setEditingIdDocumentSide("back");
+                                      setIsIdDocumentEditing(true);
+                                    }}
+                                    className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                    title="Editar imagen"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="text-blue-500"
+                                    >
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setIdDocumentBackFile(null);
+                                    setFormErrors({
+                                      ...formErrors,
+                                      idDocumentBack: "",
+                                    });
+                                  }}
+                                  className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
+                                  title="Eliminar documento"
+                                >
+                                  <X size={16} className="text-red-500" />
+                                </button>
+                              </div>
+                            </div>
+                            {getImageType(idDocumentBackFile) === "image" ? (
+                              <div className="relative rounded-lg overflow-hidden border border-gray-200 mb-3">
+                                <Image
+                                  src={URL.createObjectURL(idDocumentBackFile)}
+                                  alt="Reverso del documento"
+                                  width={300}
+                                  height={200}
+                                  className="w-full h-48 object-contain bg-gray-100"
+                                />
                               </div>
                             ) : (
-                              "Seleccionar"
+                              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">
+                                <FileText size={24} className="text-gray-500" />
+                                <span className="text-sm text-gray-800 truncate">
+                                  {idDocumentBackFile.name}
+                                </span>
+                              </div>
                             )}
-                          </Button>
-                        </div>
+                            <div className="bg-green-50 border border-green-200 rounded p-2 flex items-center text-green-700">
+                              <CheckCircle2 size={16} className="mr-2" />
+                              <span className="text-sm">
+                                Reverso cargado correctamente
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={`border-2 border-dashed ${formErrors.idDocumentBack ? "border-red-500" : "border-gray-400"} rounded-lg p-6 text-center bg-white cursor-pointer`}
+                            onClick={() =>
+                              document.getElementById("back-upload")?.click()
+                            }
+                          >
+                            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-lg font-medium text-gray-900 mb-2">
+                              Sube el reverso de tu documento
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Formatos: JPG, PNG, PDF. Máximo 5MB
+                            </p>
+                            <input
+                              id="back-upload"
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={(e) =>
+                                handleIdDocumentUpload(e, "back")
+                              }
+                              className="hidden"
+                            />
+                          </div>
+                        )}
+                        {formErrors.idDocumentBack && (
+                          <div className="error-text">
+                            {formErrors.idDocumentBack}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Progress indicator for back side */}
-                  {currentUploadingFile &&
-                    currentUploadingFile === idDocumentBackFile && (
-                      <div className="mt-4">
-                        <UploadProgress
-                          progress={progress}
-                          fileName={currentUploadingFile.name}
-                        />
-                      </div>
-                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-16 border-b border-[#478C5C]/20" />
+            )}
 
-            {/* Supporting Documents */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 my-12">
-              <div>
-                <h3 className="text-2xl font-medium mb-4">
-                  Documentación de apoyo
-                </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Adjunta los documentos que respalden la legitimidad de tu
-                  campaña. Por ejemplo: cotizaciones, recibos, prescripciones
-                  médicas, testimonios de escrituras públicas o cualquier otro
-                  documento legal que demuestre la existencia de la necesidad y
-                  del beneficiario.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-xl border border-black p-8">
-                <div
-                  className="border-2 border-dashed border-gray-400 rounded-lg p-10 text-center bg-white mb-4"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.add("border-[#2c6e49]");
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.remove("border-[#2c6e49]");
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.remove("border-[#2c6e49]");
-
-                    if (
-                      e.dataTransfer.files &&
-                      e.dataTransfer.files.length > 0
-                    ) {
-                      // Create a synthetic event object to pass to the handler
-                      const fileList = e.dataTransfer.files;
-                      const event = {
-                        target: {
-                          files: fileList,
-                        },
-                      } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-                      handleSupportingDocsUpload(event);
-                    }
-                  }}
-                >
-                  <div className="flex flex-col items-center justify-center">
-                    <Image
-                      src="/icons/add_ad.svg"
-                      alt="Add media"
-                      width={42}
-                      height={42}
-                      className="mb-4"
-                    />
-                    <p className="text-sm text-gray-500 mb-4">
-                      Arrastra o sube tu foto aquí
+            {/* Sub-step 2: Supporting Documents */}
+            {currentSubStep === 2 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_2_SUB_STEPS[1].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_2_SUB_STEPS[1].description}
                     </p>
-                    <p className="text-xs text-gray-400 mb-4">
-                      Archivos JPG, PNG, PDF (máx. 10 MB)
-                    </p>
-                    <div>
-                      <input
-                        id="supporting-docs-upload"
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={handleSupportingDocsUpload}
-                        className="hidden"
-                        multiple
-                      />
-                      <Button
+                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>Opcional:</strong> Puedes continuar sin subir
+                        documentos adicionales si no los tienes disponibles.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="space-y-6">
+                      <div
+                        className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center bg-white cursor-pointer"
                         onClick={() =>
                           document
                             .getElementById("supporting-docs-upload")
                             ?.click()
                         }
-                        className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full cursor-pointer"
-                        type="button"
-                        disabled={isSubmitting}
                       >
-                        {isSubmitting ? (
-                          <div className="flex items-center gap-2">
-                            <InlineSpinner className="text-white" />
-                            <span>Subiendo...</span>
+                        <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <p className="text-lg font-medium text-gray-900 mb-2">
+                          Sube documentos de respaldo
+                        </p>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Certificados, permisos, facturas, etc.
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Formatos: JPG, PNG, PDF. Máximo 5MB por archivo
+                        </p>
+                        <input
+                          id="supporting-docs-upload"
+                          type="file"
+                          accept="image/*,.pdf"
+                          multiple
+                          onChange={handleSupportingDocsUpload}
+                          className="hidden"
+                        />
+                      </div>
+
+                      {/* Show uploaded supporting documents */}
+                      {supportingDocs.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-lg">
+                            Documentos subidos:
+                          </h4>
+                          {supportingDocs.map((file, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200"
+                            >
+                              <div className="flex items-center gap-3">
+                                <FileText size={20} className="text-gray-500" />
+                                <span className="text-sm text-gray-800 truncate max-w-[200px]">
+                                  {file.name}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => removeSupportingDoc(index)}
+                                className="text-red-500 hover:text-red-700"
+                                title="Eliminar documento"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-step 3: Campaign Story */}
+            {currentSubStep === 3 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_2_SUB_STEPS[2].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_2_SUB_STEPS[2].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="space-y-4">
+                      <label className="block text-lg font-medium mb-2">
+                        Historia completa de tu campaña
+                      </label>
+                      <textarea
+                        rows={8}
+                        placeholder="Cuenta la historia detrás de tu campaña, sus objetivos, el impacto esperado y cualquier información relevante que ayude a nuestro equipo a entender mejor tu propósito..."
+                        className={`w-full rounded-lg border ${formErrors.campaignStory ? "error-input" : "border-black"} bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4`}
+                        value={campaignStory}
+                        onChange={(e) => {
+                          setCampaignStory(e.target.value);
+                          if (e.target.value.length >= 50) {
+                            setFormErrors({ ...formErrors, campaignStory: "" });
+                          }
+                        }}
+                        maxLength={2000}
+                      />
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm text-gray-500">
+                          {campaignStory.length}/2000 caracteres
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Mínimo 50 caracteres
+                        </div>
+                      </div>
+                      {formErrors.campaignStory && (
+                        <div className="error-text">
+                          {formErrors.campaignStory}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-step 4: Reference Contact */}
+            {currentSubStep === 4 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+                  <div className="pt-0 md:pt-4">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
+                      {STEP_2_SUB_STEPS[3].title}
+                    </h2>
+                    <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                      {STEP_2_SUB_STEPS[3].description}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-black p-6 md:p-8">
+                    <div className="text-center space-y-6">
+                      {referenceContact.name ? (
+                        <div className="space-y-4">
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center justify-center mb-3">
+                              <CheckCircle2 className="h-6 w-6 text-green-600 mr-2" />
+                              <span className="text-green-800 font-medium">
+                                Contacto de referencia agregado
+                              </span>
+                            </div>
+                            <div className="text-left space-y-2">
+                              <p>
+                                <strong>Nombre:</strong> {referenceContact.name}
+                              </p>
+                              <p>
+                                <strong>Email:</strong> {referenceContact.email}
+                              </p>
+                              {referenceContact.phone && (
+                                <p>
+                                  <strong>Teléfono:</strong> +
+                                  {
+                                    findCountryByCode(
+                                      referenceContact.countryCode
+                                    )?.dialCode
+                                  }{" "}
+                                  {formatPhoneNumber(
+                                    referenceContact.phone,
+                                    referenceContact.countryCode
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowReferenceModal(true)}
+                            className="w-full border-[#478C5C] text-[#478C5C] hover:bg-[#f0f7f1]"
+                          >
+                            Editar contacto
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8">
+                            <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-600 mb-6">
+                              Aún no agregaste un contacto de referencia
+                            </p>
+                            <Button
+                              onClick={() => setShowReferenceModal(true)}
+                              className="bg-[#478C5C] hover:bg-[#3a7049] text-white rounded-full px-6 py-2"
+                            >
+                              Agregar contacto
+                            </Button>
+                          </div>
+                          <div className="flex items-center justify-center">
+                            <label className="flex items-center text-sm text-gray-600">
+                              <input
+                                type="checkbox"
+                                className="mr-2 h-4 w-4"
+                                defaultChecked
+                              />
+                              No quiero agregar una referencia por ahora.
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-step 5: Review and Submit */}
+            {currentSubStep === 5 && (
+              <div className="w-full py-6 md:py-12">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl md:text-5xl font-bold mb-4">
+                    {STEP_2_SUB_STEPS[4].title}
+                  </h2>
+                  <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                    {STEP_2_SUB_STEPS[4].description}
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl border border-black p-6 md:p-8 max-w-4xl mx-auto">
+                  <div className="space-y-8">
+                    {/* ID Documents Summary */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 text-[#478C5C]">
+                        Documento de Identidad
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="font-medium mb-2">Anverso</p>
+                          {idDocumentFrontFile ? (
+                            <div className="flex items-center gap-2 text-green-600">
+                              <CheckCircle2 size={16} />
+                              <span className="text-sm">
+                                Subido correctamente
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-red-600 text-sm">
+                              No subido
+                            </span>
+                          )}
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="font-medium mb-2">Reverso</p>
+                          {idDocumentBackFile ? (
+                            <div className="flex items-center gap-2 text-green-600">
+                              <CheckCircle2 size={16} />
+                              <span className="text-sm">
+                                Subido correctamente
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-red-600 text-sm">
+                              No subido
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Supporting Documents Summary */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 text-[#478C5C]">
+                        Documentación de respaldo
+                      </h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        {supportingDocs.length > 0 ? (
+                          <div>
+                            <p className="font-medium mb-2">
+                              {supportingDocs.length} documento(s) subido(s)
+                            </p>
+                            <div className="space-y-1">
+                              {supportingDocs.map((file, index) => (
+                                <div
+                                  key={index}
+                                  className="text-sm text-gray-600"
+                                >
+                                  • {file.name}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ) : (
-                          "Seleccionar"
+                          <p className="text-gray-600">
+                            Sin documentos adicionales
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Campaign Story Summary */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 text-[#478C5C]">
+                        Historia de la campaña
+                      </h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        {campaignStory ? (
+                          <p className="text-gray-700">
+                            {campaignStory.substring(0, 200)}
+                            {campaignStory.length > 200 && "..."}
+                          </p>
+                        ) : (
+                          <p className="text-red-600">No proporcionada</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Reference Contact Summary */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 text-[#478C5C]">
+                        Contacto de referencia
+                      </h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        {referenceContact.name ? (
+                          <div className="space-y-2">
+                            <p>
+                              <strong>Nombre:</strong> {referenceContact.name}
+                            </p>
+                            <p>
+                              <strong>Email:</strong> {referenceContact.email}
+                            </p>
+                            <p>
+                              <strong>Teléfono:</strong> +
+                              {
+                                findCountryByCode(referenceContact.countryCode)
+                                  ?.phoneCode
+                              }{" "}
+                              {formatPhoneNumber(
+                                referenceContact.phone,
+                                referenceContact.countryCode
+                              )}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-red-600">No proporcionado</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="text-center pt-6">
+                      <Button
+                        onClick={handleSubmitVerification}
+                        disabled={isSubmitting}
+                        className="bg-[#478C5C] hover:bg-[#3a7049] text-white px-8 py-3 rounded-full text-lg"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <InlineSpinner className="mr-2" />
+                            Enviando solicitud...
+                          </>
+                        ) : (
+                          "Enviar solicitud de verificación"
                         )}
                       </Button>
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
 
-                {/* In the Supporting Documents Upload UI section, add the progress indicator: */}
-                {currentUploadingFile &&
-                  supportingDocs.some(
-                    (doc) => doc === currentUploadingFile
-                  ) && (
-                    <div className="mt-4">
-                      <UploadProgress
-                        progress={progress}
-                        fileName={currentUploadingFile.name}
-                      />
-                    </div>
-                  )}
+          {/* Navigation Buttons */}
+          <div className="py-6 md:py-12">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto rounded-full bg-white text-[#478C5C] border-[#478C5C] hover:bg-[#f0f7f1] px-8"
+                onClick={
+                  currentSubStep === 1
+                    ? () => {
+                        setAnimationDirection("prev");
+                        setIsAnimating(true);
+                        setTimeout(() => {
+                          setVerificationStep(1);
+                          setCurrentSubStep(1);
+                          window.scrollTo(0, 0);
+                          setTimeout(() => {
+                            setIsAnimating(false);
+                          }, 50);
+                        }, 500);
+                      }
+                    : prevSubStep
+                }
+                disabled={isSubStepAnimating || isSubmitting}
+              >
+                {currentSubStep === 1 ? "Volver al inicio" : "Anterior"}
+              </Button>
 
-                {supportingDocs.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium mb-3">
-                      Documentos cargados
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {supportingDocs.map((doc, index) => (
-                        <div
-                          key={index}
-                          className="relative rounded-lg overflow-hidden border border-gray-200"
-                        >
-                          {getImageType(doc) === "image" ? (
-                            <>
-                              <div className="relative aspect-[4/3] w-full overflow-hidden">
-                                <Image
-                                  src={URL.createObjectURL(doc)}
-                                  alt={`Documento ${index + 1}`}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                              <div className="p-2 bg-white">
-                                <p className="text-sm font-medium truncate">
-                                  {doc.name}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {Math.round(doc.size / 1024)} KB
-                                </p>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex items-center gap-3 bg-white p-3">
-                              <div className="flex-shrink-0">
-                                <FileText size={24} className="text-blue-500" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium truncate">
-                                  {doc.name}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {Math.round(doc.size / 1024)} KB
-                                </p>
-                              </div>
-                            </div>
-                          )}
+              <div className="flex items-center gap-2">
+                {/* Progress dots */}
+                {STEP_2_SUB_STEPS.map((step, index) => (
+                  <div
+                    key={step.id}
+                    className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                      index + 1 === currentSubStep
+                        ? "bg-[#478C5C] scale-125"
+                        : index + 1 < currentSubStep
+                          ? "bg-[#478C5C]"
+                          : "bg-gray-300"
+                    }`}
+                  />
+                ))}
+              </div>
 
-                          <div className="absolute top-2 right-2 flex gap-1">
-                            {getImageType(doc) === "image" && (
-                              <button
-                                onClick={() => {
-                                  const objectUrl = URL.createObjectURL(doc);
-                                  setEditingImageUrl(objectUrl);
-                                  setEditingImageIndex(index);
-                                  setIsSupportingDocEditing(true);
-                                }}
-                                className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                                title="Editar imagen"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="text-blue-500"
-                                >
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => removeSupportingDoc(index)}
-                              className="bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100"
-                              title="Eliminar documento"
-                            >
-                              <X size={16} className="text-red-500" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              <Button
+                className="w-full sm:w-auto rounded-full bg-[#478C5C] hover:bg-[#3a7049] px-8"
+                onClick={
+                  currentSubStep === 4 ? handleSubmitVerification : nextSubStep
+                }
+                disabled={isSubStepAnimating || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <InlineSpinner className="text-white" />
+                    <span>Enviando...</span>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="mt-16 border-b border-[#478C5C]/20" />
-
-            {/* Campaign History */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 my-12">
-              <div>
-                <h3 className="text-2xl font-medium mb-4">
-                  Historia de la campaña
-                </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Describe cómo se van a emplear los fondos recaudados, por qué
-                  esta campaña es importante para ti, cómo planeas llevarlo a
-                  cabo y quién eres.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-xl border border-black p-8">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-lg font-medium mb-2">
-                      Cuéntanos tu historia
-                    </label>
-                    <div className="relative">
-                      <textarea
-                        placeholder="Ejemplo: Su conservación depende de nosotros"
-                        rows={4}
-                        className="w-full rounded-lg border border-black bg-white shadow-sm focus:border-[#478C5C] focus:ring-[#478C5C] focus:ring-0 p-4"
-                        maxLength={500}
-                        value={campaignStory}
-                        onChange={(e) => setCampaignStory(e.target.value)}
-                      />
-                      <div className="text-sm text-gray-500 text-right mt-1">
-                        {campaignStory.length}/500
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-16 border-b border-[#478C5C]/20" />
-
-            {/* Contact Reference */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 my-12">
-              <div>
-                <h3 className="text-2xl font-medium mb-4">
-                  Contacto de referencia (opcional)
-                </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Incluye un contacto que pueda confirmar la autenticidad de tu
-                  campaña.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-xl border border-black p-8">
-                {referenceContact.name ? (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">Contacto de referencia</h4>
-                      <button
-                        onClick={() => setShowReferenceModal(true)}
-                        className="text-[#478C5C] text-sm font-medium"
-                      >
-                        Editar
-                      </button>
-                    </div>
-                    <div className="bg-[#f5f7e9] p-4 rounded-lg">
-                      <p>
-                        <span className="font-medium">Nombre:</span>{" "}
-                        {referenceContact.name}
-                      </p>
-                      <p>
-                        <span className="font-medium">Email:</span>{" "}
-                        {referenceContact.email}
-                      </p>
-                      <p>
-                        <span className="font-medium">Teléfono:</span>{" "}
-                        {referenceContact.phone}
-                      </p>
-                    </div>
-                  </div>
+                ) : currentSubStep === 4 ? (
+                  "Enviar solicitud"
                 ) : (
-                  <>
-                    <div className="text-center mb-6">
-                      <p className="text-gray-600">
-                        Aún no agregaste un contacto de referencia
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-3">
-                      <Button
-                        className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full py-3"
-                        onClick={() => setShowReferenceModal(true)}
-                      >
-                        Agregar contacto
-                      </Button>
-                      <div className="flex items-center justify-center mt-3">
-                        <input
-                          type="checkbox"
-                          id="no-reference"
-                          className="mr-2 h-4 w-4 text-[#478C5C] focus:ring-[#478C5C]"
-                        />
-                        <label
-                          htmlFor="no-reference"
-                          className="text-sm text-gray-600"
-                        >
-                          No quiero agregar una referencia por ahora.
-                        </label>
-                      </div>
-                    </div>
-                  </>
+                  "Siguiente"
                 )}
-              </div>
-            </div>
-
-            {/* Final submission - Step 2 */}
-            <div className="mt-12 max-w-3xl mx-auto">
-              <div className="bg-white rounded-xl border border-black p-8">
-                <div className="flex flex-col items-center text-center">
-                  <p className="font-medium text-xl mb-4">
-                    Revisa tu información antes de continuar
-                  </p>
-                  <p className="text-gray-600 mb-8">
-                    Asegúrate de haber completado todos los datos necesarios. En
-                    el siguiente paso podrás enviar tu solicitud.
-                  </p>
-                  <div className="flex flex-col w-full gap-3 mt-4">
-                    <Button
-                      className="bg-[#2c6e49] hover:bg-[#235539] text-white rounded-full py-3"
-                      onClick={handleSubmitVerification}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                          <InlineSpinner className="text-white" />
-                          <span>Enviando solicitud...</span>
-                        </div>
-                      ) : (
-                        "Enviar solicitud de verificación"
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-[#2c6e49] text-[#2c6e49] rounded-full py-3"
-                      onClick={() => setVerificationStep(1)}
-                      disabled={isSubmitting}
-                    >
-                      Regresar a información
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              </Button>
             </div>
           </div>
         </div>
