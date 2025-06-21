@@ -2321,17 +2321,20 @@ export function CampaignVerificationView({
                             <p>
                               <strong>Email:</strong> {referenceContact.email}
                             </p>
-                            <p>
-                              <strong>Teléfono:</strong> +
-                              {
-                                findCountryByCode(referenceContact.countryCode)
-                                  ?.phoneCode
-                              }{" "}
-                              {formatPhoneNumber(
-                                referenceContact.phone,
-                                referenceContact.countryCode
-                              )}
-                            </p>
+                            {referenceContact.phone && (
+                              <p>
+                                <strong>Teléfono:</strong> +
+                                {
+                                  findCountryByCode(
+                                    referenceContact.countryCode
+                                  )?.dialCode
+                                }{" "}
+                                {formatPhoneNumber(
+                                  referenceContact.phone,
+                                  referenceContact.countryCode
+                                )}
+                              </p>
+                            )}
                           </div>
                         ) : (
                           <p className="text-red-600">No proporcionado</p>
