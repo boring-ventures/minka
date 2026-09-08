@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma as db } from '@/lib/prisma'
+import { z } from 'zod'
+import { refreshLibelulaDonation } from '@/lib/libelula/reconciliation'
 import { formatDonationStatusDto } from '@/lib/api/donation-dto'
 
 export async function GET(req: Request) {
@@ -7,15 +9,18 @@ export async function GET(req: Request) {
     const url = new URL(req.url)
     const donationId = url.searchParams.get('donationId')
 
-    if (!donationId) {
+    if (!z.string().uuid().safeParse(donationId).success) {
       return NextResponse.json(
         { success: false, error: 'Missing donationId' },
         { status: 400 },
       )
     }
 
+    try { await refreshLibelulaDonation(donationId!, 'status') }
+    catch { console.error('[LIBELULA][STATUS_RETRY]', donationId) }
+
     const donation = await db.donation.findUnique({
-      where: { id: donationId },
+      where: { id: donationId! },
       select: {
         id: true,
         paymentStatus: true,
@@ -26,7 +31,11 @@ export async function GET(req: Request) {
         total_amount: true,
         currency: true,
         updatedAt: true,
-        triptoPaymentId: true,
+        providerPaymentId: true,
+        providerAmount: true,
+        providerTipAmount: true,
+        providerTotalAmount: true,
+        providerCurrency: true,
       },
     })
 

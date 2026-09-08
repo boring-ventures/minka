@@ -1,9 +1,6 @@
 import { addMoney } from "@/lib/money";
 
 export const BISA_PAYMENT_CURRENCY = "BOB";
-export const TRIPTO_CARD_CURRENCIES = ["USD"] as const;
-export const DEFAULT_TRIPTO_CARD_CURRENCY = "USD";
-export const TRIPTO_OPEN_AMOUNT_TOLERANCE = 0.01;
 
 type DonationAmountSource = {
   amount: unknown;
@@ -23,21 +20,6 @@ export function normalizeCurrency(value: unknown) {
   if (typeof value !== "string") return null;
   const currency = value.trim().toUpperCase();
   return currency || null;
-}
-
-export function resolveTriptoCardCurrency(value: unknown) {
-  const currency = normalizeCurrency(value);
-
-  if (
-    currency &&
-    TRIPTO_CARD_CURRENCIES.includes(
-      currency as (typeof TRIPTO_CARD_CURRENCIES)[number]
-    )
-  ) {
-    return currency;
-  }
-
-  return DEFAULT_TRIPTO_CARD_CURRENCY;
 }
 
 export function parseProviderAmount(value: unknown) {

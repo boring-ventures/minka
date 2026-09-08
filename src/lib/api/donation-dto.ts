@@ -32,7 +32,11 @@ export type DonationStatusDto = {
   totalAmount: number | null;
   currency: string;
   updatedAt: Date;
-  triptoPaymentId: string | null;
+  providerPaymentId: string | null;
+  providerAmount: number | null;
+  providerTipAmount: number | null;
+  providerTotalAmount: number | null;
+  providerCurrency: string | null;
 };
 
 function read(body: DonationRequestBody, camelKey: string, snakeKey: string) {
@@ -102,7 +106,11 @@ export function formatDonationStatusDto(donation: {
   total_amount: unknown;
   currency: string;
   updatedAt: Date;
-  triptoPaymentId: string | null;
+  providerPaymentId: string | null;
+  providerAmount: unknown;
+  providerTipAmount: unknown;
+  providerTotalAmount: unknown;
+  providerCurrency: string | null;
 }): DonationStatusDto {
   return {
     id: donation.id,
@@ -116,6 +124,10 @@ export function formatDonationStatusDto(donation: {
       donation.total_amount == null ? null : Number(donation.total_amount),
     currency: donation.currency,
     updatedAt: donation.updatedAt,
-    triptoPaymentId: donation.triptoPaymentId,
+    providerPaymentId: donation.providerPaymentId,
+    providerAmount: donation.providerAmount == null ? null : Number(donation.providerAmount),
+    providerTipAmount: donation.providerTipAmount == null ? null : Number(donation.providerTipAmount),
+    providerTotalAmount: donation.providerTotalAmount == null ? null : Number(donation.providerTotalAmount),
+    providerCurrency: donation.providerCurrency,
   };
 }

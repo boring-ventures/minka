@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -54,6 +55,9 @@ export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp } = useAuth();
+  const searchParams = useSearchParams();
+  const shouldSignInAfterSignUp =
+    searchParams.get("paymentSignup") === "1";
 
   const {
     register,
@@ -80,12 +84,15 @@ export function SignUpForm() {
       setIsLoading(true);
       setIsSubmitting(true);
 
-      await signUp({
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-      });
+      await signUp(
+        {
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+        },
+        { autoSignIn: shouldSignInAfterSignUp },
+      );
 
       // Note: Success toast and redirection are now handled in the auth provider
       reset();

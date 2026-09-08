@@ -6,3 +6,6 @@
 
 [functions."bisa-reconcile"]
   schedule = "*/15 * * * *"
+
+[functions."libelula-reconcile"]
+  schedule = "*/15 * * * *"

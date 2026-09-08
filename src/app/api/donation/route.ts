@@ -11,11 +11,8 @@ import {
   hashDonationClaimToken,
 } from "@/lib/donations/claim-token";
 import { addMoney, roundMoney } from "@/lib/money";
-import { resolveTriptoCardCurrency } from "@/lib/payments/provider-validation";
-import {
-  convertUsdToBob,
-  getUsdToBobExchangeRate,
-} from "@/lib/platform-settings";
+import { createCardCheckout } from "@/lib/libelula/checkout";
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,12 +40,12 @@ export async function POST(request: NextRequest) {
 
     // Parse the request body
     const body = await request.json();
+    if ((body.paymentMethod ?? body.payment_method) === "card") return createCardCheckout(body);
     const {
       campaignId,
       amount,
       tipAmount = 0,
       paymentMethod,
-      currency,
       clientAuthState,
       message,
       isAnonymous = false,
@@ -141,17 +138,8 @@ export async function POST(request: NextRequest) {
 
     const donationTipAmount = roundMoney(rawDonationTipAmount);
     const totalAmount = addMoney(donationAmount, donationTipAmount);
-    const isCardPayment = paymentMethod === "card";
-    const cardCurrency = resolveTriptoCardCurrency(currency);
-    const usdToBobExchangeRate = isCardPayment
-      ? await getUsdToBobExchangeRate()
-      : null;
-    const storedDonationAmount = usdToBobExchangeRate
-      ? convertUsdToBob(donationAmount, usdToBobExchangeRate)
-      : donationAmount;
-    const storedTipAmount = usdToBobExchangeRate
-      ? convertUsdToBob(donationTipAmount, usdToBobExchangeRate)
-      : donationTipAmount;
+    const storedDonationAmount = donationAmount;
+    const storedTipAmount = donationTipAmount;
     const storedTotalAmount = addMoney(storedDonationAmount, storedTipAmount);
     const claimToken =
       !effectiveUserId ? generateDonationClaimToken() : null;
@@ -172,7 +160,7 @@ export async function POST(request: NextRequest) {
           paymentMethod: paymentMethodEnum,
           paymentStatus: 'pending',
           paymentProvider:
-            paymentMethod === 'card' ? 'tripto' : 'bisa',
+            paymentMethod === 'qr' ? 'bisa' : null,
           message: message || null,
           isAnonymous: effectiveIsAnonymous,
           notificationEnabled,
@@ -188,18 +176,6 @@ export async function POST(request: NextRequest) {
         `;
       }
 
-      if (usdToBobExchangeRate) {
-        await tx.$executeRaw`
-          update "donations"
-          set
-            "exchange_rate" = ${usdToBobExchangeRate},
-            "provider_amount" = ${donationAmount},
-            "provider_tip_amount" = ${donationTipAmount},
-            "provider_total_amount" = ${totalAmount},
-            "provider_currency" = ${cardCurrency}
-          where "id" = ${createdDonation.id}::uuid
-        `;
-      }
 
       return createdDonation;
     })

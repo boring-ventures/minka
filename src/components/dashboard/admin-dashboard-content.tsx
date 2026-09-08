@@ -34,6 +34,9 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
   const [automaticExchangeRate, setAutomaticExchangeRate] = useState<
     number | null
   >(null);
+  const [officialPublishedOn, setOfficialPublishedOn] = useState<string | null>(
+    null
+  );
   const [exchangeRateMode, setExchangeRateMode] = useState<
     "automatic" | "manual"
   >("automatic");
@@ -62,15 +65,20 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
 
         const rate = Number(data.usdToBobExchangeRate);
         const automaticRate =
-          data.automaticUsdToBobExchangeRate == null
+          data.officialUsdToBobExchangeRate == null
             ? null
-            : Number(data.automaticUsdToBobExchangeRate);
-        const mode = data.mode === "manual" ? "manual" : "automatic";
+            : Number(data.officialUsdToBobExchangeRate);
+        const mode = data.source === "manual_fallback" ? "manual" : "automatic";
 
         setAutomaticExchangeRate(
           Number.isFinite(automaticRate) ? automaticRate : null
         );
         setExchangeRateMode(mode);
+        setOfficialPublishedOn(
+          typeof data.officialPublishedOn === "string"
+            ? data.officialPublishedOn
+            : null
+        );
         setIsManualExchangeRateEditing(false);
         setExchangeRate(Number.isFinite(rate) ? String(rate) : "");
       } catch (error) {
@@ -141,8 +149,8 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
       setIsManualExchangeRateEditing(false);
 
       toast({
-        title: "Tipo de cambio actualizado",
-        description: `Valor manual: 1 USD = Bs. ${savedRate.toFixed(4)}`,
+        title: "Respaldo manual actualizado",
+        description: `Se usará solo si el BCB no está disponible: 1 USD = Bs. ${savedRate.toFixed(4)}`,
       });
     } catch (error) {
       toast({
@@ -179,9 +187,9 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
 
       const rate = Number(data.usdToBobExchangeRate);
       const automaticRate =
-        data.automaticUsdToBobExchangeRate == null
-          ? rate
-          : Number(data.automaticUsdToBobExchangeRate);
+          data.officialUsdToBobExchangeRate == null
+            ? rate
+            : Number(data.officialUsdToBobExchangeRate);
 
       setExchangeRate(String(rate));
       setAutomaticExchangeRate(
@@ -191,7 +199,7 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
       setIsManualExchangeRateEditing(false);
 
       toast({
-        title: "Tipo de cambio automático activado",
+        title: "Respaldo actualizado con la cotización del BCB",
         description: `1 USD = Bs. ${rate.toFixed(4)}`,
       });
     } catch (error) {
@@ -258,7 +266,7 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
               htmlFor="usd-to-bob-exchange-rate"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Tipo de cambio bs/$:
+              Tipo de cambio USD / BOB
             </label>
             <Input
               id="usd-to-bob-exchange-rate"
@@ -276,15 +284,15 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
               placeholder="6.9600"
             />
             <p className="text-sm text-gray-500 mt-2">
-              Valor automático de dolarbluebolivia.click menos 10 centavos para
-              margen
+              Cotización oficial del Banco Central de Bolivia (BCB)
               {automaticExchangeRate
                 ? `: 1 USD = Bs. ${automaticExchangeRate.toFixed(4)}`
-                : "."}
+                : " no disponible en este momento."}
+              {officialPublishedOn ? ` Vigente: ${officialPublishedOn}.` : ""}
             </p>
             {exchangeRateMode === "manual" && (
               <p className="mt-1 text-sm text-amber-700">
-                Actualmente se está usando un cambio manual.
+                El BCB no respondió; se está usando el respaldo manual.
               </p>
             )}
           </div>
@@ -301,7 +309,7 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
                 ? "Guardando..."
                 : isManualExchangeRateEditing
                   ? "Guardar"
-                  : "Cambio manual"}
+                  : "Editar respaldo"}
             </Button>
             {exchangeRateMode === "manual" && !isManualExchangeRateEditing && (
               <Button
@@ -310,7 +318,7 @@ export function AdminDashboardContent({ profile }: AdminDashboardContentProps) {
                 disabled={isLoadingExchangeRate || isSavingExchangeRate}
                 onClick={handleAutomaticExchangeRate}
               >
-                Automático
+                Consultar BCB
               </Button>
             )}
           </div>

@@ -11,4 +11,13 @@ DIRECT_URL="postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[YOUR
 # Storage
 NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=avatars
 
-# Email 
+# Email
+
+# Libélula card payments
+# Use the Libélula development key locally. Production values belong in Netlify environment variables.
+LIBELULA_BASE_URL=https://api.libelula.bo
+LIBELULA_APP_KEY=your-libelula-app-key
+LIBELULA_CHECKOUT_SECRET=generate-a-random-64-character-secret
+LIBELULA_RECONCILE_SECRET=generate-a-second-random-64-character-secret
+LIBELULA_MERCHANT_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_CARD_PAYMENTS_ENABLED=false

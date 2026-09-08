@@ -42,6 +42,10 @@ type SignUpData = {
   lastName: string
 }
 
+type SignUpOptions = {
+  autoSignIn?: boolean
+}
+
 type AuthContextType = {
   user: User | null
   session: Session | null
@@ -52,7 +56,7 @@ type AuthContextType = {
     password: string,
     rememberUser?: boolean,
   ) => Promise<void>
-  signUp: (data: SignUpData) => Promise<void>
+  signUp: (data: SignUpData, options?: SignUpOptions) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -460,7 +464,10 @@ export function AuthProvider({
     }
   }
 
-  const signUp = async (data: SignUpData) => {
+  const signUp = async (
+    data: SignUpData,
+    options: SignUpOptions = {},
+  ) => {
     try {
       setIsLoading(true)
       const response = await fetch('/api/auth/register', {
@@ -507,6 +514,22 @@ export function AuthProvider({
       const hasDonationClaimIntent =
         typeof window !== 'undefined' &&
         Boolean(localStorage.getItem(DONATION_CLAIM_INTENT_KEY))
+
+      if (options.autoSignIn) {
+        try {
+          await signIn(data.email, data.password, true)
+        } catch (error) {
+          // Supabase installations that require email confirmation create the
+          // account first, but do not issue a session until it is confirmed.
+          toast({
+            title: 'Confirma tu correo',
+            description:
+              'Tu cuenta fue creada. Confirma el correo recibido e inicia sesión para volver al pago.',
+          })
+          router.push('/sign-in?registered=true')
+        }
+        return responseData
+      }
 
       toast({
         title: 'Éxito',

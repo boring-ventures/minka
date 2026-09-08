@@ -61,8 +61,8 @@ export async function PUT(request: Request) {
 
       return NextResponse.json({
         usdToBobExchangeRate: automaticRate,
-        automaticUsdToBobExchangeRate: automaticRate,
-        mode: "automatic",
+        officialUsdToBobExchangeRate: automaticRate,
+        source: "bcb",
       });
     }
 
@@ -84,7 +84,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({
       usdToBobExchangeRate: savedRate,
-      mode: "manual",
+      source: "manual_fallback",
     });
   } catch (error) {
     const authResponse = adminAuthErrorResponse(error);

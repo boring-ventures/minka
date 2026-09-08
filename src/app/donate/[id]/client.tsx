@@ -18,6 +18,7 @@ import { Footer } from '@/components/views/landing-page/Footer'
 import { createBrowserClient } from '@supabase/ssr'
 import { useCampaign } from '@/hooks/useCampaign'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { CardPaymentOptions } from '@/components/donate/CardPaymentOptions'
 import { QRPaymentStep } from '@/components/donate/QRPaymentStep'
 import { toast } from '@/components/ui/use-toast'
 import { formatRegionDisplayName } from '@/lib/region-utils'
@@ -38,9 +39,9 @@ import { addMoney, roundMoney } from '@/lib/money'
 const PENDING_DONATION_KEY = 'minka_pending_donation'
 const PENDING_CARD_CHECKOUT_KEY =
   'minka_pending_card_checkout'
-const DISABLED_PAYMENT_METHODS = new Set(['card'])
+const DISABLED_PAYMENT_METHODS = new Set(process.env.NEXT_PUBLIC_CARD_PAYMENTS_ENABLED === 'true' ? [] : ['card'])
 const CARD_DISABLED_MESSAGE =
-  'Por los cambios en el contexto económico del país, temporalmente las donaciones internacionales quedan suspendidas hasta adaptar nuestra infraestructura de pagos, disculpa las molestias.'
+  'El pago con tarjeta no está disponible en este momento. Puedes donar mediante código QR.'
 
 const DONATION_AMOUNTS_BS = [
   { value: 50 },
@@ -67,9 +68,9 @@ const PAYMENT_METHODS = [
   },
   {
     id: 'card',
-    title: 'Tarjeta de crédito/débito Internacional*',
+    title: 'Tarjeta de crédito/débito',
     description:
-      'Opción para pagos desde el exterior de Bolivia solamente.',
+      'Paga de forma segura con tu tarjeta a través de Libélula.',
     icon: <CreditCard className='h-6 w-6' />,
   },
 ]
@@ -95,6 +96,9 @@ export function DonatePageContent({
 
   // Add user state
   const [user, setUser] = useState<User | null>(null)
+  const [cardCurrency, setCardCurrency] = useState<'USD' | 'BOB'>('USD')
+  const [paymentEmail, setPaymentEmail] = useState('')
+  const checkoutAttemptRef = useRef<{ signature: string; key: string } | null>(null)
 
   // State variables
   const [selectedAmount, setSelectedAmount] = useState<
@@ -144,7 +148,7 @@ export function DonatePageContent({
     string | null
   >(null)
 
-  // Read redirect parameters from Tripto checkout
+  // Read redirect parameters from Libélula checkout
   const searchParams = useSearchParams()
   const donationIdFromRedirect =
     searchParams.get('donationId')
@@ -197,6 +201,7 @@ export function DonatePageContent({
       try {
         const { data } = await supabase.auth.getUser()
         setUser(data?.user || null)
+        setPaymentEmail(current => current || data?.user?.email || '')
       } catch (error) {
         console.error(
           'Error checking authentication:',
@@ -257,7 +262,7 @@ export function DonatePageContent({
     checkPendingDonation()
   }, [supabase, campaignId])
 
-  // Tripto redirect + poll using handler
+  // Libélula redirect + poll using handler
   useEffect(() => {
     if (!donationIdFromRedirect) return
 
@@ -281,9 +286,9 @@ export function DonatePageContent({
       : roundMoney(Number.parseFloat(customTipAmount) || 0)
   const totalAmount = addMoney(donationAmount, platformFee)
   const currencyPrefix =
-    paymentMethod === 'card' ? '$' : 'Bs.'
+    paymentMethod === 'card' && cardCurrency === 'USD' ? '$' : 'Bs.'
   const donationAmounts =
-    paymentMethod === 'card'
+    paymentMethod === 'card' && cardCurrency === 'USD'
       ? DONATION_AMOUNTS_CARD
       : DONATION_AMOUNTS_BS
   const isDonationAmountValid =
@@ -291,7 +296,8 @@ export function DonatePageContent({
     donationAmount >= 1 &&
     donationAmount <= 50000
   const isPaymentFormReady =
-    Boolean(paymentMethod) && isDonationAmountValid
+    Boolean(paymentMethod) && isDonationAmountValid &&
+    (paymentMethod !== 'card' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paymentEmail.trim()))
   const isDonationAnonymous = user
     ? wantsAnonymousDonation
     : true
@@ -456,15 +462,15 @@ export function DonatePageContent({
       saveDonationClaimIntent(intent)
     }
 
+    const redirectToSignIn = shouldRedirectToSignInAfterDonation(completedDonationId)
+    const redirectToSignup = shouldRedirectToSignupAfterDonation(completedDonationId)
     sessionStorage.removeItem(PENDING_CARD_CHECKOUT_KEY)
     localStorage.removeItem(PENDING_DONATION_KEY)
 
     if (
       !user &&
       intent &&
-      shouldRedirectToSignInAfterDonation(
-        completedDonationId,
-      )
+      redirectToSignIn
     ) {
       router.push('/sign-in?donationClaim=1')
       return
@@ -473,9 +479,7 @@ export function DonatePageContent({
     if (
       !user &&
       intent &&
-      shouldRedirectToSignupAfterDonation(
-        completedDonationId,
-      )
+      redirectToSignup
     ) {
       router.push('/sign-up?donationClaim=1')
       return
@@ -522,10 +526,10 @@ export function DonatePageContent({
           const paymentStatus =
             data?.donation?.paymentStatus
           const dbAmount = Number(
-            data?.donation?.amount ?? 0,
+            data?.donation?.providerAmount ?? data?.donation?.amount ?? 0,
           )
           const dbTip = Number(
-            data?.donation?.tipAmount ?? 0,
+            data?.donation?.providerTipAmount ?? data?.donation?.tipAmount ?? 0,
           )
 
           // 1) amount: set either selectedAmount (if matches predefined) or customAmount
@@ -549,6 +553,7 @@ export function DonatePageContent({
 
           // 3) ensure payment method in UI (optional but consistent)
           setPaymentMethod('card')
+          setCardCurrency(data?.donation?.providerCurrency === 'USD' ? 'USD' : 'BOB')
 
           if (paymentStatus === 'completed') {
             setInfoMessage(null)
@@ -563,7 +568,7 @@ export function DonatePageContent({
             return
           }
 
-          if (paymentStatus === 'failed') {
+          if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
             setInfoMessage(null)
             setErrorMessage(
               'Lo siento, tu pago no se completó. Por favor inténtalo nuevamente.',
@@ -583,7 +588,7 @@ export function DonatePageContent({
       }
 
       setInfoMessage(
-        'Aún no pudimos confirmar el estado de tu pago. En algunos casos la confirmación puede tardar un poco más. Espera 1–2 minutos y presiona ‘Revisar estado’ o vuelve a intentar el pago.',
+        'Aún no pudimos confirmar el estado de tu pago. En algunos casos la confirmación puede tardar un poco más. Espera 1–2 minutos y presiona ‘Revisar estado’.',
       )
       setIsSubmitting(false)
       setReviewState(true)
@@ -634,7 +639,7 @@ export function DonatePageContent({
         toast({
           title: 'Monto inválido',
           description:
-            'El monto máximo de donación es Bs. 50,000.',
+            `El monto máximo de donación es ${currencyPrefix} 50,000.`,
           variant: 'destructive',
         })
       }
@@ -645,9 +650,32 @@ export function DonatePageContent({
   const handlePaymentMethodSelect = (method: string) => {
     if (DISABLED_PAYMENT_METHODS.has(method)) return
 
+    if (method !== paymentMethod) {
+      setSelectedAmount(null)
+      setCustomAmount('')
+      setCustomTipAmount('')
+    }
     setPaymentMethod(method)
     setErrorMessage(null)
     setInfoMessage(null)
+  }
+
+  const handleRefreshPaymentSession = async () => {
+    const { data, error } = await supabase.auth.getUser()
+
+    if (error || !data.user) {
+      toast({
+        title: 'Aún no vemos una sesión activa',
+        description:
+          'Termina de crear tu cuenta e iniciar sesión en la otra pestaña; luego vuelve a presionar Refrescar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setUser(data.user)
+    setPaymentEmail(data.user.email || '')
+    router.refresh()
   }
 
   // Handle donation confirmation
@@ -657,6 +685,8 @@ export function DonatePageContent({
       return
     }
 
+    if (!isPaymentFormReady || isSubmitting) return
+
     // Clear any previous errors
     setErrorMessage(null)
     setInfoMessage(null)
@@ -665,23 +695,41 @@ export function DonatePageContent({
     const selectedMethod = paymentMethod || 'qr'
 
     try {
-      // 🔹 Branch 1: Tripto (card)
+      // 🔹 Branch 1: Libélula (card)
       if (selectedMethod === 'card') {
         const checkoutSignature = {
           campaignId,
           donorId: user?.id ?? null,
           amount: donationAmount,
           tipAmount: platformFee,
+          currency: cardCurrency,
+          paymentEmail: paymentEmail.trim(),
+          isAnonymous: isDonationAnonymous,
           wantsAccountAfterDonation,
           wantsSignInAfterDonation,
         }
-        sessionStorage.removeItem(PENDING_CARD_CHECKOUT_KEY)
+        const signature = JSON.stringify(checkoutSignature)
+        if (!checkoutAttemptRef.current) {
+          try {
+            const stored = JSON.parse(sessionStorage.getItem(PENDING_CARD_CHECKOUT_KEY) || 'null')
+            if (stored?.signature && stored?.idempotencyKey) checkoutAttemptRef.current = { signature: stored.signature, key: stored.idempotencyKey }
+          } catch { /* Invalid browser state starts a fresh checkout. */ }
+        }
+        if (checkoutAttemptRef.current?.signature !== signature) {
+          checkoutAttemptRef.current = { signature, key: crypto.randomUUID() }
+        }
+        const idempotencyKey = checkoutAttemptRef.current.key
+        const previousCheckout = JSON.parse(sessionStorage.getItem(PENDING_CARD_CHECKOUT_KEY) || 'null')
+        sessionStorage.setItem(PENDING_CARD_CHECKOUT_KEY, JSON.stringify({
+          ...(previousCheckout?.idempotencyKey === idempotencyKey ? previousCheckout : {}),
+          ...checkoutSignature, signature, idempotencyKey,
+        }))
 
         setInfoMessage(
           'Estamos redirigiendo a la plataforma segura de pago por tarjeta, espera por favor.',
         )
         const response = await fetch(
-          '/api/tripto/payment',
+          '/api/payments/card',
           {
             method: 'POST',
             headers: {
@@ -699,6 +747,10 @@ export function DonatePageContent({
               isAnonymous: isDonationAnonymous,
               notificationEnabled: false,
               paymentMethod: selectedMethod,
+              currency: cardCurrency,
+              paymentEmail: paymentEmail.trim(),
+              idempotencyKey,
+              customAmount: !selectedAmount,
             }),
           },
         )
@@ -714,9 +766,20 @@ export function DonatePageContent({
 
           if (error === 'PAYMENT_PROVIDER_UNAVAILABLE') {
             userMessage =
-              'El servicio de pagos está teniendo problemas en este momento. Tu donación no se ha realizado. Por favor, inténtalo nuevamente en unos minutos o utiliza otro método de pago.'
+              'El servicio de pagos está teniendo problemas en este momento. No pudimos abrir el pago. Inténtalo nuevamente en unos minutos; conservaremos tu solicitud.'
           }
 
+          if (error === 'CHECKOUT_IN_PROGRESS') {
+            userMessage = 'Estamos preparando tu pago. Espera 30 segundos y vuelve a intentarlo; se conservará la misma donación.'
+          }
+          if (error === 'CHECKOUT_FINISHED' && data.donationId) {
+            sessionStorage.setItem(PENDING_CARD_CHECKOUT_KEY, JSON.stringify({ ...checkoutSignature, donationId: data.donationId, claimToken: data.claimToken }))
+            await pollDonationStatus(data.donationId)
+            return
+          }
+          if (error === 'INVALID_PAYMENT_INPUT') {
+            userMessage = 'Revisa el correo, la moneda y los montos de tu donación.'
+          }
           if (error === 'PAYMENT_PROVIDER_ERROR') {
             userMessage =
               'Hubo un problema al iniciar el pago. Por favor, inténtalo nuevamente.'
@@ -728,11 +791,13 @@ export function DonatePageContent({
           return
         }
 
-        // Redirect user to Tripto checkout
+        // Redirect user to Libélula checkout
         sessionStorage.setItem(
           PENDING_CARD_CHECKOUT_KEY,
           JSON.stringify({
             ...checkoutSignature,
+            signature,
+            idempotencyKey,
             url: data.url,
             donationId: data.donationId ?? null,
             claimToken: data.claimToken ?? null,
@@ -1155,17 +1220,7 @@ export function DonatePageContent({
                                       : 'text-gray-900'
                                   }`}
                                 >
-                                  {method.id === 'card' ? (
-                                    <>
-                                      Tarjeta de
-                                      crédito/débito{' '}
-                                      <strong>
-                                        Internacional*
-                                      </strong>
-                                    </>
-                                  ) : (
-                                    method.title
-                                  )}
+                                  {method.title}
                                 </p>
                                 <p
                                   className={`text-sm mt-1 ${
@@ -1196,6 +1251,23 @@ export function DonatePageContent({
                       })}
                     </TooltipProvider>
                   </div>
+                  {paymentMethod === 'card' && (
+                    <CardPaymentOptions
+                      currency={cardCurrency}
+                      onCurrencyChange={currency => {
+                        if (currency === cardCurrency) return
+                        setCardCurrency(currency)
+                        setSelectedAmount(null)
+                        setCustomAmount('')
+                        setCustomTipAmount('')
+                      }}
+                      email={paymentEmail}
+                      onEmailChange={setPaymentEmail}
+                      onRefreshSession={handleRefreshPaymentSession}
+                      authenticated={Boolean(user)}
+                      disabled={isSubmitting}
+                    />
+                  )}
                 </section>
 
                 <section
@@ -1263,12 +1335,13 @@ export function DonatePageContent({
                       </div>
 
                       <p className='mt-6'>
-                        <span className=' font-semibold'>
+                        <span className='font-semibold'>
                           Importante:
                         </span>{' '}
                         El tipo de cambio no es el oficial,
                         sino el paralelo.
                       </p>
+
                     </div>
 
                     <div className='mt-16 mb-8'>

@@ -4,10 +4,14 @@ import { multiplyMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
 export const DEFAULT_USD_TO_BOB_EXCHANGE_RATE = 6.96;
-export const AUTOMATIC_EXCHANGE_RATE_MARGIN = 0.1;
-const AUTOMATIC_EXCHANGE_RATE_URL =
-  "https://api.dolarbluebolivia.click/v1/officialRate";
+export const BCB_USD_QUOTATION_URL =
+  "https://www.bcb.gob.bo/librerias/indicadores/otras/otras_imprimir.php";
 const PLATFORM_SETTINGS_ID = "default";
+
+export type OfficialUsdToBobExchangeRate = {
+  rate: number;
+  publishedOn: string | null;
+};
 
 type Queryable =
   | Pick<typeof prisma, "$queryRaw" | "$executeRaw">
@@ -32,34 +36,57 @@ export function convertUsdToBob(amountUsd: number, exchangeRate: number) {
   return multiplyMoney(amountUsd, exchangeRate);
 }
 
-export async function getAutomaticUsdToBobExchangeRate() {
+export function parseBcbOfficialUsdToBobExchangeRate(
+  page: string,
+): OfficialUsdToBobExchangeRate {
+  const normalizedPage = page
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&Oacute;/gi, "Ó")
+    .replace(/&oacute;/gi, "ó")
+    .replace(/&Aacute;/gi, "Á")
+    .replace(/&aacute;/gi, "á")
+    .replace(/&Eacute;/gi, "É")
+    .replace(/&eacute;/gi, "é")
+    .replace(/&Iacute;/gi, "Í")
+    .replace(/&iacute;/gi, "í")
+    .replace(/&Uacute;/gi, "Ú")
+    .replace(/&uacute;/gi, "ú");
+  const officialSection = normalizedPage.match(
+    /Cotizaci(?:ó|&oacute;)n Oficial del Boliviano[\s\S]*?<\/table>/i,
+  )?.[0];
+  const cells = officialSection?.match(/<td[^>]*>[\s\S]*?<\/td>/gi) ?? [];
+  const amountCell = cells.at(-1)?.replace(/<[^>]+>/g, "").trim();
+  const rate = Number(amountCell?.replace(/,/g, ""));
+
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new Error("El BCB no publicó un tipo de cambio USD válido");
+  }
+
+  const dateMatch = normalizedPage.match(
+    /TABLA DE COTIZACIONES DEL\s+(\d{1,2}\s+DE\s+[A-ZÁÉÍÓÚÑ]+\s+DE\s+\d{4})/i,
+  );
+
+  return {
+    rate: normalizeExchangeRate(rate),
+    publishedOn: dateMatch?.[1] ?? null,
+  };
+}
+
+export async function getOfficialUsdToBobExchangeRate() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const response = await fetch(AUTOMATIC_EXCHANGE_RATE_URL, {
+    const response = await fetch(BCB_USD_QUOTATION_URL, {
       cache: "no-store",
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      throw new Error("No se pudo cargar el tipo de cambio automático");
+      throw new Error("No se pudo cargar la cotización oficial del BCB");
     }
 
-    const payload = (await response.json()) as {
-      data?: {
-        blue?: {
-          buy?: unknown;
-        };
-      };
-    };
-    const blueBuy = Number(payload.data?.blue?.buy);
-
-    if (!Number.isFinite(blueBuy) || blueBuy <= AUTOMATIC_EXCHANGE_RATE_MARGIN) {
-      throw new Error("Tipo de cambio automático inválido");
-    }
-
-    return normalizeExchangeRate(blueBuy - AUTOMATIC_EXCHANGE_RATE_MARGIN);
+    return parseBcbOfficialUsdToBobExchangeRate(await response.text());
   } finally {
     clearTimeout(timeout);
   }
@@ -81,14 +108,10 @@ async function getStoredExchangeRateRow(db: Queryable = prisma) {
 export async function getUsdToBobExchangeRate(db: Queryable = prisma) {
   const row = await getStoredExchangeRateRow(db);
 
-  if (row?.updated_by_id) {
-    return normalizeExchangeRate(row.usd_to_bob_exchange_rate);
-  }
-
   try {
-    return await getAutomaticUsdToBobExchangeRate();
+    return (await getOfficialUsdToBobExchangeRate()).rate;
   } catch (error) {
-    console.error("Automatic exchange rate fallback:", error);
+    console.error("BCB exchange rate fallback:", error);
   }
 
   const rate =
@@ -101,27 +124,30 @@ export async function getUsdToBobExchangeRateSettings() {
   const storedUsdToBobExchangeRate = row
     ? normalizeExchangeRate(row.usd_to_bob_exchange_rate)
     : null;
-  const mode = row?.updated_by_id ? "manual" : "automatic";
+  const hasManualFallback = Boolean(row?.updated_by_id);
 
-  let automaticUsdToBobExchangeRate: number | null = null;
+  let officialUsdToBobExchangeRate: OfficialUsdToBobExchangeRate | null = null;
   try {
-    automaticUsdToBobExchangeRate = await getAutomaticUsdToBobExchangeRate();
+    officialUsdToBobExchangeRate = await getOfficialUsdToBobExchangeRate();
   } catch (error) {
-    console.error("Error fetching automatic exchange rate:", error);
+    console.error("Error fetching BCB exchange rate:", error);
   }
 
   const usdToBobExchangeRate =
-    mode === "manual"
-      ? storedUsdToBobExchangeRate!
-      : (automaticUsdToBobExchangeRate ??
-        storedUsdToBobExchangeRate ??
-        DEFAULT_USD_TO_BOB_EXCHANGE_RATE);
+    officialUsdToBobExchangeRate?.rate ??
+    storedUsdToBobExchangeRate ??
+    DEFAULT_USD_TO_BOB_EXCHANGE_RATE;
 
   return {
     usdToBobExchangeRate: normalizeExchangeRate(usdToBobExchangeRate),
-    automaticUsdToBobExchangeRate,
+    officialUsdToBobExchangeRate: officialUsdToBobExchangeRate?.rate ?? null,
+    officialPublishedOn: officialUsdToBobExchangeRate?.publishedOn ?? null,
     storedUsdToBobExchangeRate,
-    mode,
+    source: officialUsdToBobExchangeRate
+      ? "bcb"
+      : hasManualFallback
+        ? "manual_fallback"
+        : "default_fallback",
   };
 }
 
@@ -158,7 +184,7 @@ export async function upsertUsdToBobExchangeRate({
 }
 
 export async function useAutomaticUsdToBobExchangeRate() {
-  const automaticRate = await getAutomaticUsdToBobExchangeRate();
+  const officialRate = await getOfficialUsdToBobExchangeRate();
 
   await prisma.$executeRaw`
     insert into "platform_settings" (
@@ -169,7 +195,7 @@ export async function useAutomaticUsdToBobExchangeRate() {
     )
     values (
       ${PLATFORM_SETTINGS_ID},
-      ${automaticRate},
+      ${officialRate.rate},
       null,
       now()
     )
@@ -180,5 +206,5 @@ export async function useAutomaticUsdToBobExchangeRate() {
       "updated_at" = now()
   `;
 
-  return automaticRate;
+  return officialRate.rate;
 }
