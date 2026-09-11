@@ -13,10 +13,10 @@ export function DonorComments({ comments }: DonorCommentsProps) {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl md:text-4xl font-semibold text-[#2c6e49]">
-        Palabras de apoyo de donadores
+        Palabras de apoyo de aportantes
       </h2>
       <p className="text-gray-600">
-        Realiza tu donación y comparte palabras de apoyo a esta causa.
+        Realiza tu aporte y comparte palabras de apoyo a esta causa.
       </p>
 
       <div className="space-y-6">

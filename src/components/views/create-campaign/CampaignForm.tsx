@@ -284,7 +284,7 @@ const CampaignPreview = ({
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between text-sm">
                     <span>Recaudado Bs. 1.200,00</span>
-                    <span>250 donadores</span>
+                    <span>250 aportantes</span>
                   </div>
                   <div className="h-2 w-full bg-[#e8f0e9] rounded-full overflow-hidden">
                     <div
@@ -305,7 +305,7 @@ const CampaignPreview = ({
 
                 <div className="space-y-3">
                   <Button className="w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-4">
-                    Donar ahora
+                    Aportar ahora
                   </Button>
                   <Button
                     variant="outline"
@@ -338,10 +338,10 @@ const CampaignPreview = ({
               {/* Comments */}
               <div className="mt-6 bg-white p-5 rounded-lg border border-gray-200">
                 <h2 className="text-lg font-medium text-[#2c6e49] mb-4">
-                  Comentarios de donadores
+                  Comentarios de aportantes
                 </h2>
                 <p className="text-gray-600 text-sm">
-                  Aún no hay comentarios en esta campaña. Los donadores podrán
+                  Aún no hay comentarios en esta campaña. Los aportantes podrán
                   dejar sus comentarios aquí.
                 </p>
               </div>
@@ -1637,7 +1637,7 @@ export function CampaignForm() {
       id: 2,
       title: "Selecciona una categoría",
       description:
-        "Categoriza una categoría y tu campaña va ser encontrada más fácilmente por los donadores potenciales.",
+        "Categoriza una categoría y tu campaña va ser encontrada más fácilmente por los aportantes potenciales.",
     },
     {
       id: 3,
@@ -2031,8 +2031,8 @@ export function CampaignForm() {
                             <p>
                               Minka descuenta una <b>comisión</b> antes de
                               transferir los fondos al beneficiario: <b>5%</b>{" "}
-                              en donaciones locales por QR y <b>11%</b> en
-                              donaciones internacionales por tarjeta.
+                              en aportes locales por QR y <b>11%</b> en
+                              aportes internacionales por tarjeta.
                             </p>
                           </div>
                         </div>
@@ -2943,7 +2943,7 @@ export function CampaignForm() {
                   </h2>
                   <p className="text-lg text-gray-600">
                     La verificación asegura la transparencia de tu campaña, te
-                    ayuda a generar confianza en los donantes y a destacar.{" "}
+                    ayuda a generar confianza en los aportantes y a destacar.{" "}
                     <span className="font-bold">
                       ¡Te recomendamos no saltarte este paso!
                     </span>
@@ -3384,7 +3384,7 @@ export function CampaignForm() {
             <div className="rounded-md border border-[#478C5C]/20 bg-[#478C5C]/5 px-4 py-3 text-sm text-gray-700">
               <p>
                 Estas instituciones ya fueron registradas y corroboradas por
-                Minka para dar más confianza a los donantes.
+                Minka para dar más confianza a los aportantes.
               </p>
               <InstitutionReviewDialog
                 trigger={

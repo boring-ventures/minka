@@ -59,7 +59,7 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
       fetchDonations(1);
     } else {
       console.error("Campaign ID is missing", campaign);
-      setError("No se pudo cargar las donaciones: ID de campaña faltante");
+      setError("No se pudieron cargar los aportes: ID de campaña faltante");
       setIsLoading(false);
     }
   }, [campaign?.id]);
@@ -105,11 +105,11 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
         }, 0);
       } else {
         console.error("❌ No donation data returned");
-        setError("No se pudieron cargar las donaciones");
+        setError("No se pudieron cargar los aportes");
       }
     } catch (err) {
       console.error("❌ Error fetching donations:", err);
-      setError("Error al cargar las donaciones");
+      setError("Error al cargar los aportes");
     } finally {
       setIsLoading(false);
       // Log final state after loading is complete
@@ -136,7 +136,7 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
   return (
     <div className="w-full px-6 md:px-8 lg:px-16 xl:px-24 py-6 flex flex-col min-h-[calc(100vh-200px)]">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
-        Donaciones
+        Aportes
       </h2>
 
       {/* Donations section */}
@@ -157,10 +157,10 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Nombre del donador
+                    Nombre del aportante
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Monto donado
+                    Monto aportado
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600">
                     Propina a Minka
@@ -204,10 +204,10 @@ export function DonationsTab({ campaign }: DonationsTabProps) {
         ) : (
           <div className="text-center py-10 bg-gray-50 rounded-lg flex-1 flex flex-col justify-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No hay donaciones aún
+              No hay aportes aún
             </h3>
             <p className="text-sm text-gray-500 max-w-md mx-auto">
-              Tu campaña no ha recibido donaciones todavía.
+              Tu campaña no ha recibido aportes todavía.
             </p>
           </div>
         )}

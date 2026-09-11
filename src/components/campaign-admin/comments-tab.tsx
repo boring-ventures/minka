@@ -263,7 +263,7 @@ export function CommentsTab({ campaign }: CommentsTabProps) {
                         </p>
                         {comment.donation_amount && (
                           <div className="mt-1 text-sm text-[#2c6e49] font-medium">
-                            Donó Bs. {comment.donation_amount.toLocaleString()}
+                            Aportó Bs. {comment.donation_amount.toLocaleString()}
                           </div>
                         )}
                       </div>

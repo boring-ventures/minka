@@ -12,16 +12,15 @@ import { PartnersSection } from '@/components/views/landing-page/PartnersSection
 
 export const metadata: Metadata = {
   title:
-    'MINKA - Impulsa sueños, transforma vidas | Plataforma de donaciones Bolivia',
+    'MINKA - Impulsa sueños, transforma vidas | Plataforma de crowdfunding en Bolivia',
   description:
-    'Únete a MINKA, la plataforma de donaciones líder en Bolivia. Apoya causas sociales, crea campañas de recaudación y transforma vidas. ¡Empieza tu campaña hoy!',
+    'Únete a MINKA, la plataforma de crowdfunding líder en Bolivia. Apoya causas sociales, crea campañas de recaudación y transforma vidas. ¡Empieza tu campaña hoy!',
   keywords: [
-    'donaciones Bolivia',
     'crowdfunding Bolivia',
     'causas sociales',
     'recaudación de fondos',
     'ayuda social Bolivia',
-    'plataforma donaciones',
+    'plataforma de crowdfunding',
     'MINKA',
     'transformar vidas',
   ],
@@ -31,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'MINKA - Impulsa sueños, transforma vidas',
     description:
-      'Únete a MINKA, la plataforma de donaciones líder en Bolivia. Apoya causas sociales y transforma vidas.',
+      'Únete a MINKA, la plataforma de crowdfunding líder en Bolivia. Apoya causas sociales y transforma vidas.',
     type: 'website',
     locale: 'es_ES',
     url: '/',
@@ -41,7 +40,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'MINKA - Impulsa sueños, transforma vidas',
     description:
-      'Únete a MINKA, la plataforma de donaciones líder en Bolivia. Apoya causas sociales y transforma vidas.',
+      'Únete a MINKA, la plataforma de crowdfunding líder en Bolivia. Apoya causas sociales y transforma vidas.',
   },
 }
 

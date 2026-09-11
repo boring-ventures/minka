@@ -353,7 +353,7 @@ export function CampaignProgress({
 
     displayedDonors.push({
       id: `anonymous-${anonymousUsed}`,
-      name: 'Donante anónimo',
+      name: 'Aportante anónimo',
       amount: 0,
     })
     anonymousUsed += 1
@@ -435,7 +435,7 @@ export function CampaignProgress({
             {(currentAmount || 0).toLocaleString()}
           </span>
           <span className='text-[#2c6e49] font-medium'>
-            {donorsCount || 0} donadores
+            {donorsCount || 0} aportantes
           </span>
         </div>
         <div className='flex items-center gap-3'>
@@ -480,7 +480,7 @@ export function CampaignProgress({
                     disabled
                     className='w-full cursor-not-allowed rounded-full bg-gray-200 py-6 text-gray-500 hover:bg-gray-200'
                   >
-                    Donar ahora
+                    Aportar ahora
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -492,7 +492,7 @@ export function CampaignProgress({
         ) : (
           <Link href={`/donate/${campaignId}`}>
             <Button className='w-full bg-[#2c6e49] hover:bg-[#1e4d33] text-white rounded-full py-6'>
-              Donar ahora
+              Aportar ahora
             </Button>
           </Link>
         )}
@@ -537,7 +537,7 @@ export function CampaignProgress({
         {displayedDonors.length > 0 && (
           <div className='border-t border-gray-200 pt-4 text-left'>
             <h3 className='mb-2 text-sm font-semibold text-[#2c6e49]'>
-              Últimos donadores
+              Últimos aportantes
             </h3>
             <ul className='space-y-1 text-[12.5px] leading-relaxed text-gray-600'>
               {displayedDonors.map((donor) => (

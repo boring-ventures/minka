@@ -325,7 +325,7 @@ dispatch({ type: "SET_END_DATE", payload: endDate.toISOString() });
               </h2>
               <p className="text-xl text-gray-600 leading-relaxed">
                 Categoriza una categoría y tu campaña va ser encontrada más
-                fácilmente por los donadores potenciales.
+                fácilmente por los aportantes potenciales.
               </p>
             </div>
             <div className="bg-white rounded-xl border border-black p-8">
@@ -428,7 +428,7 @@ dispatch({ type: "SET_END_DATE", payload: endDate.toISOString() });
                 ¿Dónde se llevará a cabo?
               </h2>
               <p className="text-xl text-gray-600 leading-relaxed">
-                Indica dónde se realizará tu campaña para que los donantes sepan
+                Indica dónde se realizará tu campaña para que los aportantes sepan
                 dónde tendrá impacto.
               </p>
             </div>

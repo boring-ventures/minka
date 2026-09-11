@@ -115,7 +115,7 @@ export function CampaignCard({
               <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-100">
                 <div className="grid grid-cols-2 gap-4 text-[#2c6e49]">
                   <div className="overflow-hidden">
-                    <p className="font-medium text-sm truncate">Donadores</p>
+                    <p className="font-medium text-sm truncate">Aportantes</p>
                     <p className="text-lg font-bold truncate">{donorCount}</p>
                   </div>
                   <div className="overflow-hidden">
@@ -158,7 +158,7 @@ export function CampaignCard({
           {/* Donate Button - Fixed height */}
           <div className="h-10">
             <Button className="w-full h-full bg-white text-[#2c6e49] hover:bg-[#2c6e49] hover:text-white text-lg shadow-none border-0 rounded-full justify-start transition-all duration-300">
-              Donar ahora <ArrowRight className="ml-2 h-5 w-5" />
+              Aportar ahora <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
         </div>
